@@ -14,17 +14,23 @@ const CatalogSelector: React.FC = () => {
         >
           Catálogo de Servicios
         </button>
-        <button
+{/*         <button
           onClick={() => navigate("/catalogs/classifications")}
           className="bg-gray-800 hover:bg-gray-700 p-6 rounded-lg shadow-lg text-white text-lg font-semibold"
         >
           Clasificación de Servicios
-        </button>
+        </button> */}
         <button
           onClick={() => navigate("/catalogs/status")}
           className="bg-gray-800 hover:bg-gray-700 p-6 rounded-lg shadow-lg text-white text-lg font-semibold"
         >
           Estatus de Servicios
+        </button>
+        <button
+          onClick={() => navigate("/catalogs/classif")}
+          className="bg-gray-800 hover:bg-gray-700 p-6 rounded-lg shadow-lg text-white text-lg font-semibold"
+        >
+          Clasificación de Servicios
         </button>
       </div>
     </div>
