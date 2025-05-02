@@ -1,5 +1,3 @@
-# backend/app/routers/extra_service_sale_assignment.py
-
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
@@ -12,8 +10,12 @@ router = APIRouter(
 )
 
 class SaleAssignIn(BaseModel):
-    sale_id: int
-    service_id: int
+    id_service_per_customer: int
+    id_sale_flight: int
+    id_sale_employee: int
+    work_order: str
+    status: bool = True
+    sale_employee_deleted: bool = False
 
 @router.get("/")
 def get_all(db: Session = Depends(get_db)):

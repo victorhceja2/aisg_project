@@ -12,9 +12,16 @@ router = APIRouter(
 )
 
 class CatalogServiceIn(BaseModel):
-    name: str
-    description: str
-    status: str
+    id_service_status: int
+    id_service_classification: int
+    service_code: str
+    service_name: str
+    service_description: str = ""
+    service_aircraft_type: bool = False
+    service_by_time: bool = False
+    min_time_configured: bool = False
+    service_technicians_included: bool = False
+    whonew: str = "system"
 
 @router.get("/")
 def get_services(db: Session = Depends(get_db)):

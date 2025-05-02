@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 
@@ -19,7 +18,7 @@ const CatalogStatus: React.FC = () => {
     if (!newStatus) return;
     try {
       await axios.post("http://localhost:8000/catalog/service-status/", {
-        name: newStatus,
+        status_name: newStatus,
       });
       setNewStatus("");
       fetchStatuses();
@@ -56,9 +55,9 @@ const CatalogStatus: React.FC = () => {
         </thead>
         <tbody>
           {statuses.map((s) => (
-            <tr key={s.id} className="text-center border-t border-gray-700">
-              <td className="p-2">{s.id}</td>
-              <td className="p-2">{s.name}</td>
+            <tr key={s.id_service_status} className="text-center border-t border-gray-700">
+              <td className="p-2">{s.id_service_status}</td>
+              <td className="p-2">{s.status_name}</td>
             </tr>
           ))}
         </tbody>

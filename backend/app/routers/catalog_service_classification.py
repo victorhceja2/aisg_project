@@ -12,8 +12,8 @@ router = APIRouter(
 )
 
 class ClassificationIn(BaseModel):
-    name: str
-    status: str
+    service_classification_name: str
+    whonew: str = "system"
 
 @router.get("/")
 def get_classifications(db: Session = Depends(get_db)):

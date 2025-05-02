@@ -1,4 +1,3 @@
-// src/components/catalogs/ServicePerCustomer.tsx
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 
@@ -11,7 +10,7 @@ const ServicePerCustomer: React.FC = () => {
     minutes_included: 0,
     minutes_minimum: 0,
     fuselage_type: "",
-    technicians_included: 0
+    technicians_included: 0,
   });
 
   const fetchRecords = async () => {
@@ -24,12 +23,13 @@ const ServicePerCustomer: React.FC = () => {
   };
 
   const handleAdd = async () => {
-    if (!form.id_service || !form.id_client || !form.id_company) {
-      alert("Los campos ID Servicio, Cliente y Empresa son obligatorios");
-      return;
-    }
     try {
-      await axios.post("http://localhost:8000/catalog/service-per-customer/", form);
+      await axios.post("http://localhost:8000/catalog/service-per-customer/", {
+        ...form,
+        id_service: parseInt(form.id_service),
+        id_client: parseInt(form.id_client),
+        id_company: parseInt(form.id_company),
+      });
       fetchRecords();
       setForm({
         id_service: "",
@@ -38,7 +38,7 @@ const ServicePerCustomer: React.FC = () => {
         minutes_included: 0,
         minutes_minimum: 0,
         fuselage_type: "",
-        technicians_included: 0
+        technicians_included: 0,
       });
     } catch (err) {
       console.error("Error al guardar", err);
@@ -65,7 +65,7 @@ const ServicePerCustomer: React.FC = () => {
         <button className="bg-blue-600 hover:bg-blue-700 px-4 py-1 rounded" onClick={handleAdd}>Agregar</button>
       </div>
 
-      <table className="w-full table-auto bg-gray-900 rounded">
+      <table className="w-full table-auto bg-gray-900 rounded text-sm">
         <thead>
           <tr className="bg-gray-700">
             <th className="p-2">ID</th>

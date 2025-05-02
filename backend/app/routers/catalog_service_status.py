@@ -12,7 +12,7 @@ router = APIRouter(
 )
 
 class StatusIn(BaseModel):
-    name: str
+    status_name: str
 
 @router.get("/")
 def get_statuses(db: Session = Depends(get_db)):

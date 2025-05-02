@@ -4,7 +4,7 @@ import axios from "axios";
 const CatalogClassif: React.FC = () => {
   const [classifications, setClassifications] = useState<any[]>([]);
   const [newName, setNewName] = useState("");
-  const [newStatus, setNewStatus] = useState("Activo");
+  const [newStatus, setNewStatus] = useState("Activo"); // Este campo no se usa en BD, lo podemos omitir más adelante si no lo requiere.
 
   const fetchClassifications = async () => {
     try {
@@ -18,10 +18,9 @@ const CatalogClassif: React.FC = () => {
   const handleAdd = async () => {
     if (!newName) return;
     try {
-        await axios.post("http://localhost:8000/catalog/service-classification/", {
-            name: newName,
-            status: newStatus, // ✅ agregar esto
-          });
+      await axios.post("http://localhost:8000/catalog/service-classification/", {
+        service_classification_name: newName,
+      });
       setNewName("");
       setNewStatus("Activo");
       fetchClassifications();
@@ -50,6 +49,7 @@ const CatalogClassif: React.FC = () => {
           className="text-black px-2 py-1 mr-2 rounded"
           value={newStatus}
           onChange={(e) => setNewStatus(e.target.value)}
+          disabled
         >
           <option value="Activo">Activo</option>
           <option value="Inactivo">Inactivo</option>
@@ -71,9 +71,9 @@ const CatalogClassif: React.FC = () => {
         </thead>
         <tbody>
           {classifications.map((c) => (
-            <tr key={c.id} className="text-center border-t border-gray-700">
-              <td className="p-2">{c.id}</td>
-              <td className="p-2">{c.name}</td>
+            <tr key={c.id_service_classification} className="text-center border-t border-gray-700">
+              <td className="p-2">{c.id_service_classification}</td>
+              <td className="p-2">{c.service_classification_name}</td>
             </tr>
           ))}
         </tbody>

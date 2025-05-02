@@ -1,5 +1,3 @@
-# backend/app/routers/extra_company_configuration.py
-
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
@@ -12,9 +10,9 @@ router = APIRouter(
 )
 
 class ConfigIn(BaseModel):
-    company_id: int
-    key: str
-    value: str
+    id_company: int
+    applies_detail: bool
+    status: bool
 
 @router.get("/")
 def get_all(db: Session = Depends(get_db)):
