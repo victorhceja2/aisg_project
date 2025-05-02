@@ -1,0 +1,13 @@
+
+version: "3.9"
+
+services:
+  fastapi:
+    build: .
+    container_name: aisg_backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app
+    env_file:
+      - .env
