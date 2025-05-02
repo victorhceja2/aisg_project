@@ -1,26 +1,38 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import axios from "axios";
 
 const CatalogClassif: React.FC = () => {
-  const [classifications, setClassifications] = useState([
-    { id: 1, nombre: "Mantenimiento", estatus: "Activo" },
-    { id: 2, nombre: "Inspección", estatus: "Inactivo" },
-  ]);
-
+  const [classifications, setClassifications] = useState<any[]>([]);
   const [newName, setNewName] = useState("");
   const [newStatus, setNewStatus] = useState("Activo");
 
-  const handleAdd = () => {
-    if (!newName) return;
-
-    const id = classifications.length + 1;
-    setClassifications([
-      ...classifications,
-      { id, nombre: newName, estatus: newStatus },
-    ]);
-
-    setNewName("");
-    setNewStatus("Activo");
+  const fetchClassifications = async () => {
+    try {
+      const res = await axios.get("http://localhost:8000/catalog/service-classification/");
+      setClassifications(res.data);
+    } catch (err) {
+      console.error("Error al obtener clasificaciones", err);
+    }
   };
+
+  const handleAdd = async () => {
+    if (!newName) return;
+    try {
+        await axios.post("http://localhost:8000/catalog/service-classification/", {
+            name: newName,
+            status: newStatus, // ✅ agregar esto
+          });
+      setNewName("");
+      setNewStatus("Activo");
+      fetchClassifications();
+    } catch (err) {
+      console.error("Error al agregar clasificación", err);
+    }
+  };
+
+  useEffect(() => {
+    fetchClassifications();
+  }, []);
 
   return (
     <div className="text-white p-10">
@@ -55,15 +67,13 @@ const CatalogClassif: React.FC = () => {
           <tr className="bg-gray-700">
             <th className="p-2">ID</th>
             <th className="p-2">Nombre</th>
-            <th className="p-2">Estatus</th>
           </tr>
         </thead>
         <tbody>
           {classifications.map((c) => (
             <tr key={c.id} className="text-center border-t border-gray-700">
               <td className="p-2">{c.id}</td>
-              <td className="p-2">{c.nombre}</td>
-              <td className="p-2">{c.estatus}</td>
+              <td className="p-2">{c.name}</td>
             </tr>
           ))}
         </tbody>

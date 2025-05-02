@@ -1,92 +1,40 @@
-// React-based placeholder UI for AISG catalog modules
-// Professional layout, dummy data, no backend connection yet
-
-import React from 'react';
-
-const dummyData = Array.from({ length: 5 }, (_, i) => ({
-  id: i + 1,
-  name: `Item ${i + 1}`,
-  description: `Descripción del elemento ${i + 1}`,
-  status: i % 2 === 0 ? 'Activo' : 'Inactivo'
-}));
+import React, { useState } from 'react';
+import CatalogServices from './CatalogServices';
+import CatalogClassif from './CatalogClassif';
+import CatalogStatus from './CatalogStatus';
+import ExtraCompanyConfiguration from './ExtraCompanyConfiguration';
+import ServicePerCustomer from './ServicePerCustomer';
+import ExtraServiceSaleAssignment from './ExtraServiceSaleAssignment';
 
 const CatalogScreens: React.FC = () => {
+  const [selected, setSelected] = useState<string>('services');
+
+  const renderCatalog = () => {
+    switch (selected) {
+      case 'services': return <CatalogServices />;
+      case 'classification': return <CatalogClassif />;
+      case 'status': return <CatalogStatus />;
+      case 'company': return <ExtraCompanyConfiguration />;
+      case 'customer': return <ServicePerCustomer />;
+      case 'assignment': return <ExtraServiceSaleAssignment />;
+      default: return <CatalogServices />;
+    }
+  };
+
   return (
-    <div className="p-6 space-y-6">
-      <h1 className="text-2xl font-bold">Catálogos AISG</h1>
+    <div className="p-6 space-y-6 text-white">
+      <h1 className="text-2xl font-bold mb-4">Catálogos AISG</h1>
 
-      <div className="space-y-8">
-        {/* Catálogo de Servicios */}
-        <div className="bg-gray-800 p-6 rounded-lg">
-          <h2 className="text-xl font-semibold mb-4">Catálogo de Servicios</h2>
-          <table className="w-full text-left">
-            <thead>
-              <tr className="border-b">
-                <th>ID</th>
-                <th>Nombre</th>
-                <th>Descripción</th>
-                <th>Estatus</th>
-              </tr>
-            </thead>
-            <tbody>
-              {dummyData.map((item) => (
-                <tr key={item.id} className="border-b hover:bg-gray-700">
-                  <td className="py-2">{item.id}</td>
-                  <td>{item.name}</td>
-                  <td>{item.description}</td>
-                  <td>{item.status}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Clasificación de Servicios */}
-        <div className="bg-gray-800 p-6 rounded-lg">
-          <h2 className="text-xl font-semibold mb-4">Clasificación de Servicios</h2>
-          <table className="w-full text-left">
-            <thead>
-              <tr className="border-b">
-                <th>ID</th>
-                <th>Nombre</th>
-                <th>Estatus</th>
-              </tr>
-            </thead>
-            <tbody>
-              {dummyData.map((item) => (
-                <tr key={item.id} className="border-b hover:bg-gray-700">
-                  <td className="py-2">{item.id}</td>
-                  <td>{item.name}</td>
-                  <td>{item.status}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Estatus de Servicios */}
-        <div className="bg-gray-800 p-6 rounded-lg">
-          <h2 className="text-xl font-semibold mb-4">Estatus de Servicios</h2>
-          <table className="w-full text-left">
-            <thead>
-              <tr className="border-b">
-                <th>ID</th>
-                <th>Nombre</th>
-                <th>Estatus</th>
-              </tr>
-            </thead>
-            <tbody>
-              {dummyData.map((item) => (
-                <tr key={item.id} className="border-b hover:bg-gray-700">
-                  <td className="py-2">{item.id}</td>
-                  <td>{item.name}</td>
-                  <td>{item.status}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+      <div className="flex flex-wrap gap-4 mb-6">
+        <button onClick={() => setSelected('services')} className={`px-4 py-2 rounded ${selected === 'services' ? 'bg-blue-600' : 'bg-gray-700'}`}>Servicios</button>
+        <button onClick={() => setSelected('classification')} className={`px-4 py-2 rounded ${selected === 'classification' ? 'bg-blue-600' : 'bg-gray-700'}`}>Clasificación</button>
+        <button onClick={() => setSelected('status')} className={`px-4 py-2 rounded ${selected === 'status' ? 'bg-blue-600' : 'bg-gray-700'}`}>Estatus</button>
+        <button onClick={() => setSelected('company')} className={`px-4 py-2 rounded ${selected === 'company' ? 'bg-blue-600' : 'bg-gray-700'}`}>Configuración Compañía</button>
+        <button onClick={() => setSelected('customer')} className={`px-4 py-2 rounded ${selected === 'customer' ? 'bg-blue-600' : 'bg-gray-700'}`}>Servicios por Cliente</button>
+        <button onClick={() => setSelected('assignment')} className={`px-4 py-2 rounded ${selected === 'assignment' ? 'bg-blue-600' : 'bg-gray-700'}`}>Asignación Extra</button>
       </div>
+
+      {renderCatalog()}
     </div>
   );
 };
