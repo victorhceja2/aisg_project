@@ -1,6 +1,4 @@
-# backend/app/routers/service_per_customer.py
-
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from app.models import ServicePerCustomer
@@ -21,8 +19,11 @@ class ServiceCustomerIn(BaseModel):
     technicians_included: int
 
 @router.get("/")
-def get_all(db: Session = Depends(get_db)):
-    return db.query(ServicePerCustomer).all()
+def get_all(fuselage_type: str = Query(None), db: Session = Depends(get_db)):
+    query = db.query(ServicePerCustomer)
+    if fuselage_type:
+        query = query.filter(ServicePerCustomer.fuselage_type.ilike(f"%{fuselage_type}%"))
+    return query.all()
 
 @router.post("/")
 def create_item(data: ServiceCustomerIn, db: Session = Depends(get_db)):

@@ -1,6 +1,4 @@
-# backend/app/routers/catalog_services.py
-
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Query
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from app.models import CatalogService
@@ -24,8 +22,16 @@ class CatalogServiceIn(BaseModel):
     whonew: str = "system"
 
 @router.get("/")
-def get_services(db: Session = Depends(get_db)):
-    return db.query(CatalogService).all()
+def get_services(search: str = Query(None), db: Session = Depends(get_db)):
+    query = db.query(CatalogService)
+    if search:
+        search_pattern = f"%{search}%"
+        query = query.filter(
+            CatalogService.service_code.ilike(search_pattern) |
+            CatalogService.service_name.ilike(search_pattern) |
+            CatalogService.service_description.ilike(search_pattern)
+        )
+    return query.all()
 
 @router.post("/")
 def create_service(service: CatalogServiceIn, db: Session = Depends(get_db)):

@@ -1,6 +1,4 @@
-# backend/app/routers/catalog_service_status.py
-
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from app.models import CatalogServiceStatus
@@ -15,8 +13,11 @@ class StatusIn(BaseModel):
     status_name: str
 
 @router.get("/")
-def get_statuses(db: Session = Depends(get_db)):
-    return db.query(CatalogServiceStatus).all()
+def get_statuses(search: str = Query(None), db: Session = Depends(get_db)):
+    query = db.query(CatalogServiceStatus)
+    if search:
+        query = query.filter(CatalogServiceStatus.status_name.ilike(f"%{search}%"))
+    return query.all()
 
 @router.post("/")
 def create_status(item: StatusIn, db: Session = Depends(get_db)):

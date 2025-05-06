@@ -3,15 +3,18 @@ import axios from "axios";
 
 const ExtraCompanyConfiguration: React.FC = () => {
   const [configs, setConfigs] = useState<any[]>([]);
+  const [search, setSearch] = useState("");
   const [form, setForm] = useState({
     id_company: "",
     applies_detail: false,
-    status: true
+    status: true,
   });
 
   const fetchConfigs = async () => {
     try {
-      const res = await axios.get("http://localhost:8000/catalog/extra-company-configuration");
+      const res = await axios.get(
+        `http://localhost:8000/catalog/extra-company-configuration${search ? `?id_company=${encodeURIComponent(search)}` : ""}`
+      );
       setConfigs(res.data);
     } catch (err) {
       console.error("Error al obtener configuraciones", err);
@@ -23,13 +26,13 @@ const ExtraCompanyConfiguration: React.FC = () => {
       await axios.post("http://localhost:8000/catalog/extra-company-configuration", {
         id_company: parseInt(form.id_company),
         applies_detail: form.applies_detail,
-        status: form.status
+        status: form.status,
       });
       fetchConfigs();
       setForm({
         id_company: "",
         applies_detail: false,
-        status: true
+        status: true,
       });
     } catch (err) {
       console.error("Error al agregar configuración", err);
@@ -38,7 +41,7 @@ const ExtraCompanyConfiguration: React.FC = () => {
 
   useEffect(() => {
     fetchConfigs();
-  }, []);
+  }, [search]);
 
   return (
     <div className="text-white p-10">
@@ -76,6 +79,16 @@ const ExtraCompanyConfiguration: React.FC = () => {
         >
           Agregar
         </button>
+      </div>
+
+      <div className="mb-4">
+        <input
+          type="number"
+          className="text-black px-2 py-1 rounded w-full"
+          placeholder="Buscar por ID de Compañía..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
       </div>
 
       <table className="w-full table-auto bg-gray-900 rounded text-sm">

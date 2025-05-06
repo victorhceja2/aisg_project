@@ -4,11 +4,16 @@ import axios from "axios";
 const CatalogClassif: React.FC = () => {
   const [classifications, setClassifications] = useState<any[]>([]);
   const [newName, setNewName] = useState("");
-  const [newStatus, setNewStatus] = useState("Activo"); // Este campo no se usa en BD, lo podemos omitir más adelante si no lo requiere.
+  const [newStatus, setNewStatus] = useState("Activo");
+  const [search, setSearch] = useState("");
 
   const fetchClassifications = async () => {
     try {
-      const res = await axios.get("http://localhost:8000/catalog/service-classification/");
+      const res = await axios.get(
+        `http://localhost:8000/catalog/service-classification/${
+          search ? `?search=${encodeURIComponent(search)}` : ""
+        }`
+      );
       setClassifications(res.data);
     } catch (err) {
       console.error("Error al obtener clasificaciones", err);
@@ -31,7 +36,7 @@ const CatalogClassif: React.FC = () => {
 
   useEffect(() => {
     fetchClassifications();
-  }, []);
+  }, [search]);
 
   return (
     <div className="text-white p-10">
@@ -62,6 +67,15 @@ const CatalogClassif: React.FC = () => {
         </button>
       </div>
 
+      <div className="mb-4">
+        <input
+          className="text-black px-2 py-1 rounded w-full"
+          placeholder="Buscar clasificación..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+      </div>
+
       <table className="w-full table-auto bg-gray-900 rounded">
         <thead>
           <tr className="bg-gray-700">
@@ -82,4 +96,4 @@ const CatalogClassif: React.FC = () => {
   );
 };
 
-export default CatalogClassif;
+export default CatalogClassif; 

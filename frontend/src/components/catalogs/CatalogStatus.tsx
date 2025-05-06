@@ -4,10 +4,13 @@ import axios from "axios";
 const CatalogStatus: React.FC = () => {
   const [statuses, setStatuses] = useState<any[]>([]);
   const [newStatus, setNewStatus] = useState("");
+  const [search, setSearch] = useState("");
 
   const fetchStatuses = async () => {
     try {
-      const res = await axios.get("http://localhost:8000/catalog/service-status/");
+      const res = await axios.get(
+        `http://localhost:8000/catalog/service-status/${search ? `?search=${encodeURIComponent(search)}` : ""}`
+      );
       setStatuses(res.data);
     } catch (err) {
       console.error("Error fetching statuses", err);
@@ -29,11 +32,12 @@ const CatalogStatus: React.FC = () => {
 
   useEffect(() => {
     fetchStatuses();
-  }, []);
+  }, [search]);
 
   return (
     <div className="text-white p-4">
       <h1 className="text-2xl font-bold mb-6">Catálogo de Estatus de Servicios</h1>
+
       <div className="bg-gray-800 p-4 rounded mb-6">
         <h2 className="text-lg font-semibold mb-2">Agregar Estatus</h2>
         <input
@@ -46,6 +50,17 @@ const CatalogStatus: React.FC = () => {
           Agregar
         </button>
       </div>
+
+      <div className="mb-4">
+        <input
+          type="text"
+          className="text-black px-2 py-1 rounded w-full"
+          placeholder="Buscar estatus..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+      </div>
+
       <table className="w-full table-auto bg-gray-900 rounded">
         <thead>
           <tr className="bg-gray-700">

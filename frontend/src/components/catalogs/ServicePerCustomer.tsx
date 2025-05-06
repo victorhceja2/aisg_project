@@ -3,6 +3,7 @@ import axios from "axios";
 
 const ServicePerCustomer: React.FC = () => {
   const [records, setRecords] = useState<any[]>([]);
+  const [search, setSearch] = useState("");
   const [form, setForm] = useState({
     id_service: "",
     id_client: "",
@@ -15,7 +16,11 @@ const ServicePerCustomer: React.FC = () => {
 
   const fetchRecords = async () => {
     try {
-      const res = await axios.get("http://localhost:8000/catalog/service-per-customer/");
+      const res = await axios.get(
+        `http://localhost:8000/catalog/service-per-customer/${
+          search ? `?id_client=${encodeURIComponent(search)}` : ""
+        }`
+      );
       setRecords(res.data);
     } catch (err) {
       console.error("Error al obtener datos", err);
@@ -47,7 +52,7 @@ const ServicePerCustomer: React.FC = () => {
 
   useEffect(() => {
     fetchRecords();
-  }, []);
+  }, [search]);
 
   return (
     <div className="text-white p-10">
@@ -63,6 +68,16 @@ const ServicePerCustomer: React.FC = () => {
         <input className="text-black px-2 py-1 mr-2 rounded" placeholder="Tipo de Fuselaje" value={form.fuselage_type} onChange={(e) => setForm({ ...form, fuselage_type: e.target.value })} />
         <input className="text-black px-2 py-1 mr-2 rounded" placeholder="Técnicos Incluidos" type="number" value={form.technicians_included} onChange={(e) => setForm({ ...form, technicians_included: +e.target.value })} />
         <button className="bg-blue-600 hover:bg-blue-700 px-4 py-1 rounded" onClick={handleAdd}>Agregar</button>
+      </div>
+
+      <div className="mb-4">
+        <input
+          type="number"
+          className="text-black px-2 py-1 rounded w-full"
+          placeholder="Buscar por ID Cliente..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
       </div>
 
       <table className="w-full table-auto bg-gray-900 rounded text-sm">

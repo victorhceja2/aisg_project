@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from app.models import ExtraCompanyConfiguration
@@ -15,8 +15,11 @@ class ConfigIn(BaseModel):
     status: bool
 
 @router.get("/")
-def get_all(db: Session = Depends(get_db)):
-    return db.query(ExtraCompanyConfiguration).all()
+def get_all(id_company: int = Query(None), db: Session = Depends(get_db)):
+    query = db.query(ExtraCompanyConfiguration)
+    if id_company is not None:
+        query = query.filter(ExtraCompanyConfiguration.id_company == id_company)
+    return query.all()
 
 @router.post("/")
 def create_item(data: ConfigIn, db: Session = Depends(get_db)):

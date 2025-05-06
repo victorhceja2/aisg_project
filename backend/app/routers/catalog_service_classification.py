@@ -1,6 +1,4 @@
-# backend/app/routers/catalog_service_classification.py
-
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from app.models import CatalogServiceClassification
@@ -16,8 +14,11 @@ class ClassificationIn(BaseModel):
     whonew: str = "system"
 
 @router.get("/")
-def get_classifications(db: Session = Depends(get_db)):
-    return db.query(CatalogServiceClassification).all()
+def get_classifications(search: str = Query(None), db: Session = Depends(get_db)):
+    query = db.query(CatalogServiceClassification)
+    if search:
+        query = query.filter(CatalogServiceClassification.service_classification_name.ilike(f"%{search}%"))
+    return query.all()
 
 @router.post("/")
 def create_classification(item: ClassificationIn, db: Session = Depends(get_db)):

@@ -3,6 +3,7 @@ import axios from "axios";
 
 const ExtraServiceSaleAssignment: React.FC = () => {
   const [assignments, setAssignments] = useState<any[]>([]);
+  const [search, setSearch] = useState("");
   const [form, setForm] = useState({
     id_service_per_customer: "",
     id_sale_flight: "",
@@ -13,7 +14,9 @@ const ExtraServiceSaleAssignment: React.FC = () => {
 
   const fetchAssignments = async () => {
     try {
-      const res = await axios.get("http://localhost:8000/catalog/extra-service-sale-assignment");
+      const res = await axios.get(
+        `http://localhost:8000/catalog/extra-service-sale-assignment${search ? `?work_order=${encodeURIComponent(search)}` : ""}`
+      );
       setAssignments(res.data);
     } catch (err) {
       console.error("Error al obtener asignaciones", err);
@@ -44,7 +47,7 @@ const ExtraServiceSaleAssignment: React.FC = () => {
 
   useEffect(() => {
     fetchAssignments();
-  }, []);
+  }, [search]);
 
   return (
     <div className="text-white p-8">
@@ -88,6 +91,16 @@ const ExtraServiceSaleAssignment: React.FC = () => {
         <button className="bg-blue-600 px-4 py-1 rounded ml-4" onClick={handleAdd}>
           Agregar
         </button>
+      </div>
+
+      <div className="mb-4">
+        <input
+          type="text"
+          className="text-black px-2 py-1 rounded w-full"
+          placeholder="Buscar por Orden de Trabajo..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
       </div>
 
       <table className="w-full table-auto bg-gray-900 rounded text-sm">

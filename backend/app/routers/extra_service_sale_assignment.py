@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from app.models import ExtraServiceSaleAssignment
@@ -18,8 +18,11 @@ class SaleAssignIn(BaseModel):
     sale_employee_deleted: bool = False
 
 @router.get("/")
-def get_all(db: Session = Depends(get_db)):
-    return db.query(ExtraServiceSaleAssignment).all()
+def get_all(work_order: str = Query(None), db: Session = Depends(get_db)):
+    query = db.query(ExtraServiceSaleAssignment)
+    if work_order:
+        query = query.filter(ExtraServiceSaleAssignment.work_order.ilike(f"%{work_order}%"))
+    return query.all()
 
 @router.post("/")
 def create_item(data: SaleAssignIn, db: Session = Depends(get_db)):

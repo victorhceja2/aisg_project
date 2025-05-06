@@ -15,20 +15,33 @@ const ExtraCompanyConfiguration: React.FC = () => {
     applies_detail: false,
     status: true,
   });
+  const [search, setSearch] = useState("");
+
+  const fetchConfigs = async () => {
+    try {
+      const res = await axios.get(
+        `http://localhost:8000/catalog/extra-company-configuration/${
+          search ? `?id_company=${encodeURIComponent(search)}` : ""
+        }`
+      );
+      setConfigs(res.data);
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   useEffect(() => {
-    axios.get("http://localhost:8000/extra_company_configuration/")
-      .then(res => setConfigs(res.data))
-      .catch(err => console.error(err));
-  }, []);
+    fetchConfigs();
+  }, [search]);
 
   const handleAdd = () => {
-    axios.post("http://localhost:8000/extra_company_configuration/", newConfig)
-      .then(res => {
+    axios
+      .post("http://localhost:8000/catalog/extra-company-configuration/", newConfig)
+      .then((res) => {
         setConfigs([...configs, res.data]);
         setNewConfig({ id_company: 0, applies_detail: false, status: true });
       })
-      .catch(err => console.error(err));
+      .catch((err) => console.error(err));
   };
 
   return (
@@ -67,6 +80,16 @@ const ExtraCompanyConfiguration: React.FC = () => {
         >
           Agregar
         </button>
+      </div>
+
+      <div className="mb-4">
+        <input
+          type="number"
+          className="text-black px-2 py-1 rounded w-full"
+          placeholder="Buscar por ID de Compañía..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
       </div>
 
       <table className="w-full table-auto bg-gray-900 rounded">
