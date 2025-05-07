@@ -6,7 +6,8 @@ echo ================================
 echo COMPILANDO FRONTEND (PRODUCCIÓN)
 echo ================================
 cd frontend
-call npm run build --mode production
+call npm install
+call npm run build
 cd ..
 
 echo ================================
@@ -22,3 +23,10 @@ echo ACTIVANDO FRONTEND (VITE STATIC)
 echo ================================
 cd frontend
 start "Vite Frontend" cmd /k npm run preview -- --host
+
+echo ================================
+echo Todo encendido correctamente.
+echo Accede desde otro dispositivo:
+echo http://66.179.95.14:8000/docs
+echo http://66.179.95.14:4173/
+echo ================================
