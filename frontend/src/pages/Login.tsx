@@ -1,5 +1,3 @@
-// frontend/src/pages/Login.tsx
-
 import React, { useState, FormEvent } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
@@ -10,23 +8,23 @@ const Login: React.FC = () => {
   const [error, setError] = useState<string>("");
   const navigate = useNavigate();
 
+  const apiURL = import.meta.env.VITE_API_URL;
+
   const handleLogin = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     try {
-      const response = await axios.post("http://localhost:8000/login", {
-        username,
-        password,
+      const response = await axios.post(`${apiURL}/login`, {
+        username: username.trim().toLowerCase(),
+        password: password.trim(),
       });
 
-      // Guardar datos en sessionStorage
       sessionStorage.setItem("userId", response.data.userId);
       sessionStorage.setItem("userName", response.data.userName);
       sessionStorage.setItem("perfil", response.data.perfil);
 
-      // Redirigir al dashboard
       navigate("/dashboard");
     } catch (err) {
-      console.error(err); // Log error real en consola
+      console.error(err);
       setError("Usuario o contraseña incorrectos.");
     }
   };
@@ -59,7 +57,9 @@ const Login: React.FC = () => {
             Iniciar sesión
           </button>
         </form>
-        {error && <p className="text-red-500 text-sm mt-4 text-center">{error}</p>}
+        {error && (
+          <p className="text-red-500 text-sm mt-4 text-center">{error}</p>
+        )}
       </div>
     </div>
   );
