@@ -17,3 +17,6 @@ routers = [
     extra_company_configuration.router,
     extra_service_sale_assignment.router
 ]
+
+from .routers import router_service_execution
+app.include_router(router_service_execution.router)

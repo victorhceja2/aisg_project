@@ -71,3 +71,13 @@ class ExtraServiceSaleAssignment(Base):
     whonew = Column(String(100))
     create_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow)
+
+# NUEVAS CLASES PARA MÓDULO COLOMBIA
+
+class ServiceExecution(Base):
+    __tablename__ = "ServiceExecution"
+    id = Column(Integer, primary_key=True, index=True)
+    cliente_id = Column(Integer, ForeignKey("ServicePerCustomer.id_service_per_customer"))
+    servicio_id = Column(Integer, ForeignKey("CatalogServices.id_service"))
+    clasificacion_id = Column(Integer, ForeignKey("CatalogServiceClassification.id_service_classification"))
+    fecha_ejecucion = Column(DateTime)
