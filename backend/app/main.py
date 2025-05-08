@@ -9,7 +9,9 @@ from app.routers import (
     catalog_service_status,
     service_per_customer,
     extra_company_configuration,
-    extra_service_sale_assignment
+    extra_service_sale_assignment,
+    service_execution,
+    service_execution_task
 )
 
 app = FastAPI()
@@ -31,13 +33,15 @@ all_routers = [
     catalog_service_status.router,
     service_per_customer.router,
     extra_company_configuration.router,
-    extra_service_sale_assignment.router
+    extra_service_sale_assignment.router,
+    service_execution.router,
+    service_execution_task.router,
 ]
 
 for r in all_routers:
     app.include_router(r)
 
-# Ruta de prueba (opcional)
+# Ruta de prueba
 @app.get("/ping")
 def ping():
     return {"message": "pong 🏓"}

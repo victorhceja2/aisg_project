@@ -81,3 +81,13 @@ class ServiceExecution(Base):
     servicio_id = Column(Integer, ForeignKey("CatalogServices.id_service"))
     clasificacion_id = Column(Integer, ForeignKey("CatalogServiceClassification.id_service_classification"))
     fecha_ejecucion = Column(DateTime)
+
+class ServiceExecutionTasks(Base):
+    __tablename__ = "ServiceExecutionTasks"
+    id = Column(Integer, primary_key=True, index=True)
+    service_execution_id = Column(Integer, ForeignKey("ServiceExecution.id"))
+    tarea_id = Column(Integer, nullable=False)  # FK opcional si luego se modela un catálogo de tareas
+    realizada = Column(Boolean, default=False)
+    whonew = Column(String(100))
+    create_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow)
