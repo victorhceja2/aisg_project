@@ -5,26 +5,35 @@ echo "=============================="
 echo "  INICIANDO AISG EN LINUX"
 echo "=============================="
 
-# Levanta backend (FastAPI)
-echo "Activando backend (FastAPI)..."
+# Crear entorno virtual si no existe
+if [ ! -d "backend/venv" ]; then
+  echo "Creando entorno virtual para backend..."
+  python3 -m venv backend/venv
+fi
+
+# Activar entorno virtual e instalar dependencias
 cd backend
 source venv/bin/activate
+echo "Instalando dependencias de backend..."
+pip install -r requirements.txt
+
+# Levanta backend (FastAPI)
+echo "Activando backend (FastAPI)..."
 uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload &
 cd ..
 
-# Construir frontend si no existe dist
-if [ ! -d "frontend/dist" ]; then
-    echo "Compilando frontend (build)..."
-    cd frontend
-    npm install
-    npm run build
-    cd ..
-fi
+# Construir frontend siempre
+cd frontend
+echo "Instalando dependencias de frontend..."
+npm install
+
+echo "Compilando frontend (build)..."
+npm run build
 
 # Levanta frontend (Vite Preview)
 echo "Activando frontend (Vite Preview)..."
-cd frontend
-npm run preview -- --host
+npm run preview -- --host &
+cd ..
 
 # Mensaje final
 echo "=============================="
