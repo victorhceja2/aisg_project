@@ -2,6 +2,9 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 
+// Definición de la URL base para la API
+const API_BASE_URL = "http://82.165.213.124:8000";
+
 interface ExtraCompanyConfig {
   id_xtra_company: number;
   id_company: number;
@@ -30,7 +33,7 @@ const ExtraCompanyConfiguration: React.FC = () => {
   const fetchConfigs = async () => {
     try {
       const res = await axios.get(
-        `http://localhost:8000/catalog/extra-company-configuration${search ? `?id_company=${encodeURIComponent(search)}` : ""}`
+        `${API_BASE_URL}/catalog/extra-company-configuration${search ? `?id_company=${encodeURIComponent(search)}` : ""}`
       );
       setConfigs(res.data);
     } catch (err) {
@@ -45,7 +48,7 @@ const ExtraCompanyConfiguration: React.FC = () => {
 
   const handleDelete = async (id: number) => {
     try {
-      await axios.delete(`http://localhost:8000/catalog/extra-company-configuration/${id}`);
+      await axios.delete(`${API_BASE_URL}/catalog/extra-company-configuration/${id}`);
       fetchConfigs();
       setDeleteConfirm(null);
     } catch (err) {

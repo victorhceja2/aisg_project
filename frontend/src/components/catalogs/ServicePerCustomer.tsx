@@ -2,6 +2,9 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 
+// Definición de la URL base para la API
+const API_BASE_URL = "http://82.165.213.124:8000";
+
 interface ServicePerCustomerRecord {
   id_service_per_customer: number;
   id_service: number;
@@ -40,7 +43,7 @@ const ServicePerCustomer: React.FC = () => {
       setError("");
       
       const res = await axios.get(
-        `http://localhost:8000/catalog/service-per-customer${
+        `${API_BASE_URL}/catalog/service-per-customer${
           search ? `?fuselage_type=${encodeURIComponent(search)}` : ""
         }`
       );
@@ -66,7 +69,7 @@ const ServicePerCustomer: React.FC = () => {
       console.log(`Intentando eliminar el registro ${id}`);
       
       // Hacer la solicitud DELETE
-      const response = await axios.delete(`http://localhost:8000/catalog/service-per-customer/${id}`);
+      const response = await axios.delete(`${API_BASE_URL}/catalog/service-per-customer/${id}`);
       console.log("Respuesta del servidor:", response.data);
       
       // Actualizar la lista después de eliminar

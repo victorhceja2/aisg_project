@@ -2,6 +2,9 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 
+// Definición de la URL base para la API
+const API_BASE_URL = "http://82.165.213.124:8000";
+
 interface ExtraServiceAssignment {
   id_xtra_sale_employee: number;
   id_service_per_customer: number;
@@ -45,7 +48,7 @@ const ExtraServiceSaleAssignment: React.FC = () => {
       setError("");
       
       const res = await axios.get(
-        `http://localhost:8000/catalog/extra-service-sale-assignment${
+        `${API_BASE_URL}/catalog/extra-service-sale-assignment${
           search ? `?work_order=${encodeURIComponent(search)}` : ""
         }`
       );
@@ -70,7 +73,7 @@ const ExtraServiceSaleAssignment: React.FC = () => {
         return;
       }
       
-      await axios.post("http://localhost:8000/catalog/extra-service-sale-assignment", {
+      await axios.post(`${API_BASE_URL}/catalog/extra-service-sale-assignment`, {
         id_service_per_customer: parseInt(form.id_service_per_customer),
         id_sale_flight: parseInt(form.id_sale_flight),
         id_sale_employee: parseInt(form.id_sale_employee),
@@ -121,7 +124,7 @@ const ExtraServiceSaleAssignment: React.FC = () => {
       setIsLoading(true);
       setError("");
       
-      await axios.delete(`http://localhost:8000/catalog/extra-service-sale-assignment/${id}`);
+      await axios.delete(`${API_BASE_URL}/catalog/extra-service-sale-assignment/${id}`);
       
       // Actualizar la lista después de eliminar
       await fetchAssignments();
