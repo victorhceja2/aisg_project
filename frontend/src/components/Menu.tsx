@@ -78,10 +78,9 @@ const Menu: React.FC<MenuProps> = ({ isOpen, setIsOpen }) => {
     <div 
       className={`fixed ${isOpen ? 'translate-x-0' : '-translate-x-full'} transition-transform duration-300
                  w-64 bg-[#0D1B2A] text-white h-screen shadow-lg flex flex-col font-['Montserrat'] z-40`}
-      style={{ overflowY: 'auto' }}
     >
       {/* Header con logo */}
-      <div className="bg-gradient-to-r from-[#0033A0] to-[#00B140] p-6 flex flex-col items-center sticky top-0">
+      <div className="bg-gradient-to-r from-[#0033A0] to-[#00B140] p-6 flex flex-col items-center">
         <div className="mb-4">
           <img
             src="/logo_aisg.jpeg"
@@ -92,8 +91,8 @@ const Menu: React.FC<MenuProps> = ({ isOpen, setIsOpen }) => {
         <h1 className="text-xl font-bold text-white">AISG</h1>
       </div>
 
-      {/* Menú de navegación */}
-      <nav className="flex flex-col p-4 flex-1">
+      {/* Menú de navegación con altura fija y scroll */}
+      <nav className="flex flex-col p-4 overflow-y-auto flex-grow">
         <div className="space-y-1 mb-6 border-b border-[#16213E] pb-4">
           <h2 className="text-xs font-semibold text-gray-300 uppercase tracking-wider mb-2 px-3">
             Principal
@@ -164,8 +163,8 @@ const Menu: React.FC<MenuProps> = ({ isOpen, setIsOpen }) => {
         </div>
       </nav>
 
-      {/* Botón de cerrar sesión */}
-      <div className="p-4 border-t border-[#16213E] sticky bottom-0 bg-[#0D1B2A]">
+      {/* Botón de cerrar sesión - ahora siempre visible al final del menú */}
+      <div className="p-4 border-t border-[#16213E] mt-auto bg-[#0D1B2A]">
         <button
           onClick={handleLogout}
           className="w-full bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white font-medium py-2 px-4 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg flex items-center justify-center"

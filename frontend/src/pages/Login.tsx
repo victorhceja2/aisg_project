@@ -88,12 +88,14 @@ const Login: React.FC = () => {
       <div className="w-full max-w-md mx-auto">
         <div className="bg-gradient-to-r from-[#0033A0] to-[#00B140] p-4 sm:p-6 rounded-t-xl shadow-lg">
           <div className="flex flex-col items-center justify-center text-white">
-            {/* Logo de AISG con fondo blanco removido */}
+            {/* Logo de AISG - Reemplazado por la imagen real */}
             <div className="mb-3 sm:mb-4">
               <div className="bg-white p-3 sm:p-4 rounded-full shadow-md inline-flex">
-                <svg className="w-12 h-12 sm:w-16 sm:h-16 text-[#0033A0]" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path>
-                </svg>
+                <img
+                  src="/logo_aisg.jpeg"
+                  alt="AISG Logo"
+                  className="w-12 h-12 sm:w-16 sm:h-16 object-contain rounded-full"
+                />
               </div>
             </div>
             <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">AISG Portal</h1>

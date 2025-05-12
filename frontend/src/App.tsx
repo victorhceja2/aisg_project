@@ -24,8 +24,10 @@ import EditExtraService from "./pages/EditExtraService";
 import ProtectedRoute from "./components/ProtectedRoute";
 
 const App: React.FC = () => {
-  const [menuIsOpen, setMenuIsOpen] = useState(true);
-  const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
+  // Inicializar menuIsOpen como falso en móvil y verdadero en desktop
+  const isMobileInitial = window.innerWidth < 1024;
+  const [menuIsOpen, setMenuIsOpen] = useState(!isMobileInitial);
+  const [isMobile, setIsMobile] = useState(isMobileInitial);
   const [isAuthenticated, setIsAuthenticated] = useState(sessionStorage.getItem('user') !== null);
 
   useEffect(() => {
@@ -38,6 +40,7 @@ const App: React.FC = () => {
       if (!authStatus) {
         setMenuIsOpen(false);
       } else if (authStatus && !isMobile) {
+        // Solo abrir el menú automáticamente en desktop
         setMenuIsOpen(true);
       }
     };
@@ -48,8 +51,10 @@ const App: React.FC = () => {
       
       // Ajustar el menú según el tamaño de pantalla y estado de autenticación
       if (mobile) {
+        // En móvil, siempre cerrar el menú cuando cambia el tamaño
         setMenuIsOpen(false);
       } else if (!mobile && isAuthenticated) {
+        // En desktop, abrir el menú si el usuario está autenticado
         setMenuIsOpen(true);
       }
     };
@@ -77,7 +82,10 @@ const App: React.FC = () => {
     return () => {
       window.removeEventListener('resize', handleResize);
       window.removeEventListener('storageChange', handleStorageChange);
-      window.removeEventListener('logout', handleStorageChange);
+      window.removeEventListener('logout', () => {
+        setIsAuthenticated(false);
+        setMenuIsOpen(false);
+      });
     };
   }, [isMobile, isAuthenticated]);
 
