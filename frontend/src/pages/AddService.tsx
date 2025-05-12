@@ -2,7 +2,13 @@ import React, { useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 
+/**
+ * Componente para agregar un nuevo servicio al catálogo.
+ * Permite ingresar código, nombre, descripción y banderas de configuración.
+ * Realiza validación, muestra errores y navega tras guardar o cancelar.
+ */
 const AddService: React.FC = () => {
+  // Estado del formulario con campos y banderas
   const [form, setForm] = useState({
     id_service_status: 1,
     id_service_classification: 1,
@@ -14,11 +20,17 @@ const AddService: React.FC = () => {
     min_time_configured: false,
     service_technicians_included: false,
   });
+
+  // Estado para mensajes de error
   const [error, setError] = useState<string | null>(null);
+
+  // URL base de la API (usa variable de entorno)
   const apiURL = import.meta.env.VITE_API_URL;
+
+  // Hook para navegación programática
   const navigate = useNavigate();
 
-  // Colores AISG según el manual de identidad corporativa
+  // Paleta de colores corporativos AISG
   const colors = {
     aisgBlue: "#0033A0",
     aisgGreen: "#00B140",
@@ -30,6 +42,10 @@ const AddService: React.FC = () => {
     textLight: "#FFFFFF",
   };
 
+  /**
+   * Maneja el envío del formulario.
+   * Realiza la petición POST al backend y navega tras guardar.
+   */
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -64,6 +80,7 @@ const AddService: React.FC = () => {
             )}
 
             <form onSubmit={handleSubmit} className="space-y-6">
+              {/* Campo: Código */}
               <div>
                 <label className="block text-white text-sm font-medium mb-2">
                   Código:
@@ -79,6 +96,7 @@ const AddService: React.FC = () => {
                 />
               </div>
 
+              {/* Campo: Nombre */}
               <div>
                 <label className="block text-white text-sm font-medium mb-2">
                   Nombre:
@@ -94,6 +112,7 @@ const AddService: React.FC = () => {
                 />
               </div>
 
+              {/* Campo: Descripción */}
               <div>
                 <label className="block text-white text-sm font-medium mb-2">
                   Descripción:
@@ -109,6 +128,7 @@ const AddService: React.FC = () => {
                 />
               </div>
 
+              {/* Botones de acción */}
               <div className="flex space-x-4 pt-4">
                 <button
                   type="button"

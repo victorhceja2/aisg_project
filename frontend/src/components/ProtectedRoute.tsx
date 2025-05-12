@@ -1,6 +1,11 @@
 import React, { JSX } from 'react';
 import { Navigate } from 'react-router-dom';
 
+/**
+ * Componente de ruta protegida.
+ * Solo permite el acceso a rutas si existe una sesión activa (usuario autenticado).
+ * Si no hay sesión, redirige automáticamente al login.
+ */
 interface ProtectedRouteProps {
     children: JSX.Element;
 }

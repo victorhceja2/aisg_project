@@ -24,6 +24,8 @@ const EditCompany: React.FC = () => {
 
     const navigate = useNavigate();
     const { id } = useParams<{ id: string }>();
+    // Usar la variable de entorno para la URL del API
+    const apiURL = import.meta.env.VITE_API_URL || "http://82.165.213.124:8000";
 
     const [form, setForm] = useState({
         id_company: "",
@@ -39,7 +41,8 @@ const EditCompany: React.FC = () => {
         const fetchConfig = async () => {
             try {
                 setLoading(true);
-                const res = await axios.get(`http://localhost:8000/catalog/extra-company-configuration/${id}`);
+                // Usamos la variable apiURL en lugar de la URL hardcodeada
+                const res = await axios.get(`${apiURL}/catalog/extra-company-configuration/${id}`);
                 const config = res.data;
 
                 setForm({
@@ -57,7 +60,7 @@ const EditCompany: React.FC = () => {
         };
 
         fetchConfig();
-    }, [id]);
+    }, [id, apiURL]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -69,8 +72,8 @@ const EditCompany: React.FC = () => {
                 status: form.status,
             };
 
-            // Actualizamos la configuración existente
-            await axios.put(`http://localhost:8000/catalog/extra-company-configuration/${id}`, data);
+            // También actualizamos esta URL para usar la variable apiURL
+            await axios.put(`${apiURL}/catalog/extra-company-configuration/${id}`, data);
 
             // Redireccionamos a la lista
             navigate("/catalogs/company");

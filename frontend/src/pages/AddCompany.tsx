@@ -2,8 +2,13 @@ import React, { useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 
+/**
+ * Componente para agregar una nueva configuración de compañía.
+ * Permite ingresar el ID de la compañía, si aplica detalle y si está activa.
+ * Realiza validación, muestra errores y navega tras guardar o cancelar.
+ */
 const AddCompany: React.FC = () => {
-    // Colores AISG según el manual de identidad corporativa
+    // Paleta de colores corporativos AISG
     const colors = {
         aisgBlue: "#0033A0",
         aisgGreen: "#00B140",
@@ -15,16 +20,23 @@ const AddCompany: React.FC = () => {
         darkBgPanel: "#1E2A45",
     };
 
+    // Hook para navegación programática
     const navigate = useNavigate();
-    
+
+    // Estado del formulario
     const [form, setForm] = useState({
         id_company: "",
         applies_detail: false,
         status: true,
     });
-    
+
+    // Estado para mensajes de error
     const [error, setError] = useState("");
 
+    /**
+     * Maneja el envío del formulario.
+     * Valida y realiza la petición POST al backend.
+     */
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
@@ -35,10 +47,10 @@ const AddCompany: React.FC = () => {
                 status: form.status,
             };
 
-            // Creamos una nueva configuración
+            // Envía la nueva configuración al backend
             await axios.post("http://localhost:8000/catalog/extra-company-configuration", data);
 
-            // Redireccionamos a la lista
+            // Redirige al listado de compañías tras guardar
             navigate("/catalogs/company");
         } catch (err) {
             console.error("Error al guardar la configuración", err);
@@ -46,6 +58,9 @@ const AddCompany: React.FC = () => {
         }
     };
 
+    /**
+     * Maneja la acción de cancelar, redirigiendo al listado.
+     */
     const handleCancel = () => {
         navigate("/catalogs/company");
     };
@@ -53,7 +68,7 @@ const AddCompany: React.FC = () => {
     return (
         <div className="min-h-screen bg-[#1A1A2E] py-8 px-4 sm:px-6 lg:px-8 font-['Montserrat'] text-white">
             <div className="max-w-2xl mx-auto">
-                {/* Cabecera */}
+                {/* Cabecera con título y descripción */}
                 <div className="bg-gradient-to-r from-[#0033A0] to-[#00B140] p-6 rounded-lg shadow-lg mb-6">
                     <h1 className="text-2xl font-bold text-center text-white">
                         Agregar Configuración
@@ -63,8 +78,9 @@ const AddCompany: React.FC = () => {
                     </p>
                 </div>
 
-                {/* Formulario */}
+                {/* Formulario principal */}
                 <div className="bg-[#16213E] p-6 rounded-lg shadow-lg">
+                    {/* Mensaje de error */}
                     {error && (
                         <div className="bg-red-500 bg-opacity-20 border border-red-400 text-red-100 px-4 py-3 rounded mb-4">
                             <p>{error}</p>
@@ -72,6 +88,7 @@ const AddCompany: React.FC = () => {
                     )}
 
                     <form onSubmit={handleSubmit}>
+                        {/* Campo: ID Compañía */}
                         <div className="mb-6">
                             <label className="block text-sm font-medium text-gray-300 mb-2">ID Compañía</label>
                             <input
@@ -84,9 +101,11 @@ const AddCompany: React.FC = () => {
                             <p className="text-xs text-gray-400 mt-1">Ingrese el ID numérico de la compañía</p>
                         </div>
 
+                        {/* Campo: Configuración (aplica detalle y activo) */}
                         <div className="mb-6">
                             <label className="block text-sm font-medium text-gray-300 mb-2">Configuración</label>
                             <div className="space-y-4 bg-[#1E2A45] p-4 rounded-md border border-gray-700">
+                                {/* Switch: Aplica Detalle */}
                                 <div className="flex items-center">
                                     <label className="inline-flex items-center cursor-pointer">
                                         <input
@@ -99,7 +118,7 @@ const AddCompany: React.FC = () => {
                                         <span className="ml-3 text-sm font-medium text-gray-300">Aplica Detalle</span>
                                     </label>
                                 </div>
-
+                                {/* Switch: Activo */}
                                 <div className="flex items-center">
                                     <label className="inline-flex items-center cursor-pointer">
                                         <input
@@ -115,6 +134,7 @@ const AddCompany: React.FC = () => {
                             </div>
                         </div>
 
+                        {/* Botones de acción */}
                         <div className="flex justify-end gap-3 mt-8">
                             <button
                                 type="button"

@@ -28,6 +28,8 @@ const EditSPConsumer: React.FC = () => {
 
     const navigate = useNavigate();
     const { id } = useParams<{ id: string }>();
+    // Usar la variable de entorno para la URL del API
+    const apiURL = import.meta.env.VITE_API_URL || "http://82.165.213.124:8000";
 
     const [form, setForm] = useState({
         id_service: "",
@@ -47,7 +49,7 @@ const EditSPConsumer: React.FC = () => {
         const fetchData = async () => {
             try {
                 setLoading(true);
-                const res = await axios.get(`http://localhost:8000/catalog/service-per-customer/${id}`);
+                const res = await axios.get(`${apiURL}/catalog/service-per-customer/${id}`);
                 const record = res.data;
 
                 setForm({
@@ -69,7 +71,7 @@ const EditSPConsumer: React.FC = () => {
         };
 
         fetchData();
-    }, [id]);
+    }, [id, apiURL]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -86,7 +88,7 @@ const EditSPConsumer: React.FC = () => {
             };
 
             // Actualizamos el registro existente
-            await axios.put(`http://localhost:8000/catalog/service-per-customer/${id}`, data);
+            await axios.put(`${apiURL}/catalog/service-per-customer/${id}`, data);
 
             // Redireccionamos a la lista
             navigate("/catalogs/customer");

@@ -7,6 +7,7 @@ import CatalogSelector from "./components/catalogs/CatalogSelector";
 import CatalogServices from "./components/catalogs/CatalogServices";
 import CatalogClassification from "./components/catalogs/CatalogClassifications";
 import CatalogStatus from "./components/catalogs/CatalogStatus";
+
 import CatalogClassif from "./components/catalogs/CatalogClassif";
 import ServicePerCustomer from "./components/catalogs/ServicePerCustomer";
 import ExtraServiceSaleAssignment from "./components/catalogs/ExtraServiceSaleAssignment";
@@ -22,73 +23,69 @@ import EditSPConsumer from "./pages/EditSPConsumer";
 import AddExtraService from "./pages/AddExtraService";
 import EditExtraService from "./pages/EditExtraService";
 import ProtectedRoute from "./components/ProtectedRoute";
+import AddStatus from "./pages/AddStatus";
+import EditStatus from "./pages/EditStatus";
 
 /**
- * Componente principal de la aplicación AISG
- * Maneja la navegación, autenticación y estado del menú lateral
+ * Componente principal de la aplicación AISG.
+ * Aquí se maneja la navegación, la autenticación y el estado del menú lateral.
  */
 const App: React.FC = () => {
-  // Inicializar menuIsOpen como falso en móvil y verdadero en desktop
+  // Al iniciar, se determina si el menú debe estar abierto o cerrado según el tamaño de pantalla.
   const isMobileInitial = window.innerWidth < 1024;
   const [menuIsOpen, setMenuIsOpen] = useState(!isMobileInitial);
   const [isMobile, setIsMobile] = useState(isMobileInitial);
   const [isAuthenticated, setIsAuthenticated] = useState(sessionStorage.getItem('user') !== null);
 
   /**
-   * Gestiona el estado de autenticación y respuesta a cambios de tamaño
-   * de pantalla para mantener la experiencia adaptada a cada dispositivo
+   * Se configura el comportamiento del menú y la autenticación.
+   * Si el usuario inicia o cierra sesión, o si cambia el tamaño de la pantalla,
+   * se ajusta el menú automáticamente para mejorar la experiencia.
    */
   useEffect(() => {
-    // Función para actualizar si el usuario está autenticado
+    // Esta función revisa si el usuario está autenticado y ajusta el menú en consecuencia.
     const updateAuthStatus = () => {
       const authStatus = sessionStorage.getItem('user') !== null;
       setIsAuthenticated(authStatus);
-      
-      // Si el usuario ya no está autenticado, asegúrate de que el menú esté cerrado
+      // Si no hay usuario autenticado, el menú se cierra.
       if (!authStatus) {
         setMenuIsOpen(false);
       } else if (authStatus && !isMobile) {
-        // Solo abrir el menú automáticamente en desktop
+        // Si el usuario está autenticado y no es móvil, el menú se abre.
         setMenuIsOpen(true);
       }
     };
 
-    // Ajusta la interfaz basada en el tamaño de la pantalla
+    // Cada vez que cambia el tamaño de la pantalla, se ajusta el menú.
     const handleResize = () => {
       const mobile = window.innerWidth < 1024;
       setIsMobile(mobile);
-      
-      // Ajustar el menú según el tamaño de pantalla y estado de autenticación
+      // En móvil, el menú siempre se cierra.
       if (mobile) {
-        // En móvil, siempre cerrar el menú cuando cambia el tamaño
         setMenuIsOpen(false);
       } else if (!mobile && isAuthenticated) {
-        // En desktop, abrir el menú si el usuario está autenticado
+        // En escritorio, el menú se abre si el usuario está autenticado.
         setMenuIsOpen(true);
       }
     };
 
-    // Detectar cambios en sesión con el evento personalizado
+    // Se escucha un evento personalizado para cambios de sesión.
     const handleStorageChange = () => {
       updateAuthStatus();
     };
 
-    // Evento personalizado para cambios de sesión
+    // Se agregan los listeners para los eventos relevantes.
     window.addEventListener('storageChange', handleStorageChange);
-    
-    // Evento para cerrar sesión
     window.addEventListener('logout', () => {
       setIsAuthenticated(false);
       setMenuIsOpen(false);
     });
-    
-    // Eventos de cambio de tamaño
     window.addEventListener('resize', handleResize);
-    
-    // Verificar estado inicial
+
+    // Se verifica el estado inicial al montar el componente.
     updateAuthStatus();
-    
-    // Limpieza de eventos cuando el componente se desmonta
+
+    // Al desmontar el componente, se eliminan los listeners para evitar fugas de memoria.
     return () => {
       window.removeEventListener('resize', handleResize);
       window.removeEventListener('storageChange', handleStorageChange);
@@ -102,7 +99,7 @@ const App: React.FC = () => {
   return (
     <Router>
       <div className="flex h-screen w-screen bg-[#1A1A2E] overflow-hidden">
-        {/* El menú solo se renderiza si hay autenticación */}
+        {/* El menú lateral solo aparece si el usuario está autenticado */}
         {isAuthenticated && <Menu isOpen={menuIsOpen} setIsOpen={setMenuIsOpen} />}
         
         <div 
@@ -110,10 +107,10 @@ const App: React.FC = () => {
           style={(isAuthenticated && menuIsOpen && !isMobile) ? { marginLeft: '256px' } : { marginLeft: '0' }}
         >
           <Routes>
-            {/* Ruta pública de inicio de sesión */}
+            {/* Página de inicio de sesión (pública) */}
             <Route path="/" element={<Login />} />
             
-            {/* Rutas protegidas que requieren autenticación */}
+            {/* Todas las rutas siguientes requieren autenticación */}
             <Route 
               path="/dashboard" 
               element={
@@ -123,6 +120,7 @@ const App: React.FC = () => {
               } 
             />
             
+            {/* Catálogo de servicios */}
             <Route 
               path="/services" 
               element={
@@ -131,7 +129,6 @@ const App: React.FC = () => {
                 </ProtectedRoute>
               }
             />
-            
             <Route 
               path="/services/add" 
               element={
@@ -140,7 +137,6 @@ const App: React.FC = () => {
                 </ProtectedRoute>
               }
             />
-            
             <Route 
               path="/services/edit/:id" 
               element={
@@ -149,7 +145,8 @@ const App: React.FC = () => {
                 </ProtectedRoute>
               }
             />
-            
+
+            {/* Selector de catálogos */}
             <Route 
               path="/catalogs" 
               element={
@@ -158,7 +155,8 @@ const App: React.FC = () => {
                 </ProtectedRoute>
               }
             />
-            
+
+            {/* Catálogo de servicios desde menú de catálogos */}
             <Route 
               path="/catalogs/services" 
               element={
@@ -167,7 +165,8 @@ const App: React.FC = () => {
                 </ProtectedRoute>
               }
             />
-            
+
+            {/* Catálogo de clasificaciones (vista principal) */}
             <Route 
               path="/catalogs/classification" 
               element={
@@ -177,6 +176,17 @@ const App: React.FC = () => {
               }
             />
 
+            {/* Catálogo de clasificaciones (vista alternativa) */}
+            <Route 
+              path="/catalogs/classif" 
+              element={
+                <ProtectedRoute>
+                  <CatalogClassif />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Catálogo de compañías */}
             <Route 
               path="/catalogs/company" 
               element={
@@ -185,7 +195,6 @@ const App: React.FC = () => {
                 </ProtectedRoute>
               }
             />
-            
             <Route 
               path="/catalogs/company/add" 
               element={
@@ -194,7 +203,6 @@ const App: React.FC = () => {
                 </ProtectedRoute>
               }
             />
-            
             <Route 
               path="/catalogs/company/edit/:id" 
               element={
@@ -204,6 +212,15 @@ const App: React.FC = () => {
               }
             />
 
+            {/* Catálogo de clientes */}
+            <Route 
+              path="/catalogs/customer" 
+              element={
+                <ProtectedRoute>
+                  <ServicePerCustomer />
+                </ProtectedRoute>
+              }
+            />
             <Route 
               path="/catalogs/customer/add" 
               element={
@@ -212,7 +229,6 @@ const App: React.FC = () => {
                 </ProtectedRoute>
               }
             />
-            
             <Route 
               path="/catalogs/customer/edit/:id" 
               element={
@@ -222,6 +238,7 @@ const App: React.FC = () => {
               }
             />
 
+            {/* Catálogo de servicios extra */}
             <Route 
               path="/catalog/extra-service/add" 
               element={
@@ -230,7 +247,6 @@ const App: React.FC = () => {
                 </ProtectedRoute>
               }
             />
-            
             <Route 
               path="/catalog/extra-service/edit/:id" 
               element={
@@ -240,7 +256,17 @@ const App: React.FC = () => {
               }
             />
 
-            {/* Rutas para administración de clasificaciones */}
+            {/* Catálogo de asignaciones de servicios extra */}
+            <Route 
+              path="/catalogs/assignment" 
+              element={
+                <ProtectedRoute>
+                  <ExtraServiceSaleAssignment />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Rutas para agregar y editar clasificaciones */}
             <Route 
               path="/classifications/add" 
               element={
@@ -249,7 +275,6 @@ const App: React.FC = () => {
                 </ProtectedRoute>
               }
             />
-            
             <Route 
               path="/classifications/edit/:id" 
               element={
@@ -258,26 +283,7 @@ const App: React.FC = () => {
                 </ProtectedRoute>
               }
             />
-            
-            <Route 
-              path="/catalogs/status" 
-              element={
-                <ProtectedRoute>
-                  <CatalogStatus />
-                </ProtectedRoute>
-              }
-            />
-            
-            <Route 
-              path="/catalogs/classif" 
-              element={
-                <ProtectedRoute>
-                  <CatalogClassif />
-                </ProtectedRoute>
-              }
-            />
-            
-            {/* Ruta nueva para agregar clasificación - resuelve el problema de navegación */}
+            {/* Rutas alternativas para agregar y editar clasificaciones desde el menú de catálogos */}
             <Route 
               path="/catalogs/classif/add" 
               element={
@@ -286,8 +292,6 @@ const App: React.FC = () => {
                 </ProtectedRoute>
               }
             />
-            
-            {/* Ruta nueva para editar clasificación en contexto de catálogos */}
             <Route 
               path="/catalogs/classif/edit/:id" 
               element={
@@ -296,21 +300,30 @@ const App: React.FC = () => {
                 </ProtectedRoute>
               }
             />
-            
+
+            {/* Catálogo de estatus de servicios */}
             <Route 
-              path="/catalogs/customer" 
+              path="/catalogs/status" 
               element={
                 <ProtectedRoute>
-                  <ServicePerCustomer />
+                  <CatalogStatus />
                 </ProtectedRoute>
               }
             />
-            
+            {/* Rutas para agregar y editar estatus */}
             <Route 
-              path="/catalogs/assignment" 
+              path="/catalogs/status/add" 
               element={
                 <ProtectedRoute>
-                  <ExtraServiceSaleAssignment />
+                  <AddStatus />
+                </ProtectedRoute>
+              }
+            />
+            <Route 
+              path="/catalogs/status/edit/:id" 
+              element={
+                <ProtectedRoute>
+                  <EditStatus />
                 </ProtectedRoute>
               }
             />

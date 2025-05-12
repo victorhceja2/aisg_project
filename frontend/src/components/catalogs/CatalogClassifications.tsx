@@ -2,14 +2,23 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { Link } from "react-router-dom";
 
+/**
+ * Componente para mostrar y administrar el catálogo de clasificaciones de servicios.
+ * Aquí se puede buscar, agregar y editar clasificaciones.
+ */
 const CatalogClassifications: React.FC = () => {
+  // Aquí guardamos la lista de clasificaciones que obtenemos del backend
   const [classifications, setClassifications] = useState<any[]>([]);
+  // Se controla el valor del campo de búsqueda
   const [search, setSearch] = useState("");
+  // Se maneja el estado de error para mostrar mensajes al usuario
   const [error, setError] = useState<string | null>(null);
+  // Se indica si la tabla está cargando datos
   const [loading, setLoading] = useState(true);
+  // Se obtiene la URL base del API desde variables de entorno o se usa una por defecto
   const apiURL = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
-  // Colores AISG según el manual de identidad corporativa
+  // Paleta de colores corporativos AISG para mantener la identidad visual
   const colors = {
     aisgBlue: "#0033A0",
     aisgGreen: "#00B140",
@@ -21,6 +30,10 @@ const CatalogClassifications: React.FC = () => {
     textLight: "#FFFFFF",
   };
 
+  /**
+   * Se obtiene la lista de clasificaciones desde el backend.
+   * Si hay un término de búsqueda, se filtran los resultados.
+   */
   const fetchClassifications = async () => {
     setLoading(true);
     try {
@@ -37,6 +50,7 @@ const CatalogClassifications: React.FC = () => {
     }
   };
 
+  // Cada vez que cambia el término de búsqueda, se vuelve a cargar la lista de clasificaciones
   useEffect(() => {
     fetchClassifications();
   }, [search]);
@@ -52,7 +66,7 @@ const CatalogClassifications: React.FC = () => {
 
         {/* Contenido principal */}
         <div className="bg-[#16213E] rounded-b-lg shadow-lg p-6">
-          {/* Mensajes de error */}
+          {/* Si hay un error, se muestra un mensaje destacado */}
           {error && (
             <div className="bg-red-500 text-white p-4 rounded-lg mb-6 shadow-md animate-pulse">
               <p className="font-medium">{error}</p>
@@ -92,6 +106,7 @@ const CatalogClassifications: React.FC = () => {
 
           {/* Tabla de resultados */}
           {loading ? (
+            // Se muestra un spinner mientras se cargan los datos
             <div className="flex justify-center my-12">
               <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#00B140]"></div>
             </div>
@@ -108,12 +123,14 @@ const CatalogClassifications: React.FC = () => {
                 </thead>
                 <tbody className="divide-y divide-[#1E2A45]">
                   {classifications.length === 0 ? (
+                    // Si no hay resultados, se muestra un mensaje
                     <tr>
                       <td colSpan={4} className="px-6 py-8 text-center text-gray-400">
                         No se encontraron registros
                       </td>
                     </tr>
                   ) : (
+                    // Se recorre la lista de clasificaciones y se muestra cada una en una fila
                     classifications.map((c) => (
                       <tr key={c.id_service_classification} className="hover:bg-[#1E2A45] transition-colors">
                         <td className="px-6 py-4 text-gray-300">{c.id_service_classification}</td>
@@ -125,6 +142,7 @@ const CatalogClassifications: React.FC = () => {
                         </td>
                         <td className="px-6 py-4">
                           <div className="flex space-x-2">
+                            {/* Botón para editar la clasificación */}
                             <Link
                               to={`/catalogs/classif/edit/${c.id_service_classification}`}
                               className="p-1.5 bg-[#4D70B8] text-white rounded hover:bg-[#0033A0] transition-colors"
@@ -134,9 +152,10 @@ const CatalogClassifications: React.FC = () => {
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                               </svg>
                             </Link>
+                            {/* Aquí se podría agregar un botón para cambiar el estatus */}
                             <button
                               onClick={() => {
-                                /* Implementar funcionalidad para cambiar estatus */
+                                /* Aquí se puede implementar la funcionalidad para cambiar estatus */
                               }}
                               className="p-1.5 bg-amber-500 text-white rounded hover:bg-amber-600 transition-colors"
                               title="Cambiar estatus"

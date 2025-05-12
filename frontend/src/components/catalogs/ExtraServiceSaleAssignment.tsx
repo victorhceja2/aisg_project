@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom";
 // Definición de la URL base para la API
 const API_BASE_URL = "http://82.165.213.124:8000";
 
+// Definición de la estructura de datos para una asignación extra de servicio a venta
 interface ExtraServiceAssignment {
   id_xtra_sale_employee: number;
   id_service_per_customer: number;
@@ -15,7 +16,7 @@ interface ExtraServiceAssignment {
 }
 
 const ExtraServiceSaleAssignment: React.FC = () => {
-  // Colores AISG según el manual de identidad corporativa
+  // Colores corporativos AISG para estilos
   const colors = {
     aisgBlue: "#0033A0",
     aisgGreen: "#00B140",
@@ -27,9 +28,13 @@ const ExtraServiceSaleAssignment: React.FC = () => {
     darkBgPanel: "#1E2A45",
   };
 
+  // Hook para navegación programática
   const navigate = useNavigate();
+  // Estado para la lista de asignaciones extra obtenidas del backend
   const [assignments, setAssignments] = useState<ExtraServiceAssignment[]>([]);
+  // Estado para el valor del campo de búsqueda (por orden de trabajo)
   const [search, setSearch] = useState("");
+  // Estado para los valores del formulario de alta rápida
   const [form, setForm] = useState({
     id_service_per_customer: "",
     id_sale_flight: "",
@@ -37,16 +42,23 @@ const ExtraServiceSaleAssignment: React.FC = () => {
     work_order: "",
     status: true
   });
+  // Estado para mostrar spinner de carga
   const [isLoading, setIsLoading] = useState(false);
+  // Estado para mensajes de error
   const [error, setError] = useState("");
+  // Estado para mensajes de éxito
   const [success, setSuccess] = useState("");
+  // Estado para controlar el id de la asignación a eliminar (para mostrar el modal)
   const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
 
+  /**
+   * Obtiene la lista de asignaciones desde el backend.
+   * Si hay un valor en el campo de búsqueda, filtra por work_order.
+   */
   const fetchAssignments = async () => {
     try {
       setIsLoading(true);
       setError("");
-      
       const res = await axios.get(
         `${API_BASE_URL}/catalog/extra-service-sale-assignment${
           search ? `?work_order=${encodeURIComponent(search)}` : ""
@@ -61,18 +73,20 @@ const ExtraServiceSaleAssignment: React.FC = () => {
     }
   };
 
+  /**
+   * Envía los datos del formulario para crear una nueva asignación extra.
+   * Valida los campos y muestra mensajes de error o éxito.
+   */
   const handleAdd = async () => {
     try {
       setIsLoading(true);
       setError("");
-      
       // Validar los datos del formulario
       if (!form.id_service_per_customer || !form.id_sale_flight || !form.id_sale_employee || !form.work_order) {
         setError("Por favor complete todos los campos obligatorios.");
         setIsLoading(false);
         return;
       }
-      
       await axios.post(`${API_BASE_URL}/catalog/extra-service-sale-assignment`, {
         id_service_per_customer: parseInt(form.id_service_per_customer),
         id_sale_flight: parseInt(form.id_sale_flight),
@@ -80,11 +94,9 @@ const ExtraServiceSaleAssignment: React.FC = () => {
         work_order: form.work_order,
         status: form.status
       });
-      
       // Actualizar la lista y mostrar mensaje de éxito
       await fetchAssignments();
       setSuccess("Asignación creada correctamente");
-      
       // Limpiar el formulario
       setForm({
         id_service_per_customer: "",
@@ -93,9 +105,7 @@ const ExtraServiceSaleAssignment: React.FC = () => {
         work_order: "",
         status: true
       });
-      
       setIsLoading(false);
-      
       // Limpiar mensaje de éxito después de 2 segundos
       setTimeout(() => {
         setSuccess("");
@@ -107,33 +117,40 @@ const ExtraServiceSaleAssignment: React.FC = () => {
     }
   };
 
+  /**
+   * Navega a la pantalla de edición de una asignación extra.
+   */
   const handleEditClick = (id: number) => {
     navigate(`/catalog/extra-service/edit/${id}`);
   };
 
+  /**
+   * Navega a la pantalla de alta de una nueva asignación extra.
+   */
   const handleAddNewClick = () => {
     navigate("/catalog/extra-service/add");
   };
 
+  /**
+   * Cuando el usuario hace clic en eliminar, se guarda el id para mostrar el modal de confirmación.
+   */
   const handleDeleteConfirm = (id: number) => {
     setDeleteConfirm(id);
   };
 
+  /**
+   * Si el usuario confirma la eliminación, se hace la petición DELETE al backend y se actualiza la lista.
+   */
   const handleDelete = async (id: number) => {
     try {
       setIsLoading(true);
       setError("");
-      
       await axios.delete(`${API_BASE_URL}/catalog/extra-service-sale-assignment/${id}`);
-      
       // Actualizar la lista después de eliminar
       await fetchAssignments();
-      
-      // Actualizar el estado de la interfaz
       setDeleteConfirm(null);
       setSuccess("Asignación eliminada correctamente");
       setIsLoading(false);
-      
       // Limpiar mensaje de éxito después de 2 segundos
       setTimeout(() => {
         setSuccess("");
@@ -141,7 +158,6 @@ const ExtraServiceSaleAssignment: React.FC = () => {
     } catch (err: any) {
       setIsLoading(false);
       console.error("Error al eliminar asignación", err);
-      
       // Mostrar mensaje de error más detallado
       if (err.response) {
         setError(`Error (${err.response.status}): ${err.response.data.detail || "No se pudo eliminar la asignación"}`);
@@ -151,10 +167,14 @@ const ExtraServiceSaleAssignment: React.FC = () => {
     }
   };
 
+  /**
+   * Si el usuario cancela la eliminación, se oculta el modal y se limpia el id.
+   */
   const handleCancelDelete = () => {
     setDeleteConfirm(null);
   };
 
+  // Cada vez que cambia el valor de búsqueda, se vuelve a cargar la lista de asignaciones
   useEffect(() => {
     fetchAssignments();
   }, [search]);
@@ -173,7 +193,6 @@ const ExtraServiceSaleAssignment: React.FC = () => {
                 Gestión de asignaciones de servicios adicionales a vuelos y empleados
               </p>
             </div>
-            
             {/* Logo de AISG */}
             <div className="flex items-center">
               <div className="bg-white p-2 rounded-full shadow-md">
@@ -194,7 +213,6 @@ const ExtraServiceSaleAssignment: React.FC = () => {
             <p>{error}</p>
           </div>
         )}
-        
         {success && (
           <div className="bg-green-500 bg-opacity-10 border border-green-400 text-green-100 px-4 py-3 rounded my-4 flex items-start">
             <svg className="w-5 h-5 mr-2 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -208,7 +226,6 @@ const ExtraServiceSaleAssignment: React.FC = () => {
         <div className="bg-[#16213E] p-6 rounded-t-lg shadow-lg border-l border-r border-t border-[#0033A0]/20">
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
             <h2 className="text-xl font-semibold text-white">Listado de Asignaciones</h2>
-            
             <div className="flex flex-col sm:flex-row gap-4 w-full md:w-auto">
               <div className="w-full sm:w-64">
                 <div className="relative">
@@ -226,7 +243,7 @@ const ExtraServiceSaleAssignment: React.FC = () => {
                   />
                 </div>
               </div>
-              
+              {/* Botón para ir a la pantalla de alta de nueva asignación */}
               <button
                 onClick={handleAddNewClick}
                 className="bg-gradient-to-r from-[#0033A0] to-[#00B140] hover:from-[#002D8A] hover:to-[#009935] text-white font-medium py-2 px-4 rounded-md transition-all duration-200 shadow-md hover:shadow-lg flex items-center"
@@ -240,7 +257,7 @@ const ExtraServiceSaleAssignment: React.FC = () => {
           </div>
         </div>
 
-        {/* Tabla de datos */}
+        {/* Tabla de datos con la lista de asignaciones */}
         <div className="bg-[#16213E] rounded-b-lg shadow-lg overflow-hidden border-l border-r border-b border-[#0033A0]/20">
           {isLoading && !deleteConfirm && (
             <div className="flex justify-center items-center p-6">
@@ -266,6 +283,7 @@ const ExtraServiceSaleAssignment: React.FC = () => {
               </thead>
               <tbody>
                 {assignments.length > 0 ? (
+                  // Si hay asignaciones, se muestran en la tabla
                   assignments.map((a) => (
                     <tr key={a.id_xtra_sale_employee} className="border-b border-[#0D1B2A] hover:bg-[#1E2A45] transition-colors duration-150">
                       <td className="p-3 text-gray-200">{a.id_xtra_sale_employee}</td>
@@ -274,6 +292,7 @@ const ExtraServiceSaleAssignment: React.FC = () => {
                       <td className="p-3 text-gray-200">{a.id_sale_employee}</td>
                       <td className="p-3 text-gray-200">{a.work_order}</td>
                       <td className="p-3 text-center">
+                        {/* Muestra el estado con color distintivo */}
                         <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                           a.status ? 'bg-green-200 text-green-800' : 'bg-red-200 text-red-800'
                         }`}>
@@ -282,6 +301,7 @@ const ExtraServiceSaleAssignment: React.FC = () => {
                       </td>
                       <td className="p-3 text-center">
                         <div className="flex justify-center gap-2">
+                          {/* Botón para editar la asignación */}
                           <button
                             onClick={() => handleEditClick(a.id_xtra_sale_employee)}
                             className="text-[#4D70B8] hover:text-[#00B140] transition-colors duration-200"
@@ -292,6 +312,7 @@ const ExtraServiceSaleAssignment: React.FC = () => {
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
                             </svg>
                           </button>
+                          {/* Botón para eliminar la asignación */}
                           <button
                             onClick={() => handleDeleteConfirm(a.id_xtra_sale_employee)}
                             className="text-red-500 hover:text-red-400 transition-colors duration-200"
@@ -307,6 +328,7 @@ const ExtraServiceSaleAssignment: React.FC = () => {
                     </tr>
                   ))
                 ) : (
+                  // Si no hay asignaciones, se muestra un mensaje en la tabla
                   <tr>
                     <td colSpan={7} className="p-6 text-center text-gray-400">
                       {isLoading ? (
@@ -328,8 +350,7 @@ const ExtraServiceSaleAssignment: React.FC = () => {
               </tbody>
             </table>
           </div>
-          
-          {/* Pie de tabla con conteo */}
+          {/* Pie de tabla con conteo de asignaciones */}
           {assignments.length > 0 && (
             <div className="p-4 bg-[#0D1B2A] border-t border-[#0033A0]/20 flex justify-between items-center">
               <div className="text-sm text-gray-400">
@@ -339,8 +360,7 @@ const ExtraServiceSaleAssignment: React.FC = () => {
           )}
         </div>
       </div>
-      
-      {/* Modal de confirmación de eliminación (Popup) */}
+      {/* Modal de confirmación de eliminación */}
       {deleteConfirm && (
         <div className="fixed inset-0 z-50 overflow-auto bg-black bg-opacity-50 flex items-center justify-center p-4">
           <div className="bg-[#16213E] rounded-lg shadow-lg max-w-md w-full p-6 border-2 border-red-500 animate-fadeIn">

@@ -2,8 +2,13 @@ import React, { useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 
+/**
+ * Componente para agregar una nueva asignación de servicio extra.
+ * Permite ingresar los IDs de servicio por cliente, vuelo, empleado, la orden de trabajo y el estado.
+ * Realiza validación de campos, muestra errores y permite cancelar o guardar.
+ */
 const AddExtraService: React.FC = () => {
-    // Colores AISG según el manual de identidad corporativa
+    // Paleta de colores corporativos AISG
     const colors = {
         aisgBlue: "#0033A0",
         aisgGreen: "#00B140",
@@ -16,6 +21,7 @@ const AddExtraService: React.FC = () => {
     };
 
     const navigate = useNavigate();
+    // Estado del formulario
     const [form, setForm] = useState({
         id_service_per_customer: "",
         id_sale_flight: "",
@@ -23,9 +29,14 @@ const AddExtraService: React.FC = () => {
         work_order: "",
         status: true
     });
+    // Estado de carga y error
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState("");
 
+    /**
+     * Maneja el envío del formulario.
+     * Valida los campos y realiza la petición POST al backend.
+     */
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
@@ -49,7 +60,7 @@ const AddExtraService: React.FC = () => {
                 status: form.status
             });
 
-            // Redirigir a la lista principal - CORREGIDO
+            // Redirigir a la lista principal
             navigate("/catalogs/assignment");
 
         } catch (err: any) {
@@ -63,8 +74,10 @@ const AddExtraService: React.FC = () => {
         }
     };
 
+    /**
+     * Maneja la acción de cancelar, redirigiendo al listado.
+     */
     const handleCancel = () => {
-        // CORREGIDO - Redirección a la ruta correcta
         navigate("/catalogs/assignment");
     };
 
@@ -82,7 +95,6 @@ const AddExtraService: React.FC = () => {
                                 Cree una nueva asignación de servicio extra
                             </p>
                         </div>
-
                         {/* Logo de AISG */}
                         <div className="flex items-center">
                             <div className="bg-white p-2 rounded-full shadow-md">
@@ -108,6 +120,7 @@ const AddExtraService: React.FC = () => {
                     <form onSubmit={handleSubmit}>
                         <div className="space-y-6">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                {/* Campo: ID Servicio Cliente */}
                                 <div>
                                     <label className="block text-sm font-medium text-gray-300 mb-2">
                                         ID Servicio Cliente *
@@ -121,7 +134,7 @@ const AddExtraService: React.FC = () => {
                                         required
                                     />
                                 </div>
-
+                                {/* Campo: ID Vuelo */}
                                 <div>
                                     <label className="block text-sm font-medium text-gray-300 mb-2">
                                         ID Vuelo *
@@ -135,7 +148,7 @@ const AddExtraService: React.FC = () => {
                                         required
                                     />
                                 </div>
-
+                                {/* Campo: ID Empleado */}
                                 <div>
                                     <label className="block text-sm font-medium text-gray-300 mb-2">
                                         ID Empleado *
@@ -149,7 +162,7 @@ const AddExtraService: React.FC = () => {
                                         required
                                     />
                                 </div>
-
+                                {/* Campo: Orden de Trabajo */}
                                 <div>
                                     <label className="block text-sm font-medium text-gray-300 mb-2">
                                         Orden de Trabajo *
@@ -164,7 +177,7 @@ const AddExtraService: React.FC = () => {
                                     />
                                 </div>
                             </div>
-
+                            {/* Switch: Estado */}
                             <div>
                                 <label className="flex items-center cursor-pointer">
                                     <div className="relative">
@@ -182,7 +195,7 @@ const AddExtraService: React.FC = () => {
                                     </div>
                                 </label>
                             </div>
-
+                            {/* Botones de acción */}
                             <div className="flex justify-end gap-3 pt-6">
                                 <button
                                     type="button"

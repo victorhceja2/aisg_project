@@ -2,13 +2,24 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { Link, useNavigate } from "react-router-dom";
 
+/**
+ * Componente para mostrar y administrar el catálogo de servicios.
+ * Aquí se puede buscar, agregar, editar y eliminar servicios.
+ */
 const CatalogServices: React.FC = () => {
+  // Guardamos la lista de servicios que obtenemos del backend
   const [services, setServices] = useState<any[]>([]);
+  // Controlamos el valor del campo de búsqueda
   const [search, setSearch] = useState("");
+  // Manejamos el estado de error para mostrar mensajes al usuario
   const [error, setError] = useState<string | null>(null);
+  // Indicamos si la tabla está cargando datos
   const [loading, setLoading] = useState(true);
+  // Guardamos el id del servicio que se quiere eliminar
   const [serviceToDelete, setServiceToDelete] = useState<number | null>(null);
+  // Controlamos si se muestra el modal de confirmación de eliminación
   const [showConfirmation, setShowConfirmation] = useState(false);
+  // Obtenemos la URL base del API desde variables de entorno o usamos una por defecto
   const apiURL = import.meta.env.VITE_API_URL || "http://localhost:8000";
   const navigate = useNavigate();
 
@@ -24,6 +35,10 @@ const CatalogServices: React.FC = () => {
     textLight: "#FFFFFF",
   };
 
+  /**
+   * Se obtiene la lista de servicios desde el backend.
+   * Si hay un término de búsqueda, se filtran los resultados.
+   */
   const fetchServices = async () => {
     setLoading(true);
     try {
@@ -40,11 +55,17 @@ const CatalogServices: React.FC = () => {
     }
   };
 
+  /**
+   * Cuando el usuario hace clic en eliminar, guardamos el id y mostramos el modal de confirmación.
+   */
   const handleDeleteClick = (id: number) => {
     setServiceToDelete(id);
     setShowConfirmation(true);
   };
 
+  /**
+   * Si el usuario confirma la eliminación, se hace la petición al backend y se actualiza la lista.
+   */
   const confirmDelete = async () => {
     if (!serviceToDelete) return;
     
@@ -61,11 +82,15 @@ const CatalogServices: React.FC = () => {
     }
   };
 
+  /**
+   * Si el usuario cancela la eliminación, simplemente cerramos el modal y limpiamos el id.
+   */
   const cancelDelete = () => {
     setShowConfirmation(false);
     setServiceToDelete(null);
   };
 
+  // Cada vez que cambia el término de búsqueda, se vuelve a cargar la lista de servicios
   useEffect(() => {
     fetchServices();
   }, [search]);
@@ -81,14 +106,14 @@ const CatalogServices: React.FC = () => {
 
         {/* Contenido principal */}
         <div className="bg-[#16213E] rounded-b-lg shadow-lg p-6">
-          {/* Mensajes de error */}
+          {/* Si hay un error, mostramos el mensaje destacado */}
           {error && (
             <div className="bg-red-500 text-white p-4 rounded-lg mb-6 shadow-md animate-pulse">
               <p className="font-medium">{error}</p>
             </div>
           )}
 
-          {/* Barra de herramientas */}
+          {/* Barra de búsqueda y botón para agregar nuevo servicio */}
           <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
             <div className="w-full md:w-2/3 relative">
               <input
@@ -104,6 +129,7 @@ const CatalogServices: React.FC = () => {
                 </svg>
               </div>
             </div>
+            {/* Botón para agregar un nuevo servicio */}
             <Link
               to="/services/add"
               className="w-full md:w-auto bg-[#00B140] hover:bg-[#009935] text-white font-medium py-2 px-4 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg flex items-center justify-center"
@@ -117,6 +143,7 @@ const CatalogServices: React.FC = () => {
 
           {/* Tabla de resultados */}
           {loading ? (
+            // Mostramos un spinner mientras se cargan los datos
             <div className="flex justify-center my-12">
               <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#00B140]"></div>
             </div>
@@ -135,12 +162,14 @@ const CatalogServices: React.FC = () => {
                   </thead>
                   <tbody className="divide-y divide-[#1E2A45]">
                     {services.length === 0 ? (
+                      // Si no hay resultados, mostramos un mensaje
                       <tr>
                         <td colSpan={5} className="px-6 py-8 text-center text-gray-400">
                           No se encontraron servicios. Intenta con otra búsqueda o agrega un nuevo servicio.
                         </td>
                       </tr>
                     ) : (
+                      // Recorremos la lista de servicios y mostramos cada uno en una fila
                       services.map((s) => (
                         <tr key={s.id_service} className="hover:bg-[#1E2A45] transition-colors">
                           <td className="px-6 py-4 text-gray-300">{s.id_service}</td>
@@ -149,6 +178,7 @@ const CatalogServices: React.FC = () => {
                           <td className="px-6 py-4 text-gray-300">{s.service_description}</td>
                           <td className="px-6 py-4">
                             <div className="flex justify-center space-x-2">
+                              {/* Botón para editar el servicio */}
                               <Link
                                 to={`/services/edit/${s.id_service}`}
                                 className="p-1.5 bg-[#4D70B8] text-white rounded hover:bg-[#0033A0] transition-colors"
@@ -158,6 +188,7 @@ const CatalogServices: React.FC = () => {
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                                 </svg>
                               </Link>
+                              {/* Botón para eliminar el servicio */}
                               <button
                                 onClick={() => handleDeleteClick(s.id_service)}
                                 className="p-1.5 bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
@@ -178,7 +209,7 @@ const CatalogServices: React.FC = () => {
             </div>
           )}
 
-          {/* Modal de confirmación */}
+          {/* Modal de confirmación para eliminar un servicio */}
           {showConfirmation && (
             <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
               <div className="bg-[#16213E] rounded-lg overflow-hidden shadow-2xl max-w-md w-full mx-4 border border-[#0033A0]">

@@ -1,6 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 
+/**
+ * Componente de menú lateral para navegación principal del sistema AISG.
+ * Incluye navegación protegida por sesión, responsive para móvil y desktop, y cierre de sesión.
+ */
 interface MenuProps {
   isOpen: boolean;
   setIsOpen: (isOpen: boolean) => void;
@@ -11,7 +15,7 @@ const Menu: React.FC<MenuProps> = ({ isOpen, setIsOpen }) => {
   const location = useLocation();
   const [isMobileView, setIsMobileView] = useState(window.innerWidth < 1024);
 
-  // Detector de cambio de tamaño de pantalla
+  // Detecta cambios de tamaño de pantalla para alternar entre vista móvil y escritorio
   useEffect(() => {
     const handleResize = () => {
       setIsMobileView(window.innerWidth < 1024);
@@ -23,39 +27,34 @@ const Menu: React.FC<MenuProps> = ({ isOpen, setIsOpen }) => {
     };
   }, []);
 
-  // Función para determinar si un enlace está activo
+  // Determina si una ruta está activa para resaltar el menú
   const isActive = (path: string) => {
     return location.pathname === path || location.pathname.startsWith(path);
   };
 
-  // Función para verificar sesión y navegar
+  // Navegación protegida: solo permite navegar si hay sesión activa
   const handleNavigation = (path: string) => {
     const isAuthenticated = sessionStorage.getItem('user') !== null;
 
     if (!isAuthenticated) {
-      // Si no hay sesión, redirigir al login
+      // Si no hay sesión, redirige al login
       navigate("/", { replace: true });
       return;
     }
 
-    // Si hay sesión, navegar a la ruta solicitada
+    // Si hay sesión, navega a la ruta solicitada
     navigate(path);
     if (isMobileView) setIsOpen(false);
   };
 
-  // Función para cerrar sesión
+  // Cierra sesión, limpia storage y redirige al login
   const handleLogout = () => {
-    // Limpiar toda la sesión
     sessionStorage.clear();
-
-    // Disparar evento personalizado para notificar cierre de sesión
     window.dispatchEvent(new Event('logout'));
-
-    // Redirigir al login
     navigate("/", { replace: true });
   };
 
-  // Botón de menú hamburguesa para móviles y toggle para desktop
+  // Botón hamburguesa para abrir/cerrar menú en móvil y toggle en desktop
   const MenuToggleButton = () => (
     <button
       className="fixed top-4 left-4 z-50 p-2 rounded-md bg-[#0D1B2A] text-white"
@@ -73,13 +72,13 @@ const Menu: React.FC<MenuProps> = ({ isOpen, setIsOpen }) => {
     </button>
   );
 
-  // Contenido del menú (se muestra condicionalmente)
+  // Contenido principal del menú lateral
   const MenuContent = () => (
     <div
       className={`fixed ${isOpen ? 'translate-x-0' : '-translate-x-full'} transition-transform duration-300
                  w-64 bg-[#0D1B2A] text-white h-screen shadow-lg flex flex-col font-['Montserrat'] z-40`}
     >
-      {/* Header con logo */}
+      {/* Header con logo y nombre */}
       <div className="bg-gradient-to-r from-[#0033A0] to-[#00B140] p-6 flex flex-col items-center">
         <div className="mb-4">
           <img
@@ -91,13 +90,12 @@ const Menu: React.FC<MenuProps> = ({ isOpen, setIsOpen }) => {
         <h1 className="text-xl font-bold text-white">AISG</h1>
       </div>
 
-      {/* Menú de navegación con altura fija y scroll */}
+      {/* Navegación principal */}
       <nav className="flex flex-col p-4 overflow-y-auto flex-grow">
         <div className="space-y-1 mb-6 border-b border-[#16213E] pb-4">
           <h2 className="text-xs font-semibold text-gray-300 uppercase tracking-wider mb-2 px-3">
             Principal
           </h2>
-
           <button
             onClick={() => handleNavigation("/dashboard")}
             className={`w-full text-left px-3 py-2 rounded-lg flex items-center transition-colors ${isActive("/dashboard")
@@ -116,10 +114,9 @@ const Menu: React.FC<MenuProps> = ({ isOpen, setIsOpen }) => {
           <h2 className="text-xs font-semibold text-gray-300 uppercase tracking-wider mb-2 px-3">
             Módulos
           </h2>
-
           <button
-            onClick={() => handleNavigation("/services")}
-            className={`w-full text-left px-3 py-2 rounded-lg flex items-center transition-colors ${isActive("/services")
+            onClick={() => handleNavigation("/maintenance")}
+            className={`w-full text-left px-3 py-2 rounded-lg flex items-center transition-colors ${isActive("/maintenance")
                 ? "bg-[#0033A0] text-white"
                 : "text-gray-300 hover:bg-[#16213E]"
               }`}
@@ -130,7 +127,6 @@ const Menu: React.FC<MenuProps> = ({ isOpen, setIsOpen }) => {
             </svg>
             Mantenimiento
           </button>
-
           <button
             onClick={() => handleNavigation("/configurations")}
             className={`w-full text-left px-3 py-2 rounded-lg flex items-center transition-colors ${isActive("/configurations")
@@ -143,7 +139,6 @@ const Menu: React.FC<MenuProps> = ({ isOpen, setIsOpen }) => {
             </svg>
             Reportes
           </button>
-
           <button
             onClick={() => handleNavigation("/catalogs")}
             className={`w-full text-left px-3 py-2 rounded-lg flex items-center transition-colors ${isActive("/catalogs")
@@ -159,7 +154,7 @@ const Menu: React.FC<MenuProps> = ({ isOpen, setIsOpen }) => {
         </div>
       </nav>
 
-      {/* Botón de cerrar sesión - ahora siempre visible al final del menú */}
+      {/* Botón de cerrar sesión siempre visible al final del menú */}
       <div className="p-4 border-t border-[#16213E] mt-auto bg-[#0D1B2A]">
         <button
           onClick={handleLogout}

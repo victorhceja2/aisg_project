@@ -26,6 +26,9 @@ const EditExtraService: React.FC = () => {
 
     const navigate = useNavigate();
     const { id } = useParams<{ id: string }>();
+    // Usar la variable de entorno para la URL del API
+    const apiURL = import.meta.env.VITE_API_URL || "http://82.165.213.124:8000";
+    
     const [form, setForm] = useState({
         id_service_per_customer: "",
         id_sale_flight: "",
@@ -42,7 +45,7 @@ const EditExtraService: React.FC = () => {
         const fetchData = async () => {
             try {
                 setIsFetching(true);
-                const res = await axios.get<ExtraServiceAssignment>(`http://localhost:8000/catalog/extra-service-sale-assignment/${id}`);
+                const res = await axios.get<ExtraServiceAssignment>(`${apiURL}/catalog/extra-service-sale-assignment/${id}`);
                 const assignment = res.data;
 
                 setForm({
@@ -62,7 +65,7 @@ const EditExtraService: React.FC = () => {
         };
 
         fetchData();
-    }, [id]);
+    }, [id, apiURL]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -79,7 +82,7 @@ const EditExtraService: React.FC = () => {
             }
 
             // Enviar los datos al backend
-            await axios.put(`http://localhost:8000/catalog/extra-service-sale-assignment/${id}`, {
+            await axios.put(`${apiURL}/catalog/extra-service-sale-assignment/${id}`, {
                 id_service_per_customer: parseInt(form.id_service_per_customer),
                 id_sale_flight: parseInt(form.id_sale_flight),
                 id_sale_employee: parseInt(form.id_sale_employee),
@@ -89,6 +92,7 @@ const EditExtraService: React.FC = () => {
 
             // Redirigir a la lista principal - CORREGIDO
             navigate("/catalogs/assignment");
+            setIsLoading(false);
 
         } catch (err: any) {
             console.error("Error al actualizar asignación", err);

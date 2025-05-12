@@ -3,30 +3,32 @@ import axios from "axios";
 import { useNavigate } from "react-router-dom";
 
 const Login: React.FC = () => {
-  // Estados y configuración actual...
+  // Estados para usuario, contraseña, error y carga
   const [username, setUsername] = useState<string>("");
   const [password, setPassword] = useState<string>("");
   const [error, setError] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const navigate = useNavigate();
 
+  // URL base de la API (variable de entorno o localhost)
   const apiURL = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
-  // Verificar si ya hay una sesión activa al cargar el componente
+  // Verifica si ya hay sesión activa al cargar el componente
   useEffect(() => {
-    // Agregar verificación para evitar el bucle infinito
     const checkSession = () => {
       const user = sessionStorage.getItem("user");
       if (user && window.location.pathname === '/') {
-        // Solo redirigir si estamos en la página de inicio y hay una sesión
         navigate("/dashboard", { replace: true });
       }
     };
-    
     checkSession();
-    // La función solo se ejecuta una vez al montar el componente
   }, [navigate]);
 
+  /**
+   * Maneja el envío del formulario de login.
+   * Realiza petición al backend y guarda datos de sesión.
+   * Permite login de prueba con admin/admin123.
+   */
   const handleLogin = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsLoading(true);
@@ -38,7 +40,7 @@ const Login: React.FC = () => {
         password: password.trim(),
       });
 
-      // Guardar datos de sesión
+      // Guardar datos de sesión en sessionStorage
       sessionStorage.setItem("userId", response.data.userId);
       sessionStorage.setItem("userName", response.data.userName);
       sessionStorage.setItem("perfil", response.data.perfil);
@@ -51,32 +53,27 @@ const Login: React.FC = () => {
       // Disparar evento personalizado para notificar cambio en sessionStorage
       window.dispatchEvent(new Event('storageChange'));
 
-      // Redirigir al dashboard después de guardar en sessionStorage
+      // Redirigir al dashboard
       navigate("/dashboard", { replace: true });
     } catch (err) {
       console.error(err);
-      
-      // Para pruebas: login con credenciales fijas
+
+      // Login de prueba con admin/admin123
       if (username === "admin" && password === "admin123") {
         const mockUserData = {
           userId: "1",
           userName: "Administrador",
           perfil: "ADMIN"
         };
-        
         sessionStorage.setItem("userId", mockUserData.userId);
         sessionStorage.setItem("userName", mockUserData.userName);
         sessionStorage.setItem("perfil", mockUserData.perfil);
         sessionStorage.setItem("user", JSON.stringify(mockUserData));
-        
-        // Disparar evento personalizado para notificar cambio en sessionStorage
         window.dispatchEvent(new Event('storageChange'));
-        
-        // Redirigir al dashboard
         navigate("/dashboard", { replace: true });
         return;
       }
-      
+
       setError("Credenciales inválidas. Por favor verifique su usuario y contraseña.");
     } finally {
       setIsLoading(false);
@@ -88,7 +85,7 @@ const Login: React.FC = () => {
       <div className="w-full max-w-md mx-auto">
         <div className="bg-gradient-to-r from-[#0033A0] to-[#00B140] p-4 sm:p-6 rounded-t-xl shadow-lg">
           <div className="flex flex-col items-center justify-center text-white">
-            {/* Logo de AISG - Reemplazado por la imagen real */}
+            {/* Logo de AISG */}
             <div className="mb-3 sm:mb-4">
               <div className="bg-white p-3 sm:p-4 rounded-full shadow-md inline-flex">
                 <img

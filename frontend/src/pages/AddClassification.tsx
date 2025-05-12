@@ -2,13 +2,22 @@ import React, { useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 
+/**
+ * Componente para agregar una nueva clasificación de servicio.
+ * Permite ingresar el nombre de la clasificación y guardarla en el backend.
+ * Incluye validación, manejo de errores y navegación tras guardar o cancelar.
+ */
 const AddClassification: React.FC = () => {
+  // Estado para el nombre de la clasificación
   const [name, setName] = useState("");
+  // Estado para mensajes de error
   const [error, setError] = useState<string | null>(null);
+  // URL base de la API (usa variable de entorno o localhost por defecto)
   const apiURL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+  // Hook para navegación programática
   const navigate = useNavigate();
 
-  // Colores AISG según el manual de identidad corporativa
+  // Paleta de colores corporativos AISG
   const colors = {
     aisgBlue: "#0033A0",
     aisgGreen: "#00B140",
@@ -20,6 +29,10 @@ const AddClassification: React.FC = () => {
     textLight: "#FFFFFF",
   };
 
+  /**
+   * Maneja el envío del formulario.
+   * Valida el campo y realiza la petición POST al backend.
+   */
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name) {
@@ -31,6 +44,7 @@ const AddClassification: React.FC = () => {
       await axios.post(`${apiURL}/catalog/service-classification/`, {
         service_classification_name: name
       });
+      // Redirige al listado de clasificaciones tras guardar
       navigate("/catalogs/classif");
     } catch (err) {
       console.error("Error al agregar clasificación", err);

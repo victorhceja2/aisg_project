@@ -2,9 +2,13 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 
-// Definición de la URL base para la API
+/**
+ * Componente para mostrar y administrar la configuración extra por compañía.
+ * Permite buscar por ID de compañía, agregar, editar y eliminar configuraciones.
+ */
 const API_BASE_URL = "http://82.165.213.124:8000";
 
+// Definición de la estructura de datos para una configuración extra por compañía
 interface ExtraCompanyConfig {
   id_xtra_company: number;
   id_company: number;
@@ -13,7 +17,7 @@ interface ExtraCompanyConfig {
 }
 
 const ExtraCompanyConfiguration: React.FC = () => {
-  // Colores AISG según el manual de identidad corporativa
+  // Paleta de colores corporativos AISG para mantener la identidad visual
   const colors = {
     aisgBlue: "#0033A0",
     aisgGreen: "#00B140",
@@ -25,11 +29,19 @@ const ExtraCompanyConfiguration: React.FC = () => {
     darkBgPanel: "#1E2A45",
   };
 
+  // Hook para navegación programática entre pantallas
   const navigate = useNavigate();
+  // Estado para almacenar la lista de configuraciones extra obtenidas del backend
   const [configs, setConfigs] = useState<ExtraCompanyConfig[]>([]);
+  // Estado para el valor del campo de búsqueda por ID de compañía
   const [search, setSearch] = useState("");
+  // Estado para controlar si se muestra el modal de confirmación de eliminación y a qué id corresponde
   const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
 
+  /**
+   * Obtiene la lista de configuraciones extra desde el backend.
+   * Si hay un valor en el campo de búsqueda, filtra por id_company.
+   */
   const fetchConfigs = async () => {
     try {
       const res = await axios.get(
@@ -41,11 +53,16 @@ const ExtraCompanyConfiguration: React.FC = () => {
     }
   };
 
-  // BORRAR
+  /**
+   * Cuando el usuario hace clic en eliminar, se guarda el id para mostrar el modal de confirmación.
+   */
   const handleDeleteConfirm = (id: number) => {
     setDeleteConfirm(id);
   };
 
+  /**
+   * Si el usuario confirma la eliminación, se hace la petición DELETE al backend y se actualiza la lista.
+   */
   const handleDelete = async (id: number) => {
     try {
       await axios.delete(`${API_BASE_URL}/catalog/extra-company-configuration/${id}`);
@@ -56,20 +73,28 @@ const ExtraCompanyConfiguration: React.FC = () => {
     }
   };
 
+  /**
+   * Si el usuario cancela la eliminación, se oculta el modal y se limpia el id.
+   */
   const handleCancelDelete = () => {
     setDeleteConfirm(null);
   };
 
+  // Cada vez que cambia el valor de búsqueda, se vuelve a cargar la lista de configuraciones
   useEffect(() => {
     fetchConfigs();
   }, [search]);
 
-  // Navegar a la página de edición
+  /**
+   * Navega a la pantalla de edición de configuración extra por compañía.
+   */
   const handleEdit = (id: number) => {
     navigate(`/catalogs/company/edit/${id}`);
   };
 
-  // Navegar a la página de creación
+  /**
+   * Navega a la pantalla de creación de nueva configuración extra por compañía.
+   */
   const handleAdd = () => {
     navigate("/catalogs/company/add");
   };
@@ -77,7 +102,7 @@ const ExtraCompanyConfiguration: React.FC = () => {
   return (
     <div className="min-h-screen bg-[#1A1A2E] py-8 px-4 sm:px-6 lg:px-8 font-['Montserrat'] text-white">
       <div className="max-w-6xl mx-auto">
-        {/* Cabecera */}
+        {/* Cabecera principal con título y descripción */}
         <div className="bg-gradient-to-r from-[#0033A0] to-[#00B140] p-6 rounded-lg shadow-lg mb-6">
           <h1 className="text-2xl font-bold text-center text-white">
             Configuración Extra por Compañía
@@ -87,9 +112,9 @@ const ExtraCompanyConfiguration: React.FC = () => {
           </p>
         </div>
 
-        {/* Barra de acciones */}
+        {/* Barra de acciones: búsqueda por id_company y botón para agregar nueva configuración */}
         <div className="bg-[#16213E] p-6 rounded-lg shadow-lg mb-6 flex flex-wrap justify-between items-center gap-4">
-          {/* Búsqueda */}
+          {/* Campo de búsqueda por id_company */}
           <div className="flex-grow max-w-md">
             <label className="block text-sm font-medium text-gray-300 mb-2">Buscar por ID de Compañía</label>
             <input
@@ -101,7 +126,7 @@ const ExtraCompanyConfiguration: React.FC = () => {
             />
           </div>
           
-          {/* Botón Agregar */}
+          {/* Botón para agregar nueva configuración extra */}
           <div>
             <button
               onClick={handleAdd}
@@ -115,7 +140,7 @@ const ExtraCompanyConfiguration: React.FC = () => {
           </div>
         </div>
 
-        {/* Confirmación de Eliminación */}
+        {/* Modal de confirmación para eliminar una configuración extra */}
         {deleteConfirm && (
           <div className="bg-[#16213E] p-6 rounded-lg shadow-lg mb-6 border-2 border-red-500">
             <h2 className="text-xl font-semibold mb-4 text-white">Confirmar Eliminación</h2>
@@ -139,7 +164,7 @@ const ExtraCompanyConfiguration: React.FC = () => {
           </div>
         )}
 
-        {/* Tabla */}
+        {/* Tabla principal con la lista de configuraciones extra por compañía */}
         <div className="bg-[#16213E] rounded-lg shadow-lg overflow-hidden">
           <table className="w-full table-auto">
             <thead>
@@ -153,11 +178,13 @@ const ExtraCompanyConfiguration: React.FC = () => {
             </thead>
             <tbody>
               {configs.length > 0 ? (
+                // Si hay configuraciones, se muestran en la tabla
                 configs.map((c) => (
                   <tr key={c.id_xtra_company} className="border-t border-[#0D1B2A] hover:bg-[#1E2A45]">
                     <td className="p-3">{c.id_xtra_company}</td>
                     <td className="p-3">{c.id_company}</td>
                     <td className="p-3">
+                      {/* Muestra si aplica detalle con color distintivo */}
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                         c.applies_detail 
                           ? "bg-[#00B140] bg-opacity-20 text-[#4DC970]" 
@@ -167,6 +194,7 @@ const ExtraCompanyConfiguration: React.FC = () => {
                       </span>
                     </td>
                     <td className="p-3">
+                      {/* Muestra el estatus con color distintivo */}
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                         c.status 
                           ? "bg-[#00B140] bg-opacity-20 text-[#4DC970]" 
@@ -177,6 +205,7 @@ const ExtraCompanyConfiguration: React.FC = () => {
                     </td>
                     <td className="p-3 text-center">
                       <div className="flex justify-center gap-2">
+                        {/* Botón para editar la configuración extra */}
                         <button
                           onClick={() => handleEdit(c.id_xtra_company)}
                           className="text-[#4D70B8] hover:text-[#00B140] transition-colors duration-200"
@@ -186,6 +215,7 @@ const ExtraCompanyConfiguration: React.FC = () => {
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
                           </svg>
                         </button>
+                        {/* Botón para eliminar la configuración extra */}
                         <button
                           onClick={() => handleDeleteConfirm(c.id_xtra_company)}
                           className="text-red-500 hover:text-red-400 transition-colors duration-200"
@@ -200,6 +230,7 @@ const ExtraCompanyConfiguration: React.FC = () => {
                   </tr>
                 ))
               ) : (
+                // Si no hay configuraciones, se muestra un mensaje en la tabla
                 <tr>
                   <td colSpan={5} className="p-4 text-center text-gray-400">
                     No se encontraron configuraciones

@@ -17,7 +17,7 @@ const EditService: React.FC = () => {
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const apiURL = import.meta.env.VITE_API_URL;
+  const apiURL = import.meta.env.VITE_API_URL || "http://82.165.213.124:8000";
   const navigate = useNavigate();
 
   // Colores AISG según el manual de identidad corporativa

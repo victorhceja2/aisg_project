@@ -1,7 +1,11 @@
 import React from 'react';
 
+/**
+ * Componente principal del Dashboard AISG.
+ * Muestra tarjetas de resumen, próximos mantenimientos, estadísticas y recursos del sistema.
+ */
 const Dashboard = () => {
-  // Colores AISG según el manual de identidad corporativa
+  // Paleta de colores corporativos AISG
   const colors = {
     aisgBlue: "#0033A0",
     aisgGreen: "#00B140",
@@ -19,7 +23,7 @@ const Dashboard = () => {
   return (
     <div className="flex-1 bg-[#1A1A2E] py-8 px-4 sm:px-6 lg:px-8 font-['Montserrat'] overflow-y-auto">
       <div className="max-w-6xl mx-auto">
-        {/* Cabecera */}
+        {/* Cabecera principal con título y descripción */}
         <div className="bg-gradient-to-r from-[#0033A0] to-[#00B140] p-6 rounded-lg shadow-lg mb-6">
           <h1 className="text-2xl font-bold text-center text-white">
             Bienvenido al sistema AISG
@@ -29,9 +33,9 @@ const Dashboard = () => {
           </p>
         </div>
 
-        {/* Tarjetas de información */}
+        {/* Tarjetas de información rápida */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-          {/* Tarjeta 1 */}
+          {/* Tarjeta: Servicios Activos */}
           <div className="bg-[#16213E] rounded-lg shadow-xl overflow-hidden">
             <div className="bg-gradient-to-r from-[#0033A0] to-[#4D70B8] p-4 flex justify-between items-center">
               <div className="text-white font-bold text-xl">
@@ -48,7 +52,7 @@ const Dashboard = () => {
             </div>
           </div>
 
-          {/* Tarjeta 2 */}
+          {/* Tarjeta: Completados Hoy */}
           <div className="bg-[#16213E] rounded-lg shadow-xl overflow-hidden">
             <div className="bg-gradient-to-r from-[#00B140] to-[#4DC970] p-4 flex justify-between items-center">
               <div className="text-white font-bold text-xl">
@@ -65,7 +69,7 @@ const Dashboard = () => {
             </div>
           </div>
 
-          {/* Tarjeta 3 */}
+          {/* Tarjeta: Pendientes */}
           <div className="bg-[#16213E] rounded-lg shadow-xl overflow-hidden">
             <div className="bg-gradient-to-r from-amber-500 to-amber-600 p-4 flex justify-between items-center">
               <div className="text-white font-bold text-xl">
@@ -82,7 +86,7 @@ const Dashboard = () => {
             </div>
           </div>
 
-          {/* Tarjeta 4 */}
+          {/* Tarjeta: Técnicos Activos */}
           <div className="bg-[#16213E] rounded-lg shadow-xl overflow-hidden">
             <div className="bg-gradient-to-r from-[#4D70B8] to-[#3A5A9F] p-4 flex justify-between items-center">
               <div className="text-white font-bold text-xl">
@@ -100,7 +104,7 @@ const Dashboard = () => {
           </div>
         </div>
 
-        {/* Panel principal */}
+        {/* Panel principal de resumen general */}
         <div className="bg-[#16213E] rounded-lg shadow-xl p-6 mb-6">
           <h2 className="text-xl font-bold text-white mb-4">Resumen General</h2>
           <p className="text-gray-300">
@@ -123,17 +127,20 @@ const Dashboard = () => {
           </div>
         </div>
 
-        {/* Panel inferior */}
+        {/* Panel inferior con estadísticas y recursos */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Panel de estadísticas mensuales */}
           <div className="bg-[#16213E] rounded-lg shadow-xl p-6">
             <h2 className="text-xl font-bold text-white mb-4">Estadísticas Mensuales</h2>
             <div className="text-center py-8 text-gray-400">
               [Aquí irá un gráfico de estadísticas]
             </div>
           </div>
+          {/* Panel de recursos del sistema */}
           <div className="bg-[#16213E] rounded-lg shadow-xl p-6">
             <h2 className="text-xl font-bold text-white mb-4">Recursos del Sistema</h2>
             <div className="space-y-4">
+              {/* Carga del servidor */}
               <div className="bg-[#0D1B2A] p-3 rounded">
                 <div className="flex justify-between items-center mb-1">
                   <span className="text-white">Carga del Servidor</span>
@@ -143,6 +150,7 @@ const Dashboard = () => {
                   <div className="bg-[#00B140] h-2.5 rounded-full" style={{width: '45%'}}></div>
                 </div>
               </div>
+              {/* Almacenamiento */}
               <div className="bg-[#0D1B2A] p-3 rounded">
                 <div className="flex justify-between items-center mb-1">
                   <span className="text-white">Almacenamiento</span>
@@ -152,6 +160,7 @@ const Dashboard = () => {
                   <div className="bg-amber-500 h-2.5 rounded-full" style={{width: '65%'}}></div>
                 </div>
               </div>
+              {/* Ancho de banda */}
               <div className="bg-[#0D1B2A] p-3 rounded">
                 <div className="flex justify-between items-center mb-1">
                   <span className="text-white">Ancho de Banda</span>

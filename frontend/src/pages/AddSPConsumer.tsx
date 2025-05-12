@@ -2,8 +2,13 @@ import React, { useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 
+/**
+ * Componente para agregar un nuevo registro de "Servicio por Cliente".
+ * Permite ingresar los IDs de servicio, cliente y empresa, minutos incluidos y mínimos, técnicos incluidos y tipo de fuselaje.
+ * Realiza validación, muestra errores y navega tras guardar o cancelar.
+ */
 const AddSPConsumer: React.FC = () => {
-  // Colores AISG según el manual de identidad corporativa
+  // Paleta de colores corporativos AISG
   const colors = {
     aisgBlue: "#0033A0",
     aisgGreen: "#00B140",
@@ -16,7 +21,8 @@ const AddSPConsumer: React.FC = () => {
   };
 
   const navigate = useNavigate();
-  
+
+  // Estado del formulario
   const [form, setForm] = useState({
     id_service: "",
     id_client: "",
@@ -26,9 +32,14 @@ const AddSPConsumer: React.FC = () => {
     fuselage_type: "",
     technicians_included: 0,
   });
-  
+
+  // Estado para mensajes de error
   const [error, setError] = useState("");
 
+  /**
+   * Maneja el envío del formulario.
+   * Valida y realiza la petición POST al backend.
+   */
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -43,10 +54,10 @@ const AddSPConsumer: React.FC = () => {
         technicians_included: form.technicians_included,
       };
 
-      // Creamos el nuevo registro
+      // Envía el nuevo registro al backend
       await axios.post("http://localhost:8000/catalog/service-per-customer", data);
 
-      // Redireccionamos a la lista
+      // Redirige al listado tras guardar
       navigate("/catalogs/customer");
     } catch (err) {
       console.error("Error al guardar el registro", err);
@@ -54,6 +65,9 @@ const AddSPConsumer: React.FC = () => {
     }
   };
 
+  /**
+   * Maneja la acción de cancelar, redirigiendo al listado.
+   */
   const handleCancel = () => {
     navigate("/catalogs/customer");
   };
@@ -81,6 +95,7 @@ const AddSPConsumer: React.FC = () => {
 
           <form onSubmit={handleSubmit}>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+              {/* Campo: ID Servicio */}
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">ID Servicio</label>
                 <input
@@ -91,7 +106,7 @@ const AddSPConsumer: React.FC = () => {
                   required
                 />
               </div>
-              
+              {/* Campo: ID Cliente */}
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">ID Cliente</label>
                 <input
@@ -102,7 +117,7 @@ const AddSPConsumer: React.FC = () => {
                   required
                 />
               </div>
-              
+              {/* Campo: ID Empresa */}
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">ID Empresa</label>
                 <input
@@ -113,7 +128,7 @@ const AddSPConsumer: React.FC = () => {
                   required
                 />
               </div>
-              
+              {/* Campo: Minutos Incluidos */}
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">Minutos Incluidos</label>
                 <input
@@ -125,7 +140,7 @@ const AddSPConsumer: React.FC = () => {
                   required
                 />
               </div>
-              
+              {/* Campo: Minutos Mínimos */}
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">Minutos Mínimos</label>
                 <input
@@ -137,7 +152,7 @@ const AddSPConsumer: React.FC = () => {
                   required
                 />
               </div>
-              
+              {/* Campo: Técnicos Incluidos */}
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">Técnicos Incluidos</label>
                 <input
@@ -149,7 +164,7 @@ const AddSPConsumer: React.FC = () => {
                   required
                 />
               </div>
-              
+              {/* Campo: Tipo de Fuselaje */}
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">Tipo de Fuselaje</label>
                 <input
@@ -161,6 +176,7 @@ const AddSPConsumer: React.FC = () => {
               </div>
             </div>
 
+            {/* Botones de acción */}
             <div className="flex justify-end gap-3 mt-8">
               <button
                 type="button"
