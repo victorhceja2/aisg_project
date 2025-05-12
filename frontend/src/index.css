@@ -12,8 +12,8 @@
 html, body, #root {
   width: 100%;
   height: 100%;
-  margin: 0;
   padding: 0;
-  overflow: hidden;
+  /* quito overflow:hidden para permitir scroll interno */
+  overflow: auto;
   background-color: #1A1A2E;
 }
