@@ -23,6 +23,10 @@ import AddExtraService from "./pages/AddExtraService";
 import EditExtraService from "./pages/EditExtraService";
 import ProtectedRoute from "./components/ProtectedRoute";
 
+/**
+ * Componente principal de la aplicación AISG
+ * Maneja la navegación, autenticación y estado del menú lateral
+ */
 const App: React.FC = () => {
   // Inicializar menuIsOpen como falso en móvil y verdadero en desktop
   const isMobileInitial = window.innerWidth < 1024;
@@ -30,6 +34,10 @@ const App: React.FC = () => {
   const [isMobile, setIsMobile] = useState(isMobileInitial);
   const [isAuthenticated, setIsAuthenticated] = useState(sessionStorage.getItem('user') !== null);
 
+  /**
+   * Gestiona el estado de autenticación y respuesta a cambios de tamaño
+   * de pantalla para mantener la experiencia adaptada a cada dispositivo
+   */
   useEffect(() => {
     // Función para actualizar si el usuario está autenticado
     const updateAuthStatus = () => {
@@ -45,6 +53,7 @@ const App: React.FC = () => {
       }
     };
 
+    // Ajusta la interfaz basada en el tamaño de la pantalla
     const handleResize = () => {
       const mobile = window.innerWidth < 1024;
       setIsMobile(mobile);
@@ -79,6 +88,7 @@ const App: React.FC = () => {
     // Verificar estado inicial
     updateAuthStatus();
     
+    // Limpieza de eventos cuando el componente se desmonta
     return () => {
       window.removeEventListener('resize', handleResize);
       window.removeEventListener('storageChange', handleStorageChange);
@@ -100,8 +110,10 @@ const App: React.FC = () => {
           style={(isAuthenticated && menuIsOpen && !isMobile) ? { marginLeft: '256px' } : { marginLeft: '0' }}
         >
           <Routes>
+            {/* Ruta pública de inicio de sesión */}
             <Route path="/" element={<Login />} />
             
+            {/* Rutas protegidas que requieren autenticación */}
             <Route 
               path="/dashboard" 
               element={
@@ -228,6 +240,7 @@ const App: React.FC = () => {
               }
             />
 
+            {/* Rutas para administración de clasificaciones */}
             <Route 
               path="/classifications/add" 
               element={
@@ -260,6 +273,26 @@ const App: React.FC = () => {
               element={
                 <ProtectedRoute>
                   <CatalogClassif />
+                </ProtectedRoute>
+              }
+            />
+            
+            {/* Ruta nueva para agregar clasificación - resuelve el problema de navegación */}
+            <Route 
+              path="/catalogs/classif/add" 
+              element={
+                <ProtectedRoute>
+                  <AddClassification />
+                </ProtectedRoute>
+              }
+            />
+            
+            {/* Ruta nueva para editar clasificación en contexto de catálogos */}
+            <Route 
+              path="/catalogs/classif/edit/:id" 
+              element={
+                <ProtectedRoute>
+                  <EditClassification />
                 </ProtectedRoute>
               }
             />

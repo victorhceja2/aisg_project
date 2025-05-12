@@ -31,13 +31,13 @@ const Menu: React.FC<MenuProps> = ({ isOpen, setIsOpen }) => {
   // Función para verificar sesión y navegar
   const handleNavigation = (path: string) => {
     const isAuthenticated = sessionStorage.getItem('user') !== null;
-    
+
     if (!isAuthenticated) {
       // Si no hay sesión, redirigir al login
       navigate("/", { replace: true });
       return;
     }
-    
+
     // Si hay sesión, navegar a la ruta solicitada
     navigate(path);
     if (isMobileView) setIsOpen(false);
@@ -47,17 +47,17 @@ const Menu: React.FC<MenuProps> = ({ isOpen, setIsOpen }) => {
   const handleLogout = () => {
     // Limpiar toda la sesión
     sessionStorage.clear();
-    
+
     // Disparar evento personalizado para notificar cierre de sesión
     window.dispatchEvent(new Event('logout'));
-    
+
     // Redirigir al login
     navigate("/", { replace: true });
   };
 
   // Botón de menú hamburguesa para móviles y toggle para desktop
   const MenuToggleButton = () => (
-    <button 
+    <button
       className="fixed top-4 left-4 z-50 p-2 rounded-md bg-[#0D1B2A] text-white"
       onClick={() => setIsOpen(!isOpen)}
     >
@@ -75,7 +75,7 @@ const Menu: React.FC<MenuProps> = ({ isOpen, setIsOpen }) => {
 
   // Contenido del menú (se muestra condicionalmente)
   const MenuContent = () => (
-    <div 
+    <div
       className={`fixed ${isOpen ? 'translate-x-0' : '-translate-x-full'} transition-transform duration-300
                  w-64 bg-[#0D1B2A] text-white h-screen shadow-lg flex flex-col font-['Montserrat'] z-40`}
     >
@@ -97,14 +97,13 @@ const Menu: React.FC<MenuProps> = ({ isOpen, setIsOpen }) => {
           <h2 className="text-xs font-semibold text-gray-300 uppercase tracking-wider mb-2 px-3">
             Principal
           </h2>
-          
-          <button 
+
+          <button
             onClick={() => handleNavigation("/dashboard")}
-            className={`w-full text-left px-3 py-2 rounded-lg flex items-center transition-colors ${
-              isActive("/dashboard") 
-                ? "bg-[#0033A0] text-white" 
+            className={`w-full text-left px-3 py-2 rounded-lg flex items-center transition-colors ${isActive("/dashboard")
+                ? "bg-[#0033A0] text-white"
                 : "text-gray-300 hover:bg-[#16213E]"
-            }`}
+              }`}
           >
             <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
@@ -112,19 +111,18 @@ const Menu: React.FC<MenuProps> = ({ isOpen, setIsOpen }) => {
             Dashboard
           </button>
         </div>
-        
+
         <div className="space-y-1 mb-6 border-b border-[#16213E] pb-4">
           <h2 className="text-xs font-semibold text-gray-300 uppercase tracking-wider mb-2 px-3">
             Módulos
           </h2>
-          
-          <button 
+
+          <button
             onClick={() => handleNavigation("/services")}
-            className={`w-full text-left px-3 py-2 rounded-lg flex items-center transition-colors ${
-              isActive("/services") 
-                ? "bg-[#0033A0] text-white" 
+            className={`w-full text-left px-3 py-2 rounded-lg flex items-center transition-colors ${isActive("/services")
+                ? "bg-[#0033A0] text-white"
                 : "text-gray-300 hover:bg-[#16213E]"
-            }`}
+              }`}
           >
             <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
@@ -132,28 +130,26 @@ const Menu: React.FC<MenuProps> = ({ isOpen, setIsOpen }) => {
             </svg>
             Mantenimiento
           </button>
-          
-          <button 
+
+          <button
             onClick={() => handleNavigation("/configurations")}
-            className={`w-full text-left px-3 py-2 rounded-lg flex items-center transition-colors ${
-              isActive("/configurations") 
-                ? "bg-[#0033A0] text-white" 
+            className={`w-full text-left px-3 py-2 rounded-lg flex items-center transition-colors ${isActive("/configurations")
+                ? "bg-[#0033A0] text-white"
                 : "text-gray-300 hover:bg-[#16213E]"
-            }`}
+              }`}
           >
             <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
             </svg>
             Reportes
           </button>
-          
-          <button 
+
+          <button
             onClick={() => handleNavigation("/catalogs")}
-            className={`w-full text-left px-3 py-2 rounded-lg flex items-center transition-colors ${
-              isActive("/catalogs") 
-                ? "bg-[#0033A0] text-white" 
+            className={`w-full text-left px-3 py-2 rounded-lg flex items-center transition-colors ${isActive("/catalogs")
+                ? "bg-[#0033A0] text-white"
                 : "text-gray-300 hover:bg-[#16213E]"
-            }`}
+              }`}
           >
             <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"></path>
@@ -182,10 +178,10 @@ const Menu: React.FC<MenuProps> = ({ isOpen, setIsOpen }) => {
     <>
       <MenuToggleButton />
       <MenuContent />
-      
+
       {/* Overlay para cerrar el menú al hacer clic fuera en móvil */}
       {isMobileView && isOpen && (
-        <div 
+        <div
           className="fixed inset-0 bg-black bg-opacity-50 z-30"
           onClick={() => setIsOpen(false)}
         ></div>

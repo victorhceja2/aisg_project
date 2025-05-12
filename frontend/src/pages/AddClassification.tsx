@@ -26,7 +26,7 @@ const AddClassification: React.FC = () => {
       setError("El nombre de la clasificación es obligatorio.");
       return;
     }
-    
+
     try {
       await axios.post(`${apiURL}/catalog/service-classification/`, {
         service_classification_name: name
