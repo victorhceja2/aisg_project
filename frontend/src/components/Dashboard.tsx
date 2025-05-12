@@ -17,7 +17,7 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#1A1A2E] py-8 px-4 sm:px-6 lg:px-8 font-['Montserrat']">
+    <div className="flex-1 bg-[#1A1A2E] py-8 px-4 sm:px-6 lg:px-8 font-['Montserrat'] overflow-y-auto">
       <div className="max-w-6xl mx-auto">
         {/* Cabecera */}
         <div className="bg-gradient-to-r from-[#0033A0] to-[#00B140] p-6 rounded-lg shadow-lg mb-6">

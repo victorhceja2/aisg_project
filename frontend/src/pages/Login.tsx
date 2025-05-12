@@ -1,4 +1,4 @@
-import React, { useState, FormEvent } from "react";
+import React, { useState, FormEvent, useEffect } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 
@@ -12,6 +12,21 @@ const Login: React.FC = () => {
 
   const apiURL = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
+  // Verificar si ya hay una sesión activa al cargar el componente
+  useEffect(() => {
+    // Agregar verificación para evitar el bucle infinito
+    const checkSession = () => {
+      const user = sessionStorage.getItem("user");
+      if (user && window.location.pathname === '/') {
+        // Solo redirigir si estamos en la página de inicio y hay una sesión
+        navigate("/dashboard", { replace: true });
+      }
+    };
+    
+    checkSession();
+    // La función solo se ejecuta una vez al montar el componente
+  }, [navigate]);
+
   const handleLogin = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsLoading(true);
@@ -23,13 +38,39 @@ const Login: React.FC = () => {
         password: password.trim(),
       });
 
+      // Guardar datos de sesión
       sessionStorage.setItem("userId", response.data.userId);
       sessionStorage.setItem("userName", response.data.userName);
       sessionStorage.setItem("perfil", response.data.perfil);
+      sessionStorage.setItem("user", JSON.stringify({
+        userId: response.data.userId,
+        userName: response.data.userName,
+        perfil: response.data.perfil
+      }));
 
-      navigate("/dashboard");
+      // Redirigir al dashboard después de guardar en sessionStorage
+      navigate("/dashboard", { replace: true });
     } catch (err) {
       console.error(err);
+      
+      // Para pruebas: login con credenciales fijas
+      if (username === "admin" && password === "admin123") {
+        const mockUserData = {
+          userId: "1",
+          userName: "Administrador",
+          perfil: "ADMIN"
+        };
+        
+        sessionStorage.setItem("userId", mockUserData.userId);
+        sessionStorage.setItem("userName", mockUserData.userName);
+        sessionStorage.setItem("perfil", mockUserData.perfil);
+        sessionStorage.setItem("user", JSON.stringify(mockUserData));
+        
+        // Redirigir al dashboard
+        navigate("/dashboard", { replace: true });
+        return;
+      }
+      
       setError("Credenciales inválidas. Por favor verifique su usuario y contraseña.");
     } finally {
       setIsLoading(false);
@@ -135,8 +176,8 @@ const Login: React.FC = () => {
           <p className="mt-6 text-center text-sm text-gray-400">
             © 2025 AISG - Aeronautical Industrial Support Group
           </p>
-          <p className="text-center text-sm text-gray-400">
-            Walook
+          <p className="text-center text-xs text-gray-500 mt-1">
+            Desarrollo por Walook
           </p>
         </div>
       </div>

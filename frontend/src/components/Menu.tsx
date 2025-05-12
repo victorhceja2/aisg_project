@@ -1,19 +1,20 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 
-const Menu: React.FC = () => {
+interface MenuProps {
+  isOpen: boolean;
+  setIsOpen: (isOpen: boolean) => void;
+}
+
+const Menu: React.FC<MenuProps> = ({ isOpen, setIsOpen }) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isMobileView, setIsMobileView] = useState(window.innerWidth < 1024);
 
   // Detector de cambio de tamaño de pantalla
   useEffect(() => {
     const handleResize = () => {
       setIsMobileView(window.innerWidth < 1024);
-      if (window.innerWidth >= 1024) {
-        setIsMobileMenuOpen(false);
-      }
     };
 
     window.addEventListener('resize', handleResize);
@@ -27,13 +28,28 @@ const Menu: React.FC = () => {
     return location.pathname === path || location.pathname.startsWith(path);
   };
 
-  // Botón de menú hamburguesa para móviles
-  const MobileMenuButton = () => (
+  // Función para verificar sesión y navegar
+  const handleNavigation = (path: string) => {
+    const isAuthenticated = sessionStorage.getItem('user') !== null;
+    
+    if (!isAuthenticated) {
+      // Si no hay sesión, redirigir al login
+      navigate("/", { replace: true });
+      return;
+    }
+    
+    // Si hay sesión, navegar a la ruta solicitada
+    navigate(path);
+    if (isMobileView) setIsOpen(false);
+  };
+
+  // Botón de menú hamburguesa para móviles y toggle para desktop
+  const MenuToggleButton = () => (
     <button 
-      className="lg:hidden fixed top-4 left-4 z-50 p-2 rounded-md bg-[#0D1B2A] text-white"
-      onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+      className="fixed top-4 left-4 z-50 p-2 rounded-md bg-[#0D1B2A] text-white"
+      onClick={() => setIsOpen(!isOpen)}
     >
-      {isMobileMenuOpen ? (
+      {isOpen ? (
         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
         </svg>
@@ -45,11 +61,11 @@ const Menu: React.FC = () => {
     </button>
   );
 
-  // Contenido del menú (se muestra siempre en desktop, y condicionalmente en móvil)
+  // Contenido del menú (se muestra condicionalmente)
   const MenuContent = () => (
     <div 
-      className={`${isMobileView ? (isMobileMenuOpen ? 'fixed inset-0 z-40' : 'hidden') : 'fixed'} 
-                 w-64 bg-[#0D1B2A] text-white h-screen shadow-lg flex flex-col font-['Montserrat']`}
+      className={`fixed ${isOpen ? 'translate-x-0' : '-translate-x-full'} transition-transform duration-300
+                 w-64 bg-[#0D1B2A] text-white h-screen shadow-lg flex flex-col font-['Montserrat'] z-40`}
       style={{ overflowY: 'auto' }}
     >
       {/* Header con logo */}
@@ -72,10 +88,7 @@ const Menu: React.FC = () => {
           </h2>
           
           <button 
-            onClick={() => {
-              navigate("/dashboard");
-              if (isMobileView) setIsMobileMenuOpen(false);
-            }} 
+            onClick={() => handleNavigation("/dashboard")}
             className={`w-full text-left px-3 py-2 rounded-lg flex items-center transition-colors ${
               isActive("/dashboard") 
                 ? "bg-[#0033A0] text-white" 
@@ -95,10 +108,7 @@ const Menu: React.FC = () => {
           </h2>
           
           <button 
-            onClick={() => {
-              navigate("/services");
-              if (isMobileView) setIsMobileMenuOpen(false);
-            }} 
+            onClick={() => handleNavigation("/services")}
             className={`w-full text-left px-3 py-2 rounded-lg flex items-center transition-colors ${
               isActive("/services") 
                 ? "bg-[#0033A0] text-white" 
@@ -113,10 +123,7 @@ const Menu: React.FC = () => {
           </button>
           
           <button 
-            onClick={() => {
-              navigate("/configurations");
-              if (isMobileView) setIsMobileMenuOpen(false);
-            }} 
+            onClick={() => handleNavigation("/configurations")}
             className={`w-full text-left px-3 py-2 rounded-lg flex items-center transition-colors ${
               isActive("/configurations") 
                 ? "bg-[#0033A0] text-white" 
@@ -130,10 +137,7 @@ const Menu: React.FC = () => {
           </button>
           
           <button 
-            onClick={() => {
-              navigate("/catalogs");
-              if (isMobileView) setIsMobileMenuOpen(false);
-            }} 
+            onClick={() => handleNavigation("/catalogs")}
             className={`w-full text-left px-3 py-2 rounded-lg flex items-center transition-colors ${
               isActive("/catalogs") 
                 ? "bg-[#0033A0] text-white" 
@@ -168,14 +172,14 @@ const Menu: React.FC = () => {
 
   return (
     <>
-      <MobileMenuButton />
+      <MenuToggleButton />
       <MenuContent />
       
-      {/* Overlay para cerrar el menú móvil al hacer clic fuera */}
-      {isMobileView && isMobileMenuOpen && (
+      {/* Overlay para cerrar el menú al hacer clic fuera en móvil */}
+      {isMobileView && isOpen && (
         <div 
           className="fixed inset-0 bg-black bg-opacity-50 z-30"
-          onClick={() => setIsMobileMenuOpen(false)}
+          onClick={() => setIsOpen(false)}
         ></div>
       )}
     </>
