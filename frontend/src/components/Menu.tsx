@@ -47,9 +47,13 @@ const Menu: React.FC = () => {
 
   // Contenido del menú (se muestra siempre en desktop, y condicionalmente en móvil)
   const MenuContent = () => (
-    <div className={`${isMobileView ? (isMobileMenuOpen ? 'fixed inset-0 z-40' : 'hidden') : 'relative'} w-64 bg-[#0D1B2A] text-white h-screen shadow-lg flex flex-col font-['Montserrat']`}>
+    <div 
+      className={`${isMobileView ? (isMobileMenuOpen ? 'fixed inset-0 z-40' : 'hidden') : 'fixed'} 
+                 w-64 bg-[#0D1B2A] text-white h-screen shadow-lg flex flex-col font-['Montserrat']`}
+      style={{ overflowY: 'auto' }}
+    >
       {/* Header con logo */}
-      <div className="bg-gradient-to-r from-[#0033A0] to-[#00B140] p-6 flex flex-col items-center">
+      <div className="bg-gradient-to-r from-[#0033A0] to-[#00B140] p-6 flex flex-col items-center sticky top-0">
         <div className="mb-4">
           <img
             src="/logo_aisg.jpeg"
@@ -145,7 +149,7 @@ const Menu: React.FC = () => {
       </nav>
 
       {/* Botón de cerrar sesión */}
-      <div className="p-4 border-t border-[#16213E]">
+      <div className="p-4 border-t border-[#16213E] sticky bottom-0 bg-[#0D1B2A]">
         <button
           onClick={() => {
             sessionStorage.clear();
