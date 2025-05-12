@@ -48,6 +48,9 @@ const Login: React.FC = () => {
         perfil: response.data.perfil
       }));
 
+      // Disparar evento personalizado para notificar cambio en sessionStorage
+      window.dispatchEvent(new Event('storageChange'));
+
       // Redirigir al dashboard después de guardar en sessionStorage
       navigate("/dashboard", { replace: true });
     } catch (err) {
@@ -65,6 +68,9 @@ const Login: React.FC = () => {
         sessionStorage.setItem("userName", mockUserData.userName);
         sessionStorage.setItem("perfil", mockUserData.perfil);
         sessionStorage.setItem("user", JSON.stringify(mockUserData));
+        
+        // Disparar evento personalizado para notificar cambio en sessionStorage
+        window.dispatchEvent(new Event('storageChange'));
         
         // Redirigir al dashboard
         navigate("/dashboard", { replace: true });

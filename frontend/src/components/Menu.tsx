@@ -43,6 +43,18 @@ const Menu: React.FC<MenuProps> = ({ isOpen, setIsOpen }) => {
     if (isMobileView) setIsOpen(false);
   };
 
+  // Función para cerrar sesión
+  const handleLogout = () => {
+    // Limpiar toda la sesión
+    sessionStorage.clear();
+    
+    // Disparar evento personalizado para notificar cierre de sesión
+    window.dispatchEvent(new Event('logout'));
+    
+    // Redirigir al login
+    navigate("/", { replace: true });
+  };
+
   // Botón de menú hamburguesa para móviles y toggle para desktop
   const MenuToggleButton = () => (
     <button 
@@ -155,10 +167,7 @@ const Menu: React.FC<MenuProps> = ({ isOpen, setIsOpen }) => {
       {/* Botón de cerrar sesión */}
       <div className="p-4 border-t border-[#16213E] sticky bottom-0 bg-[#0D1B2A]">
         <button
-          onClick={() => {
-            sessionStorage.clear();
-            navigate("/");
-          }}
+          onClick={handleLogout}
           className="w-full bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white font-medium py-2 px-4 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg flex items-center justify-center"
         >
           <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">

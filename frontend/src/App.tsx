@@ -26,44 +26,74 @@ import ProtectedRoute from "./components/ProtectedRoute";
 const App: React.FC = () => {
   const [menuIsOpen, setMenuIsOpen] = useState(true);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
-  
-  // Verificación de autenticación sin usar estado para evitar problemas de re-renderizado
-  const checkAuthentication = () => {
-    return sessionStorage.getItem('user') !== null;
-  };
+  const [isAuthenticated, setIsAuthenticated] = useState(sessionStorage.getItem('user') !== null);
 
   useEffect(() => {
-    const handleResize = () => {
-      const mobile = window.innerWidth < 1024;
-      setIsMobile(mobile);
-      if (mobile) {
+    // Función para actualizar si el usuario está autenticado
+    const updateAuthStatus = () => {
+      const authStatus = sessionStorage.getItem('user') !== null;
+      setIsAuthenticated(authStatus);
+      
+      // Si el usuario ya no está autenticado, asegúrate de que el menú esté cerrado
+      if (!authStatus) {
         setMenuIsOpen(false);
-      } else {
+      } else if (authStatus && !isMobile) {
         setMenuIsOpen(true);
       }
     };
 
+    const handleResize = () => {
+      const mobile = window.innerWidth < 1024;
+      setIsMobile(mobile);
+      
+      // Ajustar el menú según el tamaño de pantalla y estado de autenticación
+      if (mobile) {
+        setMenuIsOpen(false);
+      } else if (!mobile && isAuthenticated) {
+        setMenuIsOpen(true);
+      }
+    };
+
+    // Detectar cambios en sesión con el evento personalizado
+    const handleStorageChange = () => {
+      updateAuthStatus();
+    };
+
+    // Evento personalizado para cambios de sesión
+    window.addEventListener('storageChange', handleStorageChange);
+    
+    // Evento para cerrar sesión
+    window.addEventListener('logout', () => {
+      setIsAuthenticated(false);
+      setMenuIsOpen(false);
+    });
+    
+    // Eventos de cambio de tamaño
     window.addEventListener('resize', handleResize);
+    
+    // Verificar estado inicial
+    updateAuthStatus();
     
     return () => {
       window.removeEventListener('resize', handleResize);
+      window.removeEventListener('storageChange', handleStorageChange);
+      window.removeEventListener('logout', handleStorageChange);
     };
-  }, []);
+  }, [isMobile, isAuthenticated]);
 
   return (
     <Router>
       <div className="flex h-screen w-screen bg-[#1A1A2E] overflow-hidden">
-        {/* Siempre renderizar el menú, pero con lógica de visibilidad interna */}
-        <Menu isOpen={menuIsOpen && checkAuthentication()} setIsOpen={setMenuIsOpen} />
+        {/* El menú solo se renderiza si hay autenticación */}
+        {isAuthenticated && <Menu isOpen={menuIsOpen} setIsOpen={setMenuIsOpen} />}
         
         <div 
-          className={`flex-1 transition-all duration-300 overflow-y-auto`}
-          style={(checkAuthentication() && menuIsOpen && !isMobile) ? { marginLeft: '256px' } : { marginLeft: '0' }}
+          className="flex-1 transition-all duration-300 overflow-y-auto"
+          style={(isAuthenticated && menuIsOpen && !isMobile) ? { marginLeft: '256px' } : { marginLeft: '0' }}
         >
           <Routes>
             <Route path="/" element={<Login />} />
             
-            {/* Rutas protegidas */}
             <Route 
               path="/dashboard" 
               element={
@@ -82,7 +112,6 @@ const App: React.FC = () => {
               }
             />
             
-            {/* Resto de rutas... */}
             <Route 
               path="/services/add" 
               element={
