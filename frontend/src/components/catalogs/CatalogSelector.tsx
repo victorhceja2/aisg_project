@@ -20,6 +20,7 @@ const CatalogSelector: React.FC = () => {
   };
 
   // Creamos un arreglo con la información de cada catálogo: nombre, ruta, ícono y gradiente
+  // Se ha eliminado la opción "Asignación Extra de Servicios"
   const catalogs = [
     { 
       label: "Catálogo de Servicios", 
@@ -75,17 +76,6 @@ const CatalogSelector: React.FC = () => {
         </svg>
       ),
       color: "from-[#0033A0] to-[#002D8A]"
-    },
-    { 
-      label: "Asignación Extra de Servicios", 
-      path: "/catalogs/assignment",
-      icon: (
-        // Ícono representativo para asignación extra
-        <svg className="w-8 h-8 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path>
-        </svg>
-      ),
-      color: "from-[#00B140] to-[#009935]"
     }
   ];
 

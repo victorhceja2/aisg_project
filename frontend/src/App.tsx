@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import Menu from "./components/Menu";
+import Reports from "./components/catalogs/Reports";
 import CatalogSelector from "./components/catalogs/CatalogSelector";
 import CatalogServices from "./components/catalogs/CatalogServices";
 import CatalogClassification from "./components/catalogs/CatalogClassifications";
@@ -118,6 +119,15 @@ const App: React.FC = () => {
                   <Dashboard />
                 </ProtectedRoute>
               } 
+            />
+            {/* Reportes */}
+            <Route 
+              path="/reports" 
+              element={
+                <ProtectedRoute>
+                  <Reports />
+                </ProtectedRoute>
+              }
             />
             
             {/* Catálogo de servicios */}
@@ -258,7 +268,7 @@ const App: React.FC = () => {
 
             {/* Catálogo de asignaciones de servicios extra */}
             <Route 
-              path="/catalogs/assignment" 
+              path="/reports/assignment" 
               element={
                 <ProtectedRoute>
                   <ExtraServiceSaleAssignment />
