@@ -9,7 +9,8 @@ from app.routers import (
     catalog_service_status,
     service_per_customer,
     extra_company_configuration,
-    extra_service_sale_assignment
+    extra_service_sale_assignment,
+    service_catalogs  # 🚨 NUEVO router
 )
 
 app = FastAPI()
@@ -31,7 +32,8 @@ all_routers = [
     catalog_service_status.router,
     service_per_customer.router,
     extra_company_configuration.router,
-    extra_service_sale_assignment.router
+    extra_service_sale_assignment.router,
+    service_catalogs.router  # 🚨 NUEVO router agregado aquí
 ]
 
 for r in all_routers:
