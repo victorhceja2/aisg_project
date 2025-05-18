@@ -10,7 +10,8 @@ from app.routers import (
     service_per_customer,
     extra_company_configuration,
     extra_service_sale_assignment,
-    service_catalogs  # 🚨 NUEVO router
+    service_catalogs,             # Nuevo: CRUD catálogos
+    catalog_services_full         # Nuevo: /catalog-services/full con joins
 )
 
 app = FastAPI()
@@ -33,13 +34,14 @@ all_routers = [
     service_per_customer.router,
     extra_company_configuration.router,
     extra_service_sale_assignment.router,
-    service_catalogs.router  # 🚨 NUEVO router agregado aquí
+    service_catalogs.router,
+    catalog_services_full.router
 ]
 
 for r in all_routers:
     app.include_router(r)
 
-# Ruta de prueba (opcional)
+# Ruta de prueba
 @app.get("/ping")
 def ping():
     return {"message": "pong 🏓"}

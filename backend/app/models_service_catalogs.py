@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey
+from sqlalchemy import Column, Integer, String, DateTime
 from app.database import Base
 from datetime import datetime
 
@@ -13,7 +13,7 @@ class CatalogServiceType(Base):
 class CatalogServiceInclude(Base):
     __tablename__ = "CatalogServiceInclude"
     id_service_include = Column(Integer, primary_key=True, index=True)
-    service_include_name = Column(String(100), nullable=False)
+    service_include = Column(String(100), nullable=False)
     whonew = Column(String(100))
     create_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow)
@@ -26,14 +26,10 @@ class CatalogServiceCategory(Base):
     create_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow)
 
-class ServicePerCustomer(Base):
-    __tablename__ = "ServicePerCustomer"
-    id_service_per_customer = Column(Integer, primary_key=True, index=True)
-    id_customer = Column(Integer, nullable=False)
-    id_service = Column(Integer, ForeignKey("CatalogServices.id_service"))
-    id_country = Column(Integer)
-    id_location = Column(Integer)
-    status = Column(Integer)
+class CatalogServiceStatus(Base):
+    __tablename__ = "CatalogServiceStatus"
+    id_service_status = Column(Integer, primary_key=True, index=True)
+    status_name = Column(String(100), nullable=False)
     whonew = Column(String(100))
     create_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow)
