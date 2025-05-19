@@ -4,6 +4,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 /**
  * Componente de menú lateral para navegación principal del sistema AISG.
  * Incluye navegación protegida por sesión, responsive para móvil y desktop, y cierre de sesión.
+ * Ahora con fondo corporativo e iconos adaptados.
  */
 interface MenuProps {
   isOpen: boolean;
@@ -22,7 +23,6 @@ const Menu: React.FC<MenuProps> = ({ isOpen, setIsOpen }) => {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  // Corrige el bug: solo selecciona exacto el path
   const isActiveExact = (path: string) => location.pathname === path;
 
   const handleNavigation = (path: string) => {
@@ -46,7 +46,7 @@ const Menu: React.FC<MenuProps> = ({ isOpen, setIsOpen }) => {
 
   const MenuToggleButton = () => (
     <button
-      className="fixed top-4 left-4 z-50 p-2 rounded-md bg-[#0D1B2A] text-white"
+      className="fixed top-4 left-4 z-50 p-2 rounded-md bg-[#002057] text-white shadow-lg"
       onClick={() => setIsOpen(!isOpen)}
     >
       {isOpen ? (
@@ -88,11 +88,16 @@ const Menu: React.FC<MenuProps> = ({ isOpen, setIsOpen }) => {
     <div
       className={`fixed top-0 left-0 h-full
         ${isOpen ? "translate-x-0 w-64" : "-translate-x-full w-0"}
-        transition-all duration-300 bg-[#0D1B2A] text-white shadow-lg 
+        transition-all duration-300 bg-cover bg-center text-white shadow-lg 
         flex flex-col font-['Montserrat'] z-40 overflow-hidden`}
+      style={{
+        backgroundImage: `linear-gradient(rgba(0,32,87,0.92),rgba(0,32,87,0.96)), url('/bg-aisg.jpg')`,
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+      }}
     >
       {/* Header */}
-      <div className="flex-none bg-gradient-to-r from-[#0033A0] to-[#00B140] p-6 flex flex-col items-center">
+      <div className="flex-none bg-transparent p-6 flex flex-col items-center border-b border-[#1e3462]/60">
         <img
           src="/logo_aisg.jpeg"
           alt="AISG Logo"
@@ -103,28 +108,28 @@ const Menu: React.FC<MenuProps> = ({ isOpen, setIsOpen }) => {
       {/* Main menu */}
       <div className="flex-grow overflow-y-auto h-0">
         <nav className="p-4 flex flex-col">
-          <div className="space-y-1 mb-6 border-b border-[#16213E] pb-4">
+          <div className="space-y-1 mb-6 border-b border-[#1e3462]/60 pb-4">
             <h2 className="text-xs font-semibold text-gray-300 uppercase tracking-wider mb-2 px-3">
               Main
             </h2>
             <button
               onClick={() => handleNavigation("/dashboard")}
               className={`w-full text-left px-3 py-2 rounded-lg flex items-center transition-colors ${
-                isActiveExact("/dashboard") ? "bg-[#0033A0] text-white" : "text-gray-300 hover:bg-[#16213E]"
+                isActiveExact("/dashboard") ? "bg-[#0033A0] text-white" : "text-gray-200 hover:bg-[#1e3462]/70"
               }`}
             >
               <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
               </svg>
               Dashboard
             </button>
           </div>
 
-          <div className="space-y-1 mb-6 border-b border-[#16213E] pb-4">
+          <div className="space-y-1 mb-6 border-b border-[#1e3462]/60 pb-4">
             <h2 className="text-xs font-semibold text-gray-300 uppercase tracking-wider mb-2 px-3">
               Modules
             </h2>
-            <div className="relative w-full text-left px-3 py-2 rounded-lg flex items-center text-gray-500 opacity-80 cursor-default">
+            <div className="relative w-full text-left px-3 py-2 rounded-lg flex items-center text-gray-400 opacity-80 cursor-default">
               <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
                   strokeLinecap="round"
@@ -143,7 +148,7 @@ const Menu: React.FC<MenuProps> = ({ isOpen, setIsOpen }) => {
             <button
               onClick={() => handleNavigation("/reports")}
               className={`w-full text-left px-3 py-2 rounded-lg flex items-center transition-colors ${
-                isActiveExact("/reports") ? "bg-[#0033A0] text-white" : "text-gray-300 hover:bg-[#16213E]"
+                isActiveExact("/reports") ? "bg-[#0033A0] text-white" : "text-gray-200 hover:bg-[#1e3462]/70"
               }`}
             >
               <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -154,7 +159,7 @@ const Menu: React.FC<MenuProps> = ({ isOpen, setIsOpen }) => {
             <button
               onClick={() => handleNavigation("/catalogs")}
               className={`w-full text-left px-3 py-2 rounded-lg flex items-center transition-colors ${
-                isActiveExact("/catalogs") ? "bg-[#0033A0] text-white" : "text-gray-300 hover:bg-[#16213E]"
+                isActiveExact("/catalogs") ? "bg-[#0033A0] text-white" : "text-gray-200 hover:bg-[#1e3462]/70"
               }`}
             >
               <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -165,7 +170,7 @@ const Menu: React.FC<MenuProps> = ({ isOpen, setIsOpen }) => {
             <button
               onClick={() => handleNavigation("/configuration")}
               className={`w-full text-left px-3 py-2 rounded-lg flex items-center transition-colors ${
-                isActiveExact("/configuration") ? "bg-[#0033A0] text-white" : "text-gray-300 hover:bg-[#16213E]"
+                isActiveExact("/configuration") ? "bg-[#0033A0] text-white" : "text-gray-200 hover:bg-[#1e3462]/70"
               }`}
             >
               <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -178,7 +183,7 @@ const Menu: React.FC<MenuProps> = ({ isOpen, setIsOpen }) => {
       </div>
 
       {/* Footer fijo con botón de cerrar sesión */}
-      <div className="p-4 border-t border-[#16213E] bg-[#0D1B2A]">
+      <div className="p-4 border-t border-[#1e3462]/60 bg-[#002057]/90">
         <button
           onClick={confirmLogout}
           className="w-full bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white font-medium py-2 rounded-lg flex items-center justify-center"
