@@ -1,106 +1,101 @@
-import React, { useState } from 'react';
-import CatalogServices from './CatalogServices';
-import CatalogClassif from './CatalogClassif';
-import CatalogStatus from './CatalogStatus';
-import ExtraCompanyConfiguration from './ExtraCompanyConfiguration';
-import ServicePerCustomer from './ServicePerCustomer';
-import ExtraServiceSaleAssignment from './ExtraServiceSaleAssignment';
-import AISGBackground from './fondo';
+import React from "react";
+import { useNavigate } from "react-router-dom";
+import AISGBackground from "./fondo";
 
 /**
- * Main component to navigate between AISG configuration catalogs.
- * Visual, in English, only.
+ * Visual selector for AISG system catalogs.
+ * Cada card representa un catálogo y navega a la sección correspondiente.
+ * Diseño consistente con el resto del sistema.
  */
-const ConfigsScreens: React.FC = () => {
-  const [selected, setSelected] = useState<string>('services');
+const CatalogSelector: React.FC = () => {
+  const navigate = useNavigate();
 
-  const renderCatalog = () => {
-    switch (selected) {
-      case 'services': return <CatalogServices />;
-      case 'classification': return <CatalogClassif />;
-      case 'status': return <CatalogStatus />;
-      case 'company': return <ExtraCompanyConfiguration />;
-      case 'customer': return <ServicePerCustomer />;
-      case 'assignment': return <ExtraServiceSaleAssignment />;
-      default: return <CatalogServices />;
+  // Catálogos disponibles
+  const catalogs = [
+    { 
+      label: "Clasifications Catalog", 
+      path: "/catalogs/classif",
+      icon: (
+        <svg className="w-8 h-8 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path>
+        </svg>
+      ),
+      color: "from-[#00B140] to-[#4DC970]"
+    },
+    { 
+      label: "Service Type Catalog", 
+      path: "/catalogs/servicetype",
+      icon: (
+        <svg className="w-8 h-8 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"></path>
+        </svg>
+      ),
+      color: "from-[#4DC970] to-[#0033A0]"
+    },
+    { 
+      label: "Service Include Catalog", 
+      path: "/catalogs/serviceinclude",
+      icon: (
+        <svg className="w-8 h-8 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3M5 11h14M10 16h4m-7 5h10a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+        </svg>
+      ),
+      color: "from-[#00B140] to-[#0033A0]"
+    },
+    { 
+      label: "Categories Catalog", 
+      path: "/catalogs/servicecategory",
+      icon: (
+        <svg className="w-8 h-8 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 7h18M3 12h18M3 17h18" />
+        </svg>
+      ),
+      color: "from-[#00B140] to-[#4D70B8]"
+    },
+    { 
+      label: "Status Catalog", 
+      path: "/catalogs/status",
+      icon: (
+        <svg className="w-8 h-8 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+        </svg>
+      ),
+      color: "from-[#4D70B8] to-[#3A5A9F]"
     }
-  };
+  ];
 
   return (
     <AISGBackground>
-      <div className="min-h-screen p-6 space-y-6 text-white font-['Montserrat']">
-        <div className="max-w-7xl mx-auto">
-          <div className="bg-gradient-to-r from-[#0033A0] to-[#00B140] p-6 rounded-t-lg shadow-lg">
-            <h1 className="text-3xl font-bold text-white text-center">AISG Configuration Catalogs</h1>
-            <p className="text-gray-200 mt-2 font-light text-center">Manage and configure system catalogs</p>
-          </div>
-          
-          <div className="bg-transparent rounded-b-lg shadow-lg p-6">
-            <div className="flex flex-wrap gap-4 mb-6 justify-center">
-              <button
-                onClick={() => setSelected('services')}
-                className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 shadow-md ${
-                  selected === 'services' 
-                    ? 'bg-gradient-to-r from-[#0033A0] to-[#00B140] text-white' 
-                    : 'bg-[#1E2A45] text-white hover:bg-[#2A395A]'
-                }`}
+      <div className="max-w-7xl mx-auto p-6 font-['Montserrat']">
+        {/* Cabecera principal con título y descripción */}
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-bold text-white">Catalogs</h1>
+          <div className="mt-2 w-20 h-1 bg-[#e6001f] mx-auto"></div>
+          <p className="text-gray-200 mt-2 font-light">
+            System configuration management
+          </p>
+        </div>
+        {/* Cards de selección de catálogo */}
+        <div className="overflow-x-auto">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8 max-w-4xl mx-auto">
+            {catalogs.map(({ label, path, icon, color }) => (
+              <div 
+                key={path}
+                onClick={() => navigate(path)}
+                className="bg-[#16213E] rounded-xl shadow-xl overflow-hidden cursor-pointer hover:shadow-2xl transition-shadow border border-[#0033A0] flex flex-col items-center hover:border-[#00B140]"
+                style={{ minHeight: "220px" }}
               >
-                Services
-              </button>
-              <button
-                onClick={() => setSelected('classification')}
-                className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 shadow-md ${
-                  selected === 'classification' 
-                    ? 'bg-gradient-to-r from-[#0033A0] to-[#00B140] text-white' 
-                    : 'bg-[#1E2A45] text-white hover:bg-[#2A395A]'
-                }`}
-              >
-                Classification
-              </button>
-              <button
-                onClick={() => setSelected('status')}
-                className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 shadow-md ${
-                  selected === 'status' 
-                    ? 'bg-gradient-to-r from-[#0033A0] to-[#00B140] text-white' 
-                    : 'bg-[#1E2A45] text-white hover:bg-[#2A395A]'
-                }`}
-              >
-                Status
-              </button>
-              <button
-                onClick={() => setSelected('company')}
-                className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 shadow-md ${
-                  selected === 'company' 
-                    ? 'bg-gradient-to-r from-[#0033A0] to-[#00B140] text-white' 
-                    : 'bg-[#1E2A45] text-white hover:bg-[#2A395A]'
-                }`}
-              >
-                Company Configuration
-              </button>
-              <button
-                onClick={() => setSelected('customer')}
-                className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 shadow-md ${
-                  selected === 'customer' 
-                    ? 'bg-gradient-to-r from-[#0033A0] to-[#00B140] text-white' 
-                    : 'bg-[#1E2A45] text-white hover:bg-[#2A395A]'
-                }`}
-              >
-                Services by Customer
-              </button>
-              <button
-                onClick={() => setSelected('assignment')}
-                className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 shadow-md ${
-                  selected === 'assignment' 
-                    ? 'bg-gradient-to-r from-[#0033A0] to-[#00B140] text-white' 
-                    : 'bg-[#1E2A45] text-white hover:bg-[#2A395A]'
-                }`}
-              >
-                Extra Assignment
-              </button>
-            </div>
-            <div className="mt-6">
-              {renderCatalog()}
-            </div>
+                <div className={`w-full bg-gradient-to-r ${color} p-4 flex items-center justify-center`}>
+                  {icon}
+                </div>
+                <div className="p-6 text-center flex-1 flex flex-col justify-center">
+                  <h2 className="text-lg font-semibold text-white">{label}</h2>
+                  <p className="mt-2 text-sm text-gray-400">
+                    Click to manage this configuration
+                  </p>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </div>
@@ -108,4 +103,4 @@ const ConfigsScreens: React.FC = () => {
   );
 };
 
-export default ConfigsScreens;
+export default CatalogSelector;

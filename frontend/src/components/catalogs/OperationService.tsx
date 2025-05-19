@@ -18,6 +18,10 @@ interface OperationRow {
     technician: string;
 }
 
+/**
+ * Pantalla de reporte de servicios operativos con filtros y tabla de resultados.
+ * Aplica diseño consistente con el resto del sistema.
+ */
 const OperationService: React.FC = () => {
     const [filters, setFilters] = useState({
         company: "",
@@ -61,13 +65,15 @@ const OperationService: React.FC = () => {
         <AISGBackground>
             <div className="min-h-screen py-8 px-4 font-['Montserrat'] text-white">
                 <div className="max-w-7xl mx-auto">
-                    <div className="bg-gradient-to-r from-[#0033A0] to-[#00B140] p-6 rounded-lg shadow-lg mb-8">
-                        <h1 className="text-2xl font-bold text-center text-white">Operations Report</h1>
+                    {/* Cabecera principal con título y descripción */}
+                    <div className="bg-gradient-to-r from-[#0033A0] to-[#00B140] p-6 rounded-t-lg shadow-lg mb-8">
+                        <h1 className="text-3xl font-bold text-center text-white">Operations Report</h1>
                         <p className="text-gray-200 mt-2 font-light text-center">
                             Search and analyze operational data
                         </p>
                     </div>
-                    <form onSubmit={handleSearch} className="bg-[#16213E] p-6 rounded-lg shadow-lg mb-6">
+                    {/* Filtros de búsqueda */}
+                    <form onSubmit={handleSearch} className="bg-[#16213E] p-6 rounded-b-lg shadow-lg mb-6">
                         <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-4">
                             <div>
                                 <label className="block text-sm font-medium text-gray-300 mb-1">Company</label>
@@ -125,7 +131,8 @@ const OperationService: React.FC = () => {
                             </button>
                         </div>
                     </form>
-                    <div className="rounded-lg shadow-lg overflow-x-auto">
+                    {/* Tabla de resultados */}
+                    <div className="rounded-lg shadow-lg overflow-x-auto bg-[#1E2A45]">
                         <table className="min-w-full table-auto text-xs">
                             <thead>
                                 <tr className="bg-white text-[#002057]">
@@ -153,7 +160,7 @@ const OperationService: React.FC = () => {
                                     </tr>
                                 )}
                                 {data.map((row, idx) => (
-                                    <tr key={idx} className="border-b border-[#233554] hover:bg-[#1E2A45]">
+                                    <tr key={idx} className="border-b border-[#233554] hover:bg-[#233554] transition-colors">
                                         <td className="p-2">{row.company}</td>
                                         <td className="p-2">{row.airline}</td>
                                         <td className="p-2">{row.date}</td>

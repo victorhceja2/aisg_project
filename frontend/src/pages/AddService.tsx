@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
+import AISGBackground from "../components/catalogs/fondo";
 
 const AddService: React.FC = () => {
   const [form, setForm] = useState({
@@ -34,18 +35,16 @@ const AddService: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#1A1A2E] py-12 px-4 sm:px-6 lg:px-8 font-['Montserrat']">
-      <div className="max-w-2xl mx-auto">
-        <div className="bg-[#16213E] rounded-lg shadow-xl overflow-hidden">
-          <div className="bg-gradient-to-r from-[#0033A0] to-[#00B140] p-6">
-            <h1 className="text-2xl font-bold text-center text-white">
+    <AISGBackground>
+      <div className="max-w-7xl mx-auto p-6 font-['Montserrat'] min-h-screen flex items-center justify-center">
+        <div className="w-full max-w-lg">
+          <div className="bg-white rounded-t-lg px-6 py-4 shadow-lg">
+            <h1 className="text-2xl font-bold text-center text-[#002057]">
               Add New Service
             </h1>
-            <p className="text-gray-200 mt-2 font-light text-center">
-              Enter the data to register a new service
-            </p>
+            <div className="mt-2 w-20 h-1 bg-[#e6001f] mx-auto rounded"></div>
           </div>
-          <div className="p-6">
+          <div className="bg-[#1E2A45] rounded-b-lg shadow-lg px-8 py-8">
             {error && (
               <div className="bg-red-500 text-white p-4 rounded-lg mb-6 shadow-md animate-pulse">
                 <p className="font-medium">{error}</p>
@@ -56,7 +55,7 @@ const AddService: React.FC = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-white text-sm font-medium mb-2">
-                    Status ID:
+                    Status ID
                   </label>
                   <input
                     type="number"
@@ -64,13 +63,13 @@ const AddService: React.FC = () => {
                     onChange={e =>
                       setForm({ ...form, id_service_status: Number(e.target.value) })
                     }
-                    className="w-full px-4 py-3 rounded-lg bg-[#1E2A45] text-white border border-gray-700 focus:border-[#0033A0] focus:ring-2 focus:ring-[#0033A0] focus:outline-none transition-all"
+                    className="w-full px-4 py-3 rounded-lg bg-white text-[#002057] border border-[#cccccc] focus:border-[#00B140] focus:ring-2 focus:ring-[#00B140] focus:outline-none transition-all"
                     required
                   />
                 </div>
                 <div>
                   <label className="block text-white text-sm font-medium mb-2">
-                    Classification ID:
+                    Classification ID
                   </label>
                   <input
                     type="number"
@@ -78,13 +77,13 @@ const AddService: React.FC = () => {
                     onChange={e =>
                       setForm({ ...form, id_service_classification: Number(e.target.value) })
                     }
-                    className="w-full px-4 py-3 rounded-lg bg-[#1E2A45] text-white border border-gray-700 focus:border-[#0033A0] focus:ring-2 focus:ring-[#0033A0] focus:outline-none transition-all"
+                    className="w-full px-4 py-3 rounded-lg bg-white text-[#002057] border border-[#cccccc] focus:border-[#00B140] focus:ring-2 focus:ring-[#00B140] focus:outline-none transition-all"
                     required
                   />
                 </div>
                 <div>
                   <label className="block text-white text-sm font-medium mb-2">
-                    Category ID:
+                    Category ID
                   </label>
                   <input
                     type="number"
@@ -92,13 +91,13 @@ const AddService: React.FC = () => {
                     onChange={e =>
                       setForm({ ...form, id_service_category: Number(e.target.value) })
                     }
-                    className="w-full px-4 py-3 rounded-lg bg-[#1E2A45] text-white border border-gray-700 focus:border-[#0033A0] focus:ring-2 focus:ring-[#0033A0] focus:outline-none transition-all"
+                    className="w-full px-4 py-3 rounded-lg bg-white text-[#002057] border border-[#cccccc] focus:border-[#00B140] focus:ring-2 focus:ring-[#00B140] focus:outline-none transition-all"
                     required
                   />
                 </div>
                 <div>
                   <label className="block text-white text-sm font-medium mb-2">
-                    Type ID:
+                    Type ID
                   </label>
                   <input
                     type="number"
@@ -106,13 +105,13 @@ const AddService: React.FC = () => {
                     onChange={e =>
                       setForm({ ...form, id_service_type: Number(e.target.value) })
                     }
-                    className="w-full px-4 py-3 rounded-lg bg-[#1E2A45] text-white border border-gray-700 focus:border-[#0033A0] focus:ring-2 focus:ring-[#0033A0] focus:outline-none transition-all"
+                    className="w-full px-4 py-3 rounded-lg bg-white text-[#002057] border border-[#cccccc] focus:border-[#00B140] focus:ring-2 focus:ring-[#00B140] focus:outline-none transition-all"
                     required
                   />
                 </div>
                 <div>
                   <label className="block text-white text-sm font-medium mb-2">
-                    Include ID:
+                    Include ID
                   </label>
                   <input
                     type="number"
@@ -120,13 +119,13 @@ const AddService: React.FC = () => {
                     onChange={e =>
                       setForm({ ...form, id_service_include: Number(e.target.value) })
                     }
-                    className="w-full px-4 py-3 rounded-lg bg-[#1E2A45] text-white border border-gray-700 focus:border-[#0033A0] focus:ring-2 focus:ring-[#0033A0] focus:outline-none transition-all"
+                    className="w-full px-4 py-3 rounded-lg bg-white text-[#002057] border border-[#cccccc] focus:border-[#00B140] focus:ring-2 focus:ring-[#00B140] focus:outline-none transition-all"
                     required
                   />
                 </div>
                 <div>
                   <label className="block text-white text-sm font-medium mb-2">
-                    Code:
+                    Code
                   </label>
                   <input
                     type="text"
@@ -134,13 +133,13 @@ const AddService: React.FC = () => {
                     onChange={e =>
                       setForm({ ...form, service_code: e.target.value })
                     }
-                    className="w-full px-4 py-3 rounded-lg bg-[#1E2A45] text-white border border-gray-700 focus:border-[#0033A0] focus:ring-2 focus:ring-[#0033A0] focus:outline-none transition-all"
+                    className="w-full px-4 py-3 rounded-lg bg-white text-[#002057] border border-[#cccccc] focus:border-[#00B140] focus:ring-2 focus:ring-[#00B140] focus:outline-none transition-all"
                     required
                   />
                 </div>
                 <div>
                   <label className="block text-white text-sm font-medium mb-2">
-                    Name:
+                    Name
                   </label>
                   <input
                     type="text"
@@ -148,20 +147,20 @@ const AddService: React.FC = () => {
                     onChange={e =>
                       setForm({ ...form, service_name: e.target.value })
                     }
-                    className="w-full px-4 py-3 rounded-lg bg-[#1E2A45] text-white border border-gray-700 focus:border-[#0033A0] focus:ring-2 focus:ring-[#0033A0] focus:outline-none transition-all"
+                    className="w-full px-4 py-3 rounded-lg bg-white text-[#002057] border border-[#cccccc] focus:border-[#00B140] focus:ring-2 focus:ring-[#00B140] focus:outline-none transition-all"
                     required
                   />
                 </div>
                 <div className="md:col-span-2">
                   <label className="block text-white text-sm font-medium mb-2">
-                    Description:
+                    Description
                   </label>
                   <textarea
                     value={form.service_description}
                     onChange={e =>
                       setForm({ ...form, service_description: e.target.value })
                     }
-                    className="w-full px-4 py-3 rounded-lg bg-[#1E2A45] text-white border border-gray-700 focus:border-[#0033A0] focus:ring-2 focus:ring-[#0033A0] focus:outline-none transition-all"
+                    className="w-full px-4 py-3 rounded-lg bg-white text-[#002057] border border-[#cccccc] focus:border-[#00B140] focus:ring-2 focus:ring-[#00B140] focus:outline-none transition-all"
                     rows={3}
                     required
                   />
@@ -223,7 +222,7 @@ const AddService: React.FC = () => {
               </div>
               <div>
                 <label className="block text-white text-sm font-medium mb-2">
-                  Who New:
+                  Who New
                 </label>
                 <input
                   type="text"
@@ -231,7 +230,7 @@ const AddService: React.FC = () => {
                   onChange={e =>
                     setForm({ ...form, whonew: e.target.value })
                   }
-                  className="w-full px-4 py-3 rounded-lg bg-[#1E2A45] text-white border border-gray-700 focus:border-[#0033A0] focus:ring-2 focus:ring-[#0033A0] focus:outline-none transition-all"
+                  className="w-full px-4 py-3 rounded-lg bg-white text-[#002057] border border-[#cccccc] focus:border-[#00B140] focus:ring-2 focus:ring-[#00B140] focus:outline-none transition-all"
                   required
                 />
               </div>
@@ -247,14 +246,14 @@ const AddService: React.FC = () => {
                   type="submit"
                   className="w-1/2 bg-gradient-to-r from-[#0033A0] to-[#00B140] hover:from-[#002D8A] hover:to-[#009935] text-white font-medium py-3 px-4 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg"
                 >
-                  Save Service
+                  Save
                 </button>
               </div>
             </form>
           </div>
         </div>
       </div>
-    </div>
+    </AISGBackground>
   );
 };
 

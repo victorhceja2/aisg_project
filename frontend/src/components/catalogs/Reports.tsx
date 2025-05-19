@@ -43,16 +43,15 @@ const ReportSelector: React.FC = () => {
 
     return (
         <AISGBackground>
-            <div className="min-h-screen py-8 px-4 sm:px-6 lg:px-8 font-['Montserrat']">
-                <div className="max-w-6xl mx-auto">
-                    <div className="bg-gradient-to-r from-[#0033A0] to-[#00B140] p-6 rounded-lg shadow-lg mb-8">
-                        <h1 className="text-2xl font-bold text-center text-white">
-                            Reports
-                        </h1>
-                        <p className="text-gray-200 mt-2 font-light text-center">
-                            Reporting and analysis system
-                        </p>
-                    </div>
+            <div className="max-w-7xl mx-auto p-6 font-['Montserrat']">
+                <div className="text-center mb-8">
+                    <h1 className="text-3xl font-bold text-white">Reports</h1>
+                    <div className="mt-2 w-20 h-1 bg-[#e6001f] mx-auto"></div>
+                    <p className="text-gray-200 mt-2 font-light">
+                        Reporting and analysis system
+                    </p>
+                </div>
+                <div className="overflow-x-auto">
                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8 max-w-4xl mx-auto">
                         {reports.map(({ label, path, icon, color, disabled }) => (
                             <div

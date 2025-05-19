@@ -1,8 +1,10 @@
 import React from 'react';
+import AISGBackground from "./catalogs/fondo";
 
 /**
  * Componente principal del Dashboard AISG.
  * Muestra tarjetas de resumen, próximos mantenimientos, estadísticas y recursos del sistema.
+ * Aplica el diseño consistente con el resto del sistema.
  */
 const Dashboard = () => {
   // Paleta de colores corporativos AISG
@@ -21,11 +23,11 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="flex-1 bg-[#1A1A2E] py-8 px-4 sm:px-6 lg:px-8 font-['Montserrat'] overflow-y-auto">
-      <div className="max-w-6xl mx-auto">
+    <AISGBackground>
+      <div className="max-w-7xl mx-auto p-6 font-['Montserrat'] min-h-screen">
         {/* Cabecera principal con título y descripción */}
-        <div className="bg-gradient-to-r from-[#0033A0] to-[#00B140] p-6 rounded-lg shadow-lg mb-6">
-          <h1 className="text-2xl font-bold text-center text-white">
+        <div className="bg-gradient-to-r from-[#0033A0] to-[#00B140] p-6 rounded-t-lg shadow-lg mb-8">
+          <h1 className="text-3xl font-bold text-center text-white">
             Bienvenido al sistema AISG
           </h1>
           <p className="text-gray-200 mt-2 font-light text-center">
@@ -34,7 +36,7 @@ const Dashboard = () => {
         </div>
 
         {/* Tarjetas de información rápida */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           {/* Tarjeta: Servicios Activos */}
           <div className="bg-[#16213E] rounded-lg shadow-xl overflow-hidden">
             <div className="bg-gradient-to-r from-[#0033A0] to-[#4D70B8] p-4 flex justify-between items-center">
@@ -42,7 +44,7 @@ const Dashboard = () => {
                 24
               </div>
               <div className="text-white">
-                <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
                 </svg>
               </div>
@@ -59,7 +61,7 @@ const Dashboard = () => {
                 18
               </div>
               <div className="text-white">
-                <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                 </svg>
               </div>
@@ -76,7 +78,7 @@ const Dashboard = () => {
                 7
               </div>
               <div className="text-white">
-                <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                 </svg>
               </div>
@@ -93,7 +95,7 @@ const Dashboard = () => {
                 12
               </div>
               <div className="text-white">
-                <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"></path>
                 </svg>
               </div>
@@ -105,7 +107,7 @@ const Dashboard = () => {
         </div>
 
         {/* Panel principal de resumen general */}
-        <div className="bg-[#16213E] rounded-lg shadow-xl p-6 mb-6">
+        <div className="bg-[#16213E] rounded-lg shadow-xl p-6 mb-8">
           <h2 className="text-xl font-bold text-white mb-4">Resumen General</h2>
           <p className="text-gray-300">
             Este panel muestra información relevante sobre los mantenimientos programados y en proceso. 
@@ -174,7 +176,7 @@ const Dashboard = () => {
           </div>
         </div>
       </div>
-    </div>
+    </AISGBackground>
   );
 };
 

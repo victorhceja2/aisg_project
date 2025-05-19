@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { useNavigate, useParams } from "react-router-dom";
+import AISGBackground from "../components/catalogs/fondo";
 
 const EditSPConsumer: React.FC = () => {
     const navigate = useNavigate();
     const { id } = useParams<{ id: string }>();
-    const apiURL = "http://localhost:8000";
+    const apiURL = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
     const [form, setForm] = useState({
         id_service: "",
@@ -72,136 +73,141 @@ const EditSPConsumer: React.FC = () => {
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-[#1A1A2E] py-8 px-4 sm:px-6 lg:px-8 font-['Montserrat'] text-white flex items-center justify-center">
-                <div className="text-center">
-                    <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#00B140] mx-auto"></div>
-                    <p className="mt-4">Loading record data...</p>
+            <AISGBackground>
+                <div className="flex items-center justify-center min-h-screen text-white font-['Montserrat']">
+                    <div className="text-center">
+                        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#00B140] mx-auto"></div>
+                        <p className="mt-4">Loading record data...</p>
+                    </div>
                 </div>
-            </div>
+            </AISGBackground>
         );
     }
 
     return (
-        <div className="min-h-screen bg-[#1A1A2E] py-8 px-4 sm:px-6 lg:px-8 font-['Montserrat'] text-white">
-            <div className="max-w-2xl mx-auto">
-                <div className="bg-gradient-to-r from-[#0033A0] to-[#00B140] p-6 rounded-lg shadow-lg mb-6">
-                    <h1 className="text-2xl font-bold text-center text-white">
-                        Edit Service by Airline
-                    </h1>
-                    <p className="text-gray-200 mt-2 font-light text-center">
-                        Editing record #{id}
-                    </p>
-                </div>
-                <div className="bg-[#16213E] p-6 rounded-lg shadow-lg">
-                    {error && (
-                        <div className="bg-red-500 bg-opacity-20 border border-red-400 text-red-100 px-4 py-3 rounded mb-4">
-                            <p>{error}</p>
-                        </div>
-                    )}
-                    <form onSubmit={handleSubmit}>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                            <div>
-                                <label className="block text-sm font-medium text-gray-300 mb-2">Service ID</label>
-                                <input
-                                    className="w-full bg-[#1E2A45] text-white px-4 py-2 rounded-md border border-gray-700 focus:border-[#4D70B8] focus:ring-1 focus:ring-[#4D70B8] focus:outline-none"
-                                    placeholder="Service ID"
-                                    value={form.id_service}
-                                    onChange={(e) => setForm({ ...form, id_service: e.target.value })}
-                                    required
-                                />
+        <AISGBackground>
+            <div className="max-w-7xl mx-auto p-6 font-['Montserrat'] min-h-screen flex items-center justify-center">
+                <div className="w-full max-w-lg">
+                    <div className="bg-white rounded-t-lg px-6 py-4 shadow-lg">
+                        <h1 className="text-2xl font-bold text-center text-[#002057]">
+                            Edit Service by Airline
+                        </h1>
+                        <div className="mt-2 w-20 h-1 bg-[#e6001f] mx-auto rounded"></div>
+                        <p className="text-gray-500 mt-2 font-light text-center">
+                            Editing record #{id}
+                        </p>
+                    </div>
+                    <div className="bg-[#1E2A45] rounded-b-lg shadow-lg px-8 py-8">
+                        {error && (
+                            <div className="bg-red-500 text-white p-4 rounded-lg mb-6 shadow-md animate-pulse">
+                                <p className="font-medium">{error}</p>
                             </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-300 mb-2">Client ID</label>
-                                <input
-                                    className="w-full bg-[#1E2A45] text-white px-4 py-2 rounded-md border border-gray-700 focus:border-[#4D70B8] focus:ring-1 focus:ring-[#4D70B8] focus:outline-none"
-                                    placeholder="Client ID"
-                                    value={form.id_client}
-                                    onChange={(e) => setForm({ ...form, id_client: e.target.value })}
-                                    required
-                                />
+                        )}
+                        <form onSubmit={handleSubmit} className="space-y-6">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-white text-sm font-medium mb-2">Service ID</label>
+                                    <input
+                                        className="w-full bg-white text-[#002057] px-4 py-3 rounded-lg border border-[#cccccc] focus:border-[#4D70B8] focus:ring-2 focus:ring-[#4D70B8] focus:outline-none transition-all"
+                                        placeholder="Service ID"
+                                        value={form.id_service}
+                                        onChange={(e) => setForm({ ...form, id_service: e.target.value })}
+                                        required
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-white text-sm font-medium mb-2">Client ID</label>
+                                    <input
+                                        className="w-full bg-white text-[#002057] px-4 py-3 rounded-lg border border-[#cccccc] focus:border-[#4D70B8] focus:ring-2 focus:ring-[#4D70B8] focus:outline-none transition-all"
+                                        placeholder="Client ID"
+                                        value={form.id_client}
+                                        onChange={(e) => setForm({ ...form, id_client: e.target.value })}
+                                        required
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-white text-sm font-medium mb-2">Company ID</label>
+                                    <input
+                                        className="w-full bg-white text-[#002057] px-4 py-3 rounded-lg border border-[#cccccc] focus:border-[#4D70B8] focus:ring-2 focus:ring-[#4D70B8] focus:outline-none transition-all"
+                                        placeholder="Company ID"
+                                        value={form.id_company}
+                                        onChange={(e) => setForm({ ...form, id_company: e.target.value })}
+                                        required
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-white text-sm font-medium mb-2">Minutes Included</label>
+                                    <input
+                                        className="w-full bg-white text-[#002057] px-4 py-3 rounded-lg border border-[#cccccc] focus:border-[#4D70B8] focus:ring-2 focus:ring-[#4D70B8] focus:outline-none transition-all"
+                                        placeholder="Minutes Included"
+                                        type="number"
+                                        value={form.minutes_included}
+                                        onChange={(e) => setForm({ ...form, minutes_included: +e.target.value })}
+                                        required
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-white text-sm font-medium mb-2">Minutes Minimum</label>
+                                    <input
+                                        className="w-full bg-white text-[#002057] px-4 py-3 rounded-lg border border-[#cccccc] focus:border-[#4D70B8] focus:ring-2 focus:ring-[#4D70B8] focus:outline-none transition-all"
+                                        placeholder="Minutes Minimum"
+                                        type="number"
+                                        value={form.minutes_minimun}
+                                        onChange={(e) => setForm({ ...form, minutes_minimun: +e.target.value })}
+                                        required
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-white text-sm font-medium mb-2">Technicians Included</label>
+                                    <input
+                                        className="w-full bg-white text-[#002057] px-4 py-3 rounded-lg border border-[#cccccc] focus:border-[#4D70B8] focus:ring-2 focus:ring-[#4D70B8] focus:outline-none transition-all"
+                                        placeholder="Technicians Included"
+                                        type="number"
+                                        value={form.technicians_included}
+                                        onChange={(e) => setForm({ ...form, technicians_included: +e.target.value })}
+                                        required
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-white text-sm font-medium mb-2">Fuselage Type</label>
+                                    <input
+                                        className="w-full bg-white text-[#002057] px-4 py-3 rounded-lg border border-[#cccccc] focus:border-[#4D70B8] focus:ring-2 focus:ring-[#4D70B8] focus:outline-none transition-all"
+                                        placeholder="Fuselage Type"
+                                        value={form.fuselage_type}
+                                        onChange={(e) => setForm({ ...form, fuselage_type: e.target.value })}
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-white text-sm font-medium mb-2">Who New</label>
+                                    <input
+                                        className="w-full bg-white text-[#002057] px-4 py-3 rounded-lg border border-[#cccccc] focus:border-[#4D70B8] focus:ring-2 focus:ring-[#4D70B8] focus:outline-none transition-all"
+                                        placeholder="Who New"
+                                        value={form.whonew}
+                                        onChange={(e) => setForm({ ...form, whonew: e.target.value })}
+                                        required
+                                    />
+                                </div>
                             </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-300 mb-2">Company ID</label>
-                                <input
-                                    className="w-full bg-[#1E2A45] text-white px-4 py-2 rounded-md border border-gray-700 focus:border-[#4D70B8] focus:ring-1 focus:ring-[#4D70B8] focus:outline-none"
-                                    placeholder="Company ID"
-                                    value={form.id_company}
-                                    onChange={(e) => setForm({ ...form, id_company: e.target.value })}
-                                    required
-                                />
+                            <div className="flex space-x-4 pt-4 justify-end">
+                                <button
+                                    type="button"
+                                    className="w-1/2 bg-[#4D70B8] hover:bg-[#3A5A9F] text-white font-medium py-3 px-4 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg"
+                                    onClick={handleCancel}
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    className="w-1/2 bg-gradient-to-r from-[#0033A0] to-[#00B140] hover:from-[#002D8A] hover:to-[#009935] text-white font-medium py-3 px-4 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg"
+                                >
+                                    Update
+                                </button>
                             </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-300 mb-2">Minutes Included</label>
-                                <input
-                                    className="w-full bg-[#1E2A45] text-white px-4 py-2 rounded-md border border-gray-700 focus:border-[#4D70B8] focus:ring-1 focus:ring-[#4D70B8] focus:outline-none"
-                                    placeholder="Minutes Included"
-                                    type="number"
-                                    value={form.minutes_included}
-                                    onChange={(e) => setForm({ ...form, minutes_included: +e.target.value })}
-                                    required
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-300 mb-2">Minutes Minimum</label>
-                                <input
-                                    className="w-full bg-[#1E2A45] text-white px-4 py-2 rounded-md border border-gray-700 focus:border-[#4D70B8] focus:ring-1 focus:ring-[#4D70B8] focus:outline-none"
-                                    placeholder="Minutes Minimum"
-                                    type="number"
-                                    value={form.minutes_minimun}
-                                    onChange={(e) => setForm({ ...form, minutes_minimun: +e.target.value })}
-                                    required
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-300 mb-2">Technicians Included</label>
-                                <input
-                                    className="w-full bg-[#1E2A45] text-white px-4 py-2 rounded-md border border-gray-700 focus:border-[#4D70B8] focus:ring-1 focus:ring-[#4D70B8] focus:outline-none"
-                                    placeholder="Technicians Included"
-                                    type="number"
-                                    value={form.technicians_included}
-                                    onChange={(e) => setForm({ ...form, technicians_included: +e.target.value })}
-                                    required
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-300 mb-2">Fuselage Type</label>
-                                <input
-                                    className="w-full bg-[#1E2A45] text-white px-4 py-2 rounded-md border border-gray-700 focus:border-[#4D70B8] focus:ring-1 focus:ring-[#4D70B8] focus:outline-none"
-                                    placeholder="Fuselage Type"
-                                    value={form.fuselage_type}
-                                    onChange={(e) => setForm({ ...form, fuselage_type: e.target.value })}
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-300 mb-2">Who New</label>
-                                <input
-                                    className="w-full bg-[#1E2A45] text-white px-4 py-2 rounded-md border border-gray-700 focus:border-[#4D70B8] focus:ring-1 focus:ring-[#4D70B8] focus:outline-none"
-                                    placeholder="Who New"
-                                    value={form.whonew}
-                                    onChange={(e) => setForm({ ...form, whonew: e.target.value })}
-                                    required
-                                />
-                            </div>
-                        </div>
-                        <div className="flex justify-end gap-3 mt-8">
-                            <button
-                                type="button"
-                                className="bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-6 rounded-md transition-all duration-200 shadow-md hover:shadow-lg"
-                                onClick={handleCancel}
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                type="submit"
-                                className="bg-gradient-to-r from-[#0033A0] to-[#00B140] hover:from-[#002D8A] hover:to-[#009935] text-white font-medium py-2 px-6 rounded-md transition-all duration-200 shadow-md hover:shadow-lg"
-                            >
-                                Update
-                            </button>
-                        </div>
-                    </form>
+                        </form>
+                    </div>
                 </div>
             </div>
-        </div>
+        </AISGBackground>
     );
 };
 

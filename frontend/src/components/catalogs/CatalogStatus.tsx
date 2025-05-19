@@ -3,10 +3,6 @@ import axios from "axios";
 import { Link, useNavigate } from "react-router-dom";
 import AISGBackground from "../catalogs/fondo";
 
-/**
- * Component to display and manage the Service Status catalog.
- * Allows search, add, edit, and delete.
- */
 const CatalogStatus: React.FC = () => {
   const [statuses, setStatuses] = useState<any[]>([]);
   const [search, setSearch] = useState("");
@@ -15,7 +11,6 @@ const CatalogStatus: React.FC = () => {
   const apiURL = import.meta.env.VITE_API_URL || "http://localhost:8000";
   const navigate = useNavigate();
 
-  // Fetch statuses from backend
   const fetchStatuses = async () => {
     setLoading(true);
     try {
@@ -31,7 +26,6 @@ const CatalogStatus: React.FC = () => {
     }
   };
 
-  // Delete a status
   const handleDelete = async (id: number, name: string) => {
     if (window.confirm(`Are you sure you want to delete "${name}"? This action cannot be undone and may affect active services.`)) {
       try {
@@ -50,121 +44,106 @@ const CatalogStatus: React.FC = () => {
 
   return (
     <AISGBackground>
-      <div className="min-h-screen p-6 font-['Montserrat']">
-        <div className="max-w-7xl mx-auto">
-          {/* Header with corporate colors */}
-          <div className="bg-gradient-to-r from-[#0033A0] to-[#00B140] p-6 rounded-t-lg shadow-lg">
-            <h1 className="text-3xl font-bold text-white">Service Status Catalog</h1>
-            <p className="text-gray-200 mt-2 font-light">Manage the different statuses that services can have</p>
+      <div className="max-w-7xl mx-auto p-6 font-['Montserrat']">
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-bold text-white">Service Status Catalog</h1>
+          <div className="mt-2 w-20 h-1 bg-[#e6001f] mx-auto"></div>
+          <p className="text-gray-200 mt-2 font-light">
+            Manage the different statuses that services can have
+          </p>
+        </div>
+        {error && (
+          <div className="bg-red-500 text-white p-4 rounded-lg mb-6 shadow-md animate-pulse">
+            <p className="font-medium">{error}</p>
           </div>
-
-          {/* Main content */}
-          <div className="bg-transparent rounded-b-lg shadow-lg p-6">
-            {/* Error messages */}
-            {error && (
-              <div className="bg-red-500 text-white p-4 rounded-lg mb-6 shadow-md animate-pulse">
-                <p className="font-medium">{error}</p>
-              </div>
-            )}
-
-            {/* Toolbar: search and add new status */}
-            <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
-              <div className="w-full md:w-2/3 relative">
-                <input
-                  type="text"
-                  placeholder="Search status..."
-                  className="w-full px-4 py-3 pl-10 rounded-lg bg-[#1E2A45] text-white border border-gray-700 focus:border-[#0033A0] focus:ring-2 focus:ring-[#0033A0] focus:outline-none transition-all"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                />
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <svg className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                  </svg>
-                </div>
-              </div>
-              {/* Button to add a new status */}
-              <Link
-                to="/catalogs/status/add"
-                className="w-full md:w-auto bg-[#00B140] hover:bg-[#009935] text-white font-medium py-2 px-4 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg flex items-center justify-center"
-              >
-                <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                </svg>
-                New Status
-              </Link>
+        )}
+        <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+          <div className="w-full md:w-2/3 relative">
+            <input
+              type="text"
+              placeholder="Search status..."
+              className="w-full px-4 py-3 pl-10 rounded-lg border border-gray-300 bg-white text-[#002057] focus:border-[#002057] focus:ring-2 focus:ring-[#002057] focus:outline-none transition-all"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <svg className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
             </div>
-
-            {/* Results table */}
-            {loading ? (
-              // Spinner while loading data
-              <div className="flex justify-center my-12">
-                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#00B140]"></div>
-              </div>
-            ) : (
-              <div className="bg-transparent rounded-lg overflow-hidden shadow-lg">
-                <table className="w-full table-auto">
-                  <thead>
-                    <tr className="bg-white text-[#002057]">
-                      <th className="px-6 py-4 text-left font-semibold">ID</th>
-                      <th className="px-6 py-4 text-left font-semibold">Name</th>
-                      <th className="px-6 py-4 text-left font-semibold">Created At</th>
-                      <th className="px-6 py-4 text-left font-semibold">Updated At</th>
-                      <th className="px-6 py-4 text-center font-semibold">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-transparent divide-y divide-[#1E2A45]">
-                    {statuses.length === 0 ? (
-                      // No results message
-                      <tr>
-                        <td colSpan={5} className="px-6 py-8 text-center text-gray-400">
-                          No records found
-                        </td>
-                      </tr>
-                    ) : (
-                      // List of statuses
-                      statuses.map((s) => (
-                        <tr key={s.id_service_status} className="hover:bg-[#1E2A45] transition-colors">
-                          <td className="px-6 py-4 text-gray-300">{s.id_service_status}</td>
-                          <td className="px-6 py-4 text-white font-medium">{s.status_name}</td>
-                          <td className="px-6 py-4 text-gray-300">
-                            {s.create_at ? new Date(s.create_at).toLocaleString() : "-"}
-                          </td>
-                          <td className="px-6 py-4 text-gray-300">
-                            {s.updated_at ? new Date(s.updated_at).toLocaleString() : "-"}
-                          </td>
-                          <td className="px-6 py-4">
-                            <div className="flex justify-center space-x-2">
-                              {/* Edit status button */}
-                              <Link
-                                to={`/catalogs/status/edit/${s.id_service_status}`}
-                                className="p-1.5 bg-[#4D70B8] text-white rounded hover:bg-[#0033A0] transition-colors"
-                                title="Edit"
-                              >
-                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                                </svg>
-                              </Link>
-                              {/* Delete status button */}
-                              <button
-                                onClick={() => handleDelete(s.id_service_status, s.status_name)}
-                                className="p-1.5 bg-red-500 text-white rounded hover:bg-red-700 transition-colors"
-                                title="Delete"
-                              >
-                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                </svg>
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            )}
           </div>
+          <Link
+            to="/catalogs/status/add"
+            className="w-full md:w-auto bg-white hover:bg-gray-100 text-[#002057] font-medium py-2 px-4 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg flex items-center justify-center"
+          >
+            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+            </svg>
+            New Status
+          </Link>
+        </div>
+        <div className="overflow-x-auto">
+          {loading ? (
+            <div className="flex justify-center py-12 bg-transparent">
+              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#00B140]"></div>
+            </div>
+          ) : (
+            <table className="w-full border-collapse">
+              <thead>
+                <tr className="bg-white text-[#002057]">
+                  <th className="px-4 py-3 text-left font-semibold">ID</th>
+                  <th className="px-4 py-3 text-left font-semibold">Name</th>
+                  <th className="px-4 py-3 text-left font-semibold">Created At</th>
+                  <th className="px-4 py-3 text-left font-semibold">Updated At</th>
+                  <th className="px-4 py-3 text-center font-semibold">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="bg-transparent divide-y divide-[#1E2A45]">
+                {statuses.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="px-6 py-8 text-center text-white">
+                      No records found
+                    </td>
+                  </tr>
+                ) : (
+                  statuses.map((s) => (
+                    <tr key={s.id_service_status} className="hover:bg-[#1E2A45] transition-colors">
+                      <td className="px-4 py-3 text-white">{s.id_service_status}</td>
+                      <td className="px-4 py-3 text-white font-medium">{s.status_name}</td>
+                      <td className="px-4 py-3 text-white">
+                        {s.create_at ? new Date(s.create_at).toLocaleString() : "-"}
+                      </td>
+                      <td className="px-4 py-3 text-white">
+                        {s.updated_at ? new Date(s.updated_at).toLocaleString() : "-"}
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex justify-center space-x-2">
+                          <Link
+                            to={`/catalogs/status/edit/${s.id_service_status}`}
+                            className="p-1.5 bg-white text-[#002057] rounded hover:bg-gray-100 transition-colors"
+                            title="Edit"
+                          >
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                            </svg>
+                          </Link>
+                          <button
+                            onClick={() => handleDelete(s.id_service_status, s.status_name)}
+                            className="p-1.5 bg-[#e6001f] text-white rounded hover:bg-red-700 transition-colors"
+                            title="Delete"
+                          >
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          )}
         </div>
       </div>
     </AISGBackground>
