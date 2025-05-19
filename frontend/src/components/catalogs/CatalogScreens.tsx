@@ -1,28 +1,20 @@
 import React, { useState } from 'react';
 import CatalogServices from './CatalogServices';
-import CatalogClassif from './CatalogClassif';
-import CatalogStatus from './CatalogStatus';
-import ExtraCompanyConfiguration from './ExtraCompanyConfiguration';
 import ServicePerCustomer from './ServicePerCustomer';
-import ExtraServiceSaleAssignment from './ExtraServiceSaleAssignment';
 
 /**
- * Componente principal para navegar entre los diferentes catálogos del sistema AISG.
- * Aquí se puede seleccionar qué catálogo visualizar usando los botones de la parte superior.
+ * Componente principal para navegar entre los catálogos principales del sistema AISG.
+ * Solo muestra los dos catálogos solicitados.
  */
 const CatalogScreens: React.FC = () => {
-  // Se guarda el catálogo seleccionado actualmente
+  // Solo dos opciones: servicios y servicios por cliente
   const [selected, setSelected] = useState<string>('services');
 
   // Según la opción seleccionada, se muestra el componente correspondiente
   const renderCatalog = () => {
     switch (selected) {
       case 'services': return <CatalogServices />;
-      case 'classification': return <CatalogClassif />;
-      case 'status': return <CatalogStatus />;
-      case 'company': return <ExtraCompanyConfiguration />;
       case 'customer': return <ServicePerCustomer />;
-      case 'assignment': return <ExtraServiceSaleAssignment />;
       default: return <CatalogServices />;
     }
   };
@@ -38,37 +30,13 @@ const CatalogScreens: React.FC = () => {
           onClick={() => setSelected('services')}
           className={`px-4 py-2 rounded ${selected === 'services' ? 'bg-blue-600' : 'bg-gray-700'}`}
         >
-          Servicios
-        </button>
-        <button
-          onClick={() => setSelected('classification')}
-          className={`px-4 py-2 rounded ${selected === 'classification' ? 'bg-blue-600' : 'bg-gray-700'}`}
-        >
-          Clasificación
-        </button>
-        <button
-          onClick={() => setSelected('status')}
-          className={`px-4 py-2 rounded ${selected === 'status' ? 'bg-blue-600' : 'bg-gray-700'}`}
-        >
-          Estatus
-        </button>
-        <button
-          onClick={() => setSelected('company')}
-          className={`px-4 py-2 rounded ${selected === 'company' ? 'bg-blue-600' : 'bg-gray-700'}`}
-        >
-          Configuración Compañía
+          Services Catalog
         </button>
         <button
           onClick={() => setSelected('customer')}
           className={`px-4 py-2 rounded ${selected === 'customer' ? 'bg-blue-600' : 'bg-gray-700'}`}
         >
-          Servicios por Cliente
-        </button>
-        <button
-          onClick={() => setSelected('assignment')}
-          className={`px-4 py-2 rounded ${selected === 'assignment' ? 'bg-blue-600' : 'bg-gray-700'}`}
-        >
-          Asignación Extra
+          Services per Customer
         </button>
       </div>
 

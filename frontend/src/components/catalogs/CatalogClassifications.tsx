@@ -3,22 +3,22 @@ import axios from "axios";
 import { Link } from "react-router-dom";
 
 /**
- * Componente para mostrar y administrar el catálogo de clasificaciones de servicios.
- * Aquí se puede buscar, agregar y editar clasificaciones.
+ * Component to display and manage the Service Classifications catalog.
+ * Allows searching, adding, and editing classifications.
  */
 const CatalogClassifications: React.FC = () => {
-  // Aquí guardamos la lista de clasificaciones que obtenemos del backend
+  // List of classifications from backend
   const [classifications, setClassifications] = useState<any[]>([]);
-  // Se controla el valor del campo de búsqueda
+  // Search field value
   const [search, setSearch] = useState("");
-  // Se maneja el estado de error para mostrar mensajes al usuario
+  // Error state for user messages
   const [error, setError] = useState<string | null>(null);
-  // Se indica si la tabla está cargando datos
+  // Loading state for the table
   const [loading, setLoading] = useState(true);
-  // Se obtiene la URL base del API desde variables de entorno o se usa una por defecto
+  // API base URL from environment or default
   const apiURL = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
-  // Paleta de colores corporativos AISG para mantener la identidad visual
+  // AISG corporate color palette
   const colors = {
     aisgBlue: "#0033A0",
     aisgGreen: "#00B140",
@@ -31,8 +31,8 @@ const CatalogClassifications: React.FC = () => {
   };
 
   /**
-   * Se obtiene la lista de clasificaciones desde el backend.
-   * Si hay un término de búsqueda, se filtran los resultados.
+   * Fetches the list of classifications from the backend.
+   * Filters results if a search term is provided.
    */
   const fetchClassifications = async () => {
     setLoading(true);
@@ -44,13 +44,13 @@ const CatalogClassifications: React.FC = () => {
       setError(null);
     } catch (err) {
       console.error("Error fetching classifications", err);
-      setError("No se pudieron cargar las clasificaciones. Intente nuevamente.");
+      setError("Could not load classifications. Please try again.");
     } finally {
       setLoading(false);
     }
   };
 
-  // Cada vez que cambia el término de búsqueda, se vuelve a cargar la lista de clasificaciones
+  // Reloads the list when the search term changes
   useEffect(() => {
     fetchClassifications();
   }, [search]);
@@ -58,22 +58,22 @@ const CatalogClassifications: React.FC = () => {
   return (
     <div className="min-h-screen bg-[#1A1A2E] p-6 font-['Montserrat']">
       <div className="max-w-7xl mx-auto">
-        {/* Encabezado con los colores corporativos AISG */}
+        {/* Header with AISG corporate colors */}
         <div className="bg-gradient-to-r from-[#0033A0] to-[#00B140] p-6 rounded-t-lg shadow-lg">
-          <h1 className="text-3xl font-bold text-white">Catálogo de Clasificaciones de Servicios</h1>
-          <p className="text-gray-200 mt-2 font-light">Administra las diferentes clasificaciones de servicios</p>
+          <h1 className="text-3xl font-bold text-white">Service Classifications Catalog</h1>
+          <p className="text-gray-200 mt-2 font-light">Manage the different service classifications</p>
         </div>
 
-        {/* Contenido principal */}
+        {/* Main content */}
         <div className="bg-[#16213E] rounded-b-lg shadow-lg p-6">
-          {/* Si hay un error, se muestra un mensaje destacado */}
+          {/* Error message */}
           {error && (
             <div className="bg-red-500 text-white p-4 rounded-lg mb-6 shadow-md animate-pulse">
               <p className="font-medium">{error}</p>
             </div>
           )}
 
-          {/* Botón para agregar nueva clasificación */}
+          {/* Add new classification button */}
           <div className="mb-6 flex justify-end">
             <Link 
               to="/catalogs/classif/add"
@@ -82,17 +82,17 @@ const CatalogClassifications: React.FC = () => {
               <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
               </svg>
-              Agregar Clasificación
+              Add Classification
             </Link>
           </div>
 
-          {/* Buscador */}
+          {/* Search bar */}
           <div className="mb-6">
             <div className="relative">
               <input
                 type="text"
                 className="w-full px-4 py-3 pl-10 rounded-lg bg-[#1E2A45] text-white border border-gray-700 focus:border-[#0033A0] focus:ring-2 focus:ring-[#0033A0] focus:outline-none transition-all"
-                placeholder="Buscar clasificación..."
+                placeholder="Search classification..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
@@ -104,9 +104,9 @@ const CatalogClassifications: React.FC = () => {
             </div>
           </div>
 
-          {/* Tabla de resultados */}
+          {/* Results table */}
           {loading ? (
-            // Se muestra un spinner mientras se cargan los datos
+            // Spinner while loading
             <div className="flex justify-center my-12">
               <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#00B140]"></div>
             </div>
@@ -116,54 +116,44 @@ const CatalogClassifications: React.FC = () => {
                 <thead>
                   <tr className="bg-[#0033A0] text-white">
                     <th className="px-6 py-4 text-left font-semibold">ID</th>
-                    <th className="px-6 py-4 text-left font-semibold">Nombre</th>
-                    <th className="px-6 py-4 text-left font-semibold">Estatus</th>
-                    <th className="px-6 py-4 text-left font-semibold">Acciones</th>
+                    <th className="px-6 py-4 text-left font-semibold">Name</th>
+                    <th className="px-6 py-4 text-left font-semibold">Created At</th>
+                    <th className="px-6 py-4 text-left font-semibold">Updated At</th>
+                    <th className="px-6 py-4 text-left font-semibold">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#1E2A45]">
                   {classifications.length === 0 ? (
-                    // Si no hay resultados, se muestra un mensaje
+                    // No results message
                     <tr>
-                      <td colSpan={4} className="px-6 py-8 text-center text-gray-400">
-                        No se encontraron registros
+                      <td colSpan={5} className="px-6 py-8 text-center text-gray-400">
+                        No records found
                       </td>
                     </tr>
                   ) : (
-                    // Se recorre la lista de clasificaciones y se muestra cada una en una fila
+                    // Render each classification row
                     classifications.map((c) => (
                       <tr key={c.id_service_classification} className="hover:bg-[#1E2A45] transition-colors">
                         <td className="px-6 py-4 text-gray-300">{c.id_service_classification}</td>
                         <td className="px-6 py-4 text-white font-medium">{c.service_classification_name}</td>
-                        <td className="px-6 py-4">
-                          <span className={`px-3 py-1 rounded-full text-xs font-medium ${c.status ? 'bg-[#4DC970] text-white' : 'bg-red-500 text-white'}`}>
-                            {c.status ? 'Activo' : 'Inactivo'}
-                          </span>
+                        <td className="px-6 py-4 text-gray-300">
+                          {c.create_at ? new Date(c.create_at).toLocaleString() : "-"}
+                        </td>
+                        <td className="px-6 py-4 text-gray-300">
+                          {c.updated_at ? new Date(c.updated_at).toLocaleString() : "-"}
                         </td>
                         <td className="px-6 py-4">
                           <div className="flex space-x-2">
-                            {/* Botón para editar la clasificación */}
+                            {/* Edit classification button */}
                             <Link
                               to={`/catalogs/classif/edit/${c.id_service_classification}`}
                               className="p-1.5 bg-[#4D70B8] text-white rounded hover:bg-[#0033A0] transition-colors"
-                              title="Editar"
+                              title="Edit"
                             >
                               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                               </svg>
                             </Link>
-                            {/* Aquí se podría agregar un botón para cambiar el estatus */}
-                            <button
-                              onClick={() => {
-                                /* Aquí se puede implementar la funcionalidad para cambiar estatus */
-                              }}
-                              className="p-1.5 bg-amber-500 text-white rounded hover:bg-amber-600 transition-colors"
-                              title="Cambiar estatus"
-                            >
-                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                              </svg>
-                            </button>
                           </div>
                         </td>
                       </tr>

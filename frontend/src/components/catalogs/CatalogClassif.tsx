@@ -3,23 +3,23 @@ import axios from "axios";
 import { Link, useNavigate } from "react-router-dom";
 
 /**
- * Componente para mostrar y administrar el catálogo de clasificaciones de servicios.
+ * Componente para mostrar y administrar el catálogo de clasificaciones de servicio.
  * Permite buscar, agregar, editar y eliminar clasificaciones.
  */
 const CatalogClassif: React.FC = () => {
-  // Se guarda la lista de clasificaciones obtenidas del backend
+  // Lista de clasificaciones traídas del backend
   const [classifications, setClassifications] = useState<any[]>([]);
-  // Se controla el valor del campo de búsqueda
+  // Valor del campo de búsqueda
   const [search, setSearch] = useState("");
-  // Se maneja el estado de error para mostrar mensajes al usuario
+  // Estado de error para mensajes al usuario
   const [error, setError] = useState<string | null>(null);
-  // Se indica si la tabla está cargando datos
+  // Estado de carga para la tabla
   const [loading, setLoading] = useState(true);
-  // Se obtiene la URL base del API desde variables de entorno o se usa una por defecto
+  // URL base de la API desde el entorno o por defecto
   const apiURL = import.meta.env.VITE_API_URL || "http://localhost:8000";
   const navigate = useNavigate();
 
-  // Paleta de colores corporativos AISG para mantener la identidad visual
+  // Paleta de colores corporativos AISG
   const colors = {
     aisgBlue: "#0033A0",
     aisgGreen: "#00B140",
@@ -32,46 +32,44 @@ const CatalogClassif: React.FC = () => {
   };
 
   /**
-   * Se obtiene la lista de clasificaciones desde el backend.
-   * Si hay un término de búsqueda, se filtran los resultados.
+   * Obtiene la lista de clasificaciones desde el backend.
+   * Filtra resultados si se proporciona un término de búsqueda.
    */
   const fetchClassifications = async () => {
     setLoading(true);
     try {
       const res = await axios.get(
-        `${apiURL}/catalog/service-classification/${
-          search ? `?search=${encodeURIComponent(search)}` : ""
-        }`
+        `${apiURL}/catalog/service-classification/${search ? `?search=${encodeURIComponent(search)}` : ""}`
       );
       setClassifications(res.data);
       setError(null);
     } catch (err) {
-      console.error("Error al obtener clasificaciones", err);
-      setError("Error al cargar las clasificaciones.");
+      console.error("Error fetching classifications", err);
+      setError("Could not load classifications. Please try again.");
     } finally {
       setLoading(false);
     }
   };
 
   /**
-   * Se elimina una clasificación seleccionada.
-   * Antes de eliminar, se pide confirmación al usuario.
-   * Si la eliminación es exitosa, se actualiza la lista.
+   * Elimina una clasificación seleccionada.
+   * Solicita confirmación al usuario antes de eliminar.
+   * Si es exitoso, actualiza la lista.
    */
   const handleDelete = async (id: number, name: string) => {
-    if (window.confirm(`¿Estás seguro de que deseas eliminar la clasificación "${name}"? Esta acción no se puede deshacer.`)) {
+    if (window.confirm(`Are you sure you want to delete the classification "${name}"? This action cannot be undone.`)) {
       try {
         await axios.delete(`${apiURL}/catalog/service-classification/${id}`);
-        fetchClassifications(); // Se actualiza la lista después de eliminar
+        fetchClassifications(); // Refresca la lista después de eliminar
         setError(null);
       } catch (err) {
-        console.error("Error al eliminar clasificación", err);
-        setError("No se pudo eliminar la clasificación. Puede que esté siendo utilizada por algún servicio activo.");
+        console.error("Error deleting classification", err);
+        setError("Could not delete the classification. It may be used by an active service.");
       }
     }
   };
 
-  // Cada vez que cambia el término de búsqueda, se vuelve a cargar la lista de clasificaciones
+  // Recarga la lista cuando cambia el término de búsqueda
   useEffect(() => {
     fetchClassifications();
   }, [search]);
@@ -79,15 +77,15 @@ const CatalogClassif: React.FC = () => {
   return (
     <div className="min-h-screen bg-[#1A1A2E] p-6 font-['Montserrat']">
       <div className="max-w-7xl mx-auto">
-        {/* Sección de encabezado con el título y descripción */}
+        {/* Encabezado con colores corporativos AISG */}
         <div className="bg-gradient-to-r from-[#0033A0] to-[#00B140] p-6 rounded-t-lg shadow-lg">
-          <h1 className="text-3xl font-bold text-white text-center">Clasificaciones de Servicios</h1>
-          <p className="text-gray-200 mt-2 font-light text-center">Administra las clasificaciones disponibles para los servicios</p>
+          <h1 className="text-3xl font-bold text-white text-center">Service Classifications Catalog</h1>
+          <p className="text-gray-200 mt-2 font-light text-center">Manage the different service classifications</p>
         </div>
 
-        {/* Sección principal con barra de búsqueda, botón de agregar y tabla de resultados */}
+        {/* Contenido principal */}
         <div className="bg-[#16213E] rounded-b-lg shadow-lg p-6">
-          {/* Si hay un error, se muestra un mensaje destacado */}
+          {/* Mensaje de error */}
           {error && (
             <div className="bg-red-500 text-white p-4 rounded-lg mb-6 shadow-md animate-pulse">
               <p className="font-medium">{error}</p>
@@ -99,7 +97,7 @@ const CatalogClassif: React.FC = () => {
             <div className="w-full md:w-2/3 relative">
               <input
                 type="text"
-                placeholder="Buscar clasificación..."
+                placeholder="Search classification..."
                 className="w-full px-4 py-3 pl-10 rounded-lg bg-[#1E2A45] text-white border border-gray-700 focus:border-[#0033A0] focus:ring-2 focus:ring-[#0033A0] focus:outline-none transition-all"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
@@ -110,7 +108,7 @@ const CatalogClassif: React.FC = () => {
                 </svg>
               </div>
             </div>
-            {/* Botón para agregar una nueva clasificación */}
+            {/* Botón para agregar nueva clasificación */}
             <Link
               to="/catalogs/classif/add"
               className="w-full md:w-auto bg-[#00B140] hover:bg-[#009935] text-white font-medium py-2 px-4 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg flex items-center justify-center"
@@ -118,13 +116,13 @@ const CatalogClassif: React.FC = () => {
               <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
               </svg>
-              Nueva Clasificación
+              Add Classification
             </Link>
           </div>
 
-          {/* Tabla donde se muestran los resultados de la búsqueda o todas las clasificaciones */}
+          {/* Tabla de resultados */}
           {loading ? (
-            // Se muestra un spinner mientras se cargan los datos
+            // Spinner mientras carga
             <div className="flex justify-center my-12">
               <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#00B140]"></div>
             </div>
@@ -134,47 +132,49 @@ const CatalogClassif: React.FC = () => {
                 <thead>
                   <tr className="bg-[#0033A0] text-white">
                     <th className="px-6 py-4 text-left font-semibold">ID</th>
-                    <th className="px-6 py-4 text-left font-semibold">Nombre</th>
-                    <th className="px-6 py-4 text-center font-semibold">Estado</th>
-                    <th className="px-6 py-4 text-center font-semibold">Acciones</th>
+                    <th className="px-6 py-4 text-left font-semibold">Name</th>
+                    <th className="px-6 py-4 text-left font-semibold">Created At</th>
+                    <th className="px-6 py-4 text-left font-semibold">Updated At</th>
+                    <th className="px-6 py-4 text-center font-semibold">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#1E2A45]">
                   {classifications.length === 0 ? (
-                    // Si no hay resultados, se muestra un mensaje
+                    // Mensaje si no hay resultados
                     <tr>
-                      <td colSpan={4} className="px-6 py-8 text-center text-gray-400">
-                        No se encontraron registros
+                      <td colSpan={5} className="px-6 py-8 text-center text-gray-400">
+                        No records found
                       </td>
                     </tr>
                   ) : (
-                    // Se recorre la lista de clasificaciones y se muestra cada una en una fila
+                    // Renderiza cada fila de clasificación
                     classifications.map((c) => (
                       <tr key={c.id_service_classification} className="hover:bg-[#1E2A45] transition-colors">
                         <td className="px-6 py-4 text-gray-300">{c.id_service_classification}</td>
                         <td className="px-6 py-4 text-white font-medium">{c.service_classification_name}</td>
-                        <td className="px-6 py-4 text-center">
-                          <span className={`px-3 py-1 rounded-full text-xs font-medium ${c.status ? 'bg-[#4DC970] text-white' : 'bg-red-500 text-white'}`}>
-                            {c.status ? 'Activo' : 'Inactivo'}
-                          </span>
+                        <td className="px-6 py-4 text-gray-300">
+                          {c.create_at ? new Date(c.create_at).toLocaleString() : "-"}
+                        </td>
+                        <td className="px-6 py-4 text-gray-300">
+                          {c.updated_at ? new Date(c.updated_at).toLocaleString() : "-"}
                         </td>
                         <td className="px-6 py-4">
                           <div className="flex justify-center space-x-2">
-                            {/* Botón para editar la clasificación */}
+                            {/* Botón para editar clasificación */}
                             <Link
                               to={`/catalogs/classif/edit/${c.id_service_classification}`}
                               className="p-1.5 bg-[#4D70B8] text-white rounded hover:bg-[#0033A0] transition-colors"
-                              title="Editar"
+                              title="Edit"
                             >
                               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                               </svg>
                             </Link>
-                            {/* Botón para eliminar la clasificación */}
+                            {/* Botón para eliminar clasificación */}
                             <button
                               onClick={() => handleDelete(c.id_service_classification, c.service_classification_name)}
                               className="p-1.5 bg-red-500 text-white rounded hover:bg-red-700 transition-colors"
-                              title="Eliminar"
+                              title="Delete"
                             >
                               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
