@@ -14,7 +14,7 @@ from app.routers import (
     catalog_services_full,
     catalog_router_aliases,
     operations_report,
-    clients  # 👈 nuevo router
+    client  # ✅ este es el correcto
 )
 
 app = FastAPI()
@@ -40,7 +40,7 @@ routers = [
     catalog_services_full.router,
     catalog_router_aliases.router,
     operations_report.router,
-    clients.router  # 👈 nuevo router
+    client.router  # ✅ este es el único que debe ir
 ]
 
 for r in routers:
