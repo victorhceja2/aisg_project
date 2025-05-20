@@ -34,7 +34,7 @@ const EditServiceType: React.FC = () => {
     setError(null);
     setSaving(true);
     try {
-      await axios.put(`${apiURL}/catalog/service-types/${id}`, { name, whonew });
+      await axios.put(`${apiURL}/catalog/service-types/${id}`, { service_type_name: name, whonew });
       navigate("/catalogs/servicetype");
     } catch {
       setError("Could not update the service type. Please try again.");

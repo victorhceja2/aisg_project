@@ -25,19 +25,21 @@ const AddClassification: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name) {
-      setError("El nombre de la clasificación es obligatorio.");
+      setError("Classification name is required.");
       return;
     }
 
     try {
+      const whonew = sessionStorage.getItem("userName") || "system";
       await axios.post(`${apiURL}/catalog/service-classification/`, {
-        service_classification_name: name
+        service_classification_name: name,
+        whonew: whonew
       });
       // Redirige al listado de clasificaciones tras guardar
       navigate("/catalogs/classif");
     } catch (err) {
-      console.error("Error al agregar clasificación", err);
-      setError("No se pudo agregar la clasificación.");
+      console.error("Error adding classification", err);
+      setError("Could not add the classification.");
     }
   };
 
@@ -61,7 +63,7 @@ const AddClassification: React.FC = () => {
             <form onSubmit={handleSubmit} className="space-y-6">
               <div>
                 <label className="block text-white text-sm font-medium mb-2">
-                  Classification name
+                  Classification Name
                 </label>
                 <input
                   type="text"

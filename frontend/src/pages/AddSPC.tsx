@@ -16,10 +16,10 @@ const AddServiceType: React.FC = () => {
     setError(null);
     setLoading(true);
     try {
-      await axios.post(`${apiURL}/catalog/service-types`, { name, whonew });
+      await axios.post(`${apiURL}/catalog/service-types`, { service_type_name: name, whonew });
       navigate("/catalogs/servicetype");
     } catch (err) {
-      setError("No se pudo agregar el tipo de servicio. Intenta nuevamente.");
+      setError("Could not add the service type. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -31,7 +31,7 @@ const AddServiceType: React.FC = () => {
         <div className="w-full max-w-lg">
           <div className="bg-white rounded-t-lg px-6 py-4 shadow-lg">
             <h1 className="text-2xl font-bold text-center text-[#002057]">
-              Agregar Tipo de Servicio
+              Add Service Type
             </h1>
             <div className="mt-2 w-20 h-1 bg-[#e6001f] mx-auto rounded"></div>
           </div>
@@ -44,14 +44,14 @@ const AddServiceType: React.FC = () => {
             <form onSubmit={handleSubmit} className="space-y-6">
               <div>
                 <label className="block text-white text-sm font-medium mb-2">
-                  Nombre del tipo de servicio
+                  Service type name
                 </label>
                 <input
                   type="text"
                   value={name}
                   onChange={e => setName(e.target.value)}
                   className="w-full px-4 py-3 rounded-lg bg-white text-[#002057] border border-[#cccccc] focus:border-[#00B140] focus:ring-2 focus:ring-[#00B140] focus:outline-none transition-all"
-                  placeholder="Ingrese el nombre del tipo de servicio"
+                  placeholder="Enter the service type name"
                   required
                 />
               </div>
@@ -62,7 +62,7 @@ const AddServiceType: React.FC = () => {
                   className="w-1/2 bg-[#4D70B8] hover:bg-[#3A5A9F] text-white font-medium py-3 px-4 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg"
                   disabled={loading}
                 >
-                  Cancelar
+                  Cancel
                 </button>
                 <button
                   type="submit"
@@ -74,10 +74,10 @@ const AddServiceType: React.FC = () => {
                   {loading ? (
                     <>
                       <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white mr-2"></div>
-                      Guardando...
+                      Saving...
                     </>
                   ) : (
-                    "Guardar"
+                    "Save"
                   )}
                 </button>
               </div>

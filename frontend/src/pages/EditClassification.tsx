@@ -36,8 +36,10 @@ const EditClassification: React.FC = () => {
       return;
     }
     try {
+      const whonew = sessionStorage.getItem("userName") || "system";
       await axios.put(`${apiURL}/catalog/service-classification/${id}`, {
-        service_classification_name: name
+        service_classification_name: name,
+        whonew: whonew
       });
       navigate("/catalogs/classif");
     } catch (err) {

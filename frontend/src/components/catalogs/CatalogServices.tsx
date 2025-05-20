@@ -133,17 +133,17 @@ const CatalogServices: React.FC = () => {
                     <tr key={s.id_service} className="bg-transparent hover:bg-[#1E2A45] transition-colors">
                       <td className="px-4 py-3 text-white">{s.id_service}</td>
                       <td className="px-4 py-3 text-white">{s.id_service_status}</td>
-                      <td className="px-4 py-3 text-white">{s.id_service_classification}</td>
+                      <td className="px-4 py-3 text-white">{s.id_service_clasification}</td>
                       <td className="px-4 py-3 text-white">{s.id_service_category}</td>
                       <td className="px-4 py-3 text-white">{s.id_service_type}</td>
                       <td className="px-4 py-3 text-white">{s.id_service_include}</td>
                       <td className="px-4 py-3 text-white">{s.service_code}</td>
                       <td className="px-4 py-3 text-white font-medium">{s.service_name}</td>
                       <td className="px-4 py-3 text-white">{s.service_description}</td>
-                      <td className="px-4 py-3 text-white">{s.service_aircraft_type ? "Yes" : "No"}</td>
-                      <td className="px-4 py-3 text-white">{s.service_by_time ? "Yes" : "No"}</td>
-                      <td className="px-4 py-3 text-white">{s.min_time_configured ? "Yes" : "No"}</td>
-                      <td className="px-4 py-3 text-white">{s.service_technicians_included ? "Yes" : "No"}</td>
+                      <td className="px-4 py-3 text-white">{s.service_aircraft_type === 2 ? "Yes" : "No"}</td>
+                      <td className="px-4 py-3 text-white">{s.service_by_time === 2 ? "Yes" : "No"}</td>
+                      <td className="px-4 py-3 text-white">{s.min_time_configured === 2 ? "Yes" : "No"}</td>
+                      <td className="px-4 py-3 text-white">{s.service_technicians_included === 2 ? "Yes" : "No"}</td>
                       <td className="px-4 py-3">
                         <div className="flex justify-center space-x-2">
                           <Link

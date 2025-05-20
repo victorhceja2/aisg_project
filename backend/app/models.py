@@ -8,7 +8,7 @@ class CatalogServiceStatus(Base):
     status_name = Column(String(100), nullable=False)
     whonew = Column(String(100))
     create_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 class CatalogServiceClassification(Base):
     __tablename__ = "CatalogServiceClassification"
@@ -16,7 +16,7 @@ class CatalogServiceClassification(Base):
     service_classification_name = Column(String(100), nullable=False)
     whonew = Column(String(100))
     create_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 class CatalogService(Base):
     __tablename__ = "CatalogServices"
@@ -32,7 +32,7 @@ class CatalogService(Base):
     service_technicians_included = Column(Boolean, default=False)
     whonew = Column(String(100))
     create_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 class ServicePerCustomer(Base):
     __tablename__ = "ServicePerCustomer"
@@ -46,7 +46,7 @@ class ServicePerCustomer(Base):
     technicians_included = Column(Integer, default=0)
     whonew = Column(String(100))
     create_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 class ExtraCompanyConfiguration(Base):
     __tablename__ = "ExtraCompanyConfiguration"
@@ -56,7 +56,7 @@ class ExtraCompanyConfiguration(Base):
     status = Column(Boolean, default=True)
     whonew = Column(String(100))
     create_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 class ExtraServiceSaleAssignment(Base):
     __tablename__ = "ExtraServiceSaleAssignment"
@@ -69,7 +69,7 @@ class ExtraServiceSaleAssignment(Base):
     status = Column(Boolean, default=True)
     whonew = Column(String(100))
     create_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 # Nuevos modelos para los catálogos adicionales
 
@@ -79,7 +79,7 @@ class CatalogServiceType(Base):
     service_type_name = Column(String(100), nullable=False)
     whonew = Column(String(100))
     create_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 class CatalogServiceInclude(Base):
     __tablename__ = "CatalogServiceInclude"
@@ -87,7 +87,7 @@ class CatalogServiceInclude(Base):
     service_include = Column(String(100), nullable=False)
     whonew = Column(String(100))
     create_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 class CatalogServiceCategory(Base):
     __tablename__ = "CatalogServiceCategory"
@@ -95,4 +95,4 @@ class CatalogServiceCategory(Base):
     service_category_name = Column(String(100), nullable=False)
     whonew = Column(String(100))
     create_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

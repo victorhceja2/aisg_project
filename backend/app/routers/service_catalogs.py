@@ -46,8 +46,9 @@ def update_service_type(item_id: int, item: ServiceTypeCreate, db: Session = Dep
         if not registro:
             raise HTTPException(status_code=404, detail="No encontrado")
         registro.service_type_name = item.service_type_name
-        registro.whonew = item.whonew
+        registro.whonew = item.whonew  # <-- Aquí se actualiza el usuario
         db.commit()
+        db.refresh(registro)
         return registro
     except HTTPException:
         raise
@@ -104,8 +105,9 @@ def update_service_include(item_id: int, item: ServiceIncludeCreate, db: Session
         if not registro:
             raise HTTPException(status_code=404, detail="No encontrado")
         registro.service_include = item.service_include
-        registro.whonew = item.whonew
+        registro.whonew = item.whonew  # <-- Aquí se actualiza el usuario
         db.commit()
+        db.refresh(registro)
         return registro
     except HTTPException:
         raise
@@ -162,8 +164,9 @@ def update_service_category(item_id: int, item: ServiceCategoryCreate, db: Sessi
         if not registro:
             raise HTTPException(status_code=404, detail="No encontrado")
         registro.service_category_name = item.service_category_name
-        registro.whonew = item.whonew
+        registro.whonew = item.whonew  # <-- Aquí se actualiza el usuario
         db.commit()
+        db.refresh(registro)
         return registro
     except HTTPException:
         raise
@@ -220,8 +223,9 @@ def update_service_status(item_id: int, item: ServiceStatusCreate, db: Session =
         if not registro:
             raise HTTPException(status_code=404, detail="No encontrado")
         registro.status_name = item.status_name
-        registro.whonew = item.whonew
+        registro.whonew = item.whonew  # <-- Aquí se actualiza el usuario
         db.commit()
+        db.refresh(registro)
         return registro
     except HTTPException:
         raise

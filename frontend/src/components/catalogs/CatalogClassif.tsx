@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { Link } from "react-router-dom";
-import AISGBackground from "./fondo"; // Importa desde fondo.tsx
+import AISGBackground from "./fondo"; // Import from fondo.tsx
 
 const CatalogClassif: React.FC = () => {
   const [classifications, setClassifications] = useState<any[]>([]);
@@ -79,9 +79,6 @@ const CatalogClassif: React.FC = () => {
           </div>
         )}
         <div className="overflow-x-auto">
-          <div className="bg-white text-[#002057] py-3 px-4 font-bold text-center rounded-t-lg">
-            Financial Highlights
-          </div>
           {loading ? (
             <div className="flex justify-center py-12 bg-transparent">
               <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-white"></div>
@@ -90,11 +87,21 @@ const CatalogClassif: React.FC = () => {
             <table className="w-full border-collapse">
               <thead>
                 <tr className="bg-white">
-                  <th className="px-4 py-3 text-left font-semibold text-[#002057] border border-[#cccccc]">ID</th>
-                  <th className="px-4 py-3 text-left font-semibold text-[#002057] border border-[#cccccc]">Name</th>
-                  <th className="px-4 py-3 text-left font-semibold text-[#002057] border border-[#cccccc]">Created At</th>
-                  <th className="px-4 py-3 text-left font-semibold text-[#002057] border border-[#cccccc]">Updated At</th>
-                  <th className="px-4 py-3 text-center font-semibold text-[#002057] border border-[#cccccc]">Actions</th>
+                  <th className="px-4 py-3 text-left font-semibold text-[#002057] border border-[#cccccc]">
+                    Created/Modified By
+                  </th>
+                  <th className="px-4 py-3 text-left font-semibold text-[#002057] border border-[#cccccc]">
+                    Name
+                  </th>
+                  <th className="px-4 py-3 text-left font-semibold text-[#002057] border border-[#cccccc]">
+                    Created At
+                  </th>
+                  <th className="px-4 py-3 text-left font-semibold text-[#002057] border border-[#cccccc]">
+                    Updated At
+                  </th>
+                  <th className="px-4 py-3 text-center font-semibold text-[#002057] border border-[#cccccc]">
+                    Actions
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -105,9 +112,9 @@ const CatalogClassif: React.FC = () => {
                     </td>
                   </tr>
                 ) : (
-                  classifications.map((c, index) => (
+                  classifications.map((c) => (
                     <tr key={c.id_service_classification} className="bg-transparent">
-                      <td className="px-4 py-3 border border-[#1e3462] text-white">{c.id_service_classification}</td>
+                      <td className="px-4 py-3 border border-[#1e3462] text-white">{c.whonew || "-"}</td>
                       <td className="px-4 py-3 border border-[#1e3462] font-medium text-white">{c.service_classification_name}</td>
                       <td className="px-4 py-3 border border-[#1e3462] text-white">
                         {c.create_at ? new Date(c.create_at).toLocaleString() : "-"}
