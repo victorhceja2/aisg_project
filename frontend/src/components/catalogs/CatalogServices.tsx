@@ -133,7 +133,7 @@ const CatalogServices: React.FC = () => {
                     <tr key={s.id_service} className="bg-transparent hover:bg-[#1E2A45] transition-colors">
                       <td className="px-4 py-3 text-white">{s.id_service}</td>
                       <td className="px-4 py-3 text-white">{s.id_service_status}</td>
-                      <td className="px-4 py-3 text-white">{s.id_service_clasification}</td>
+                      <td className="px-4 py-3 text-white">{s.id_service_classification || s.id_service_clasification}</td> {/* CORREGIDO: accede a ambas opciones posibles */}
                       <td className="px-4 py-3 text-white">{s.id_service_category}</td>
                       <td className="px-4 py-3 text-white">{s.id_service_type}</td>
                       <td className="px-4 py-3 text-white">{s.id_service_include}</td>

@@ -13,7 +13,7 @@ const EditSPConsumer: React.FC = () => {
         id_client: "",
         id_company: "",
         minutes_included: 0,
-        minutes_minimun: 0,
+        minutes_minimum: 0, // CORREGIDO: "minimum" en lugar de "minimun"
         fuselage_type: "",
         technicians_included: 0,
         whonew: "",
@@ -33,7 +33,7 @@ const EditSPConsumer: React.FC = () => {
                     id_client: record.id_client?.toString() || "",
                     id_company: record.id_company?.toString() || "",
                     minutes_included: record.minutes_included,
-                    minutes_minimun: record.minutes_minimun,
+                    minutes_minimum: record.minutes_minimum, // CORREGIDO: "minimum" en lugar de "minimun"
                     fuselage_type: record.fuselage_type,
                     technicians_included: record.technicians_included,
                     whonew: record.whonew || "",
@@ -55,15 +55,27 @@ const EditSPConsumer: React.FC = () => {
                 id_client: parseInt(form.id_client),
                 id_company: parseInt(form.id_company),
                 minutes_included: form.minutes_included,
-                minutes_minimun: form.minutes_minimun,
+                minutes_minimum: form.minutes_minimum, // CORREGIDO: "minimum" en lugar de "minimun"
                 fuselage_type: form.fuselage_type,
                 technicians_included: form.technicians_included,
                 whonew: form.whonew,
             };
+            
+            console.log("Enviando datos de actualización:", data);
             await axios.put(`${apiURL}/catalog/service-per-customer/${id}`, data);
             navigate("/catalogs/customer");
-        } catch (err) {
-            setError("Could not update the record. Please check the data and try again.");
+        } catch (err: any) {
+            console.error("Error al actualizar:", err);
+            if (err.response) {
+                console.error("Detalle del error:", err.response.data);
+                if (err.response.data.detail) {
+                    setError(`Error: ${err.response.data.detail}`);
+                } else {
+                    setError(`Error ${err.response.status}: ${err.response.statusText}`);
+                }
+            } else {
+                setError("Could not update the record. Please check the data and try again.");
+            }
         }
     };
 
@@ -152,8 +164,8 @@ const EditSPConsumer: React.FC = () => {
                                         className="w-full bg-white text-[#002057] px-4 py-3 rounded-lg border border-[#cccccc] focus:border-[#4D70B8] focus:ring-2 focus:ring-[#4D70B8] focus:outline-none transition-all"
                                         placeholder="Minutes Minimum"
                                         type="number"
-                                        value={form.minutes_minimun}
-                                        onChange={(e) => setForm({ ...form, minutes_minimun: +e.target.value })}
+                                        value={form.minutes_minimum} // CORREGIDO: "minimum" en lugar de "minimun"
+                                        onChange={(e) => setForm({ ...form, minutes_minimum: +e.target.value })} // CORREGIDO: "minimum" en lugar de "minimun"
                                         required
                                     />
                                 </div>

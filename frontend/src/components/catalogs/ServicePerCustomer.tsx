@@ -11,7 +11,7 @@ interface ServicePerCustomerRecord {
   id_client: number;
   id_company: number;
   minutes_included: number;
-  minutes_minimun: number;
+  minutes_minimum: number;
   fuselage_type: string;
   technicians_included: number;
   whonew: string;
@@ -168,7 +168,7 @@ const ServicePerCustomer: React.FC = () => {
                     <td className="px-4 py-3 text-white">{r.id_client}</td>
                     <td className="px-4 py-3 text-white">{r.id_company}</td>
                     <td className="px-4 py-3 text-white">{r.minutes_included}</td>
-                    <td className="px-4 py-3 text-white">{r.minutes_minimun}</td>
+                    <td className="px-4 py-3 text-white">{r.minutes_minimum}</td> {/* CORREGIDO: Cambié 'minutes_minimun' a 'minutes_minimum' */}
                     <td className="px-4 py-3 text-white">{r.fuselage_type}</td>
                     <td className="px-4 py-3 text-white">{r.technicians_included}</td>
                     <td className="px-4 py-3 text-white">{r.whonew}</td>

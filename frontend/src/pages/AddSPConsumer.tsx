@@ -11,7 +11,7 @@ const AddSPConsumer: React.FC = () => {
     id_client: "",
     id_company: "",
     minutes_included: 0,
-    minutes_minimun: 0,
+    minutes_minimum: 0, // CORREGIDO: "minimum" en lugar de "minimun"
     fuselage_type: "",
     technicians_included: 0,
     whonew: "",
@@ -26,21 +26,36 @@ const AddSPConsumer: React.FC = () => {
     e.preventDefault();
     setLoading(true);
     setError("");
+    
+    console.log("Enviando datos:", form); // Para debug
+    
     try {
       const data = {
         id_service: parseInt(form.id_service),
         id_client: parseInt(form.id_client),
         id_company: parseInt(form.id_company),
         minutes_included: form.minutes_included,
-        minutes_minimun: form.minutes_minimun,
+        minutes_minimum: form.minutes_minimum, // CORREGIDO: "minimum" en lugar de "minimun"
         fuselage_type: form.fuselage_type,
         technicians_included: form.technicians_included,
         whonew: form.whonew,
       };
-      await axios.post(`${apiURL}/catalog/service-per-customer`, data);
+      
+      const response = await axios.post(`${apiURL}/catalog/service-per-customer`, data);
+      console.log("Respuesta:", response.data);
       navigate("/catalogs/customer");
-    } catch (err) {
-      setError("Could not save the record. Please check the data and try again.");
+    } catch (err: any) {
+      console.error("Error completo:", err);
+      if (err.response) {
+        console.error("Detalles del error:", err.response.data);
+        if (err.response.data.detail) {
+          setError(`Error: ${err.response.data.detail}`);
+        } else {
+          setError(`Error ${err.response.status}: ${err.response.statusText}`);
+        }
+      } else {
+        setError("Could not save the record. Please check the data and try again.");
+      }
     } finally {
       setLoading(false);
     }
@@ -115,8 +130,8 @@ const AddSPConsumer: React.FC = () => {
                     className="w-full px-4 py-3 rounded-lg bg-white text-[#002057] border border-[#cccccc] focus:border-[#00B140] focus:ring-2 focus:ring-[#00B140] focus:outline-none transition-all"
                     placeholder="Minimum Minutes"
                     type="number"
-                    value={form.minutes_minimun}
-                    onChange={(e) => setForm({ ...form, minutes_minimun: +e.target.value })}
+                    value={form.minutes_minimum}
+                    onChange={(e) => setForm({ ...form, minutes_minimum: +e.target.value })}
                     required
                   />
                 </div>
