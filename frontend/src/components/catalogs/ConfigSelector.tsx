@@ -78,15 +78,16 @@ const CatalogSelector: React.FC = () => {
         {/* Cards de selección de catálogo */}
         <div className="overflow-x-auto">
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8 max-w-4xl mx-auto">
-            {catalogs.map(({ label, path, icon, color }) => (
+            {catalogs.map(({ label, path, icon }) => (
               <div 
                 key={path}
                 onClick={() => navigate(path)}
                 className="bg-[#16213E] rounded-xl shadow-xl overflow-hidden cursor-pointer hover:shadow-2xl transition-shadow border border-[#0033A0] flex flex-col items-center hover:border-[#00B140]"
                 style={{ minHeight: "220px" }}
               >
-                <div className={`w-full bg-gradient-to-r ${color} p-4 flex items-center justify-center`}>
-                  {icon}
+                {/* Encabezado blanco y texto color de fondo */}
+                <div className="w-full bg-white p-4 flex items-center justify-center">
+                  <span className="text-[#16213E]">{icon}</span>
                 </div>
                 <div className="p-6 text-center flex-1 flex flex-col justify-center">
                   <h2 className="text-lg font-semibold text-white">{label}</h2>
