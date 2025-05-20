@@ -13,7 +13,8 @@ from app.routers import (
     service_catalogs,
     catalog_services_full,
     catalog_router_aliases,
-    operations_report
+    operations_report,
+    clients  # 👈 nuevo router
 )
 
 app = FastAPI()
@@ -38,7 +39,8 @@ routers = [
     service_catalogs.router,
     catalog_services_full.router,
     catalog_router_aliases.router,
-    operations_report.router
+    operations_report.router,
+    clients.router  # 👈 nuevo router
 ]
 
 for r in routers:
