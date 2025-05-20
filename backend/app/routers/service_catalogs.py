@@ -200,38 +200,107 @@ def get_service_status(db: Session = Depends(get_db)):
         logger.error(f"Error al obtener service-status: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+# NUEVO ENDPOINT PARA OBTENER UN STATUS POR ID
+@router.get("/service-status/{item_id}", response_model=CatalogServiceStatusResponse)
+def get_service_status_by_id(item_id: int, db: Session = Depends(get_db)):
+    try:
+        logger.info(f"Buscando status con ID: {item_id}")
+        registro = db.query(models.CatalogServiceStatus).filter_by(id_service_status=item_id).first()
+        
+        if not registro:
+            logger.warning(f"Status con ID {item_id} no encontrado")
+            raise HTTPException(status_code=404, detail="Status no encontrado")
+            
+        logger.info(f"Status encontrado: {registro.status_name}, creado por: {registro.whonew}")
+        return registro
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error al obtener service-status por ID: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+# Modificar solo esta función para solucionar el problema
 @router.post("/service-status", response_model=CatalogServiceStatusResponse)
 def create_service_status(item: ServiceStatusCreate, db: Session = Depends(get_db)):
     try:
+        # Imprimir el request body completo para diagnóstico
+        logger.info(f"Request body completo: {item}")
+        logger.info(f"Datos recibidos para crear status: {item.dict()}")
+        
+        # Inspeccionar específicamente el campo whonew
+        if hasattr(item, 'whonew'):
+            logger.info(f"Usuario que crea (whonew): {item.whonew!r}")
+        else:
+            logger.warning("El objeto item no tiene un atributo 'whonew'")
+        
+        # Asegurar que siempre haya un valor para whonew
+        usuario = "system"
+        if hasattr(item, 'whonew') and item.whonew:
+            usuario = item.whonew
+        else:
+            logger.warning(f"Campo whonew no presente o vacío, usando valor predeterminado '{usuario}'")
+        
+        # Crear el registro con el valor de usuario garantizado
         nuevo = models.CatalogServiceStatus(
-            status_name=item.status_name, 
-            whonew=item.whonew
+            status_name=item.status_name,
+            whonew=usuario
         )
+        
+        # Verificar registro antes de guardar
+        logger.info(f"Objeto a guardar: status_name={nuevo.status_name!r}, whonew={nuevo.whonew!r}")
+        
+        # Guardar en la base de datos
         db.add(nuevo)
         db.commit()
         db.refresh(nuevo)
+        
+        # Verificar después de guardar
+        logger.info(f"Registro guardado en DB: id={nuevo.id_service_status}, whonew={nuevo.whonew!r}")
+        
         return nuevo
     except Exception as e:
         db.rollback()
         logger.error(f"Error al crear service-status: {e}")
+        logger.exception("Excepción detallada:")
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.put("/service-status/{item_id}", response_model=CatalogServiceStatusResponse)
 def update_service_status(item_id: int, item: ServiceStatusCreate, db: Session = Depends(get_db)):
     try:
+        # Añadir logs para depuración
+        logger.info(f"Actualizando status ID={item_id} con datos: {item.dict()}")
+        logger.info(f"Usuario que modifica (whonew): {item.whonew}")
+        
         registro = db.query(models.CatalogServiceStatus).filter_by(id_service_status=item_id).first()
         if not registro:
+            logger.warning(f"No se encontró el status con ID={item_id}")
             raise HTTPException(status_code=404, detail="No encontrado")
+        
+        # Guardar valores anteriores para comparar
+        old_values = {
+            "status_name": registro.status_name,
+            "whonew": registro.whonew
+        }
+        
         registro.status_name = item.status_name
         registro.whonew = item.whonew  # <-- Aquí se actualiza el usuario
+        
+        # Verificar cambios
+        logger.info(f"Cambios: {old_values} -> {{'status_name': '{registro.status_name}', 'whonew': '{registro.whonew}'}}")
+        
         db.commit()
         db.refresh(registro)
+        
+        # Verificar que se guardó correctamente
+        logger.info(f"Registro actualizado en DB: id={registro.id_service_status}, whonew={registro.whonew}")
+        
         return registro
     except HTTPException:
         raise
     except Exception as e:
         db.rollback()
         logger.error(f"Error al actualizar service-status: {e}")
+        logger.exception("Excepción detallada:")
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.delete("/service-status/{item_id}")

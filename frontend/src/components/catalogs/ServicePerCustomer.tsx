@@ -31,13 +31,42 @@ const ServicePerCustomer: React.FC = () => {
     try {
       setIsLoading(true);
       setError("");
+      console.log("Fetching records with URL:", `/catalog/service-per-customer${search ? `?fuselage_type=${encodeURIComponent(search)}` : ""}`);
+      
       const res = await axiosInstance.get(
-        `/catalog/service-per-customer${search ? `?fuselage_type=${encodeURIComponent(search)}` : ""}`
+        `/catalog/service-per-customer${search ? `?fuselage_type=${encodeURIComponent(search)}` : ""}`,
+        {
+          // Añadir timeout para evitar esperas prolongadas
+          timeout: 30000
+        }
       );
-      setRecords(res.data);
+      
+      console.log("Response received:", res.status, res.statusText);
+      console.log("Records count:", res.data?.length || 0);
+      setRecords(res.data || []);
       setIsLoading(false);
     } catch (err: any) {
-      setError("Could not load data. Please try again.");
+      console.error("Error fetching data:", err);
+      
+      let errorMessage = "Could not load data. Please try again.";
+      
+      if (err.response) {
+        // El servidor respondió con un código de estado diferente a 2xx
+        errorMessage = `Server error: ${err.response.status} - ${err.response.statusText}`;
+        console.error("Response data:", err.response.data);
+      } else if (err.request) {
+        // La solicitud se hizo pero no se recibió respuesta
+        errorMessage = "No response received from server. Please check your connection.";
+      } else {
+        // Ocurrió un error durante la configuración de la solicitud
+        errorMessage = `Request error: ${err.message}`;
+      }
+      
+      if (err.code === 'ECONNABORTED') {
+        errorMessage = "Request timeout. The server took too long to respond.";
+      }
+      
+      setError(errorMessage);
       setIsLoading(false);
     }
   };
@@ -50,15 +79,34 @@ const ServicePerCustomer: React.FC = () => {
     try {
       setIsLoading(true);
       setError("");
-      await axiosInstance.delete(`/catalog/service-per-customer/${id}`);
+      console.log("Deleting record:", id);
+      
+      const res = await axiosInstance.delete(`/catalog/service-per-customer/${id}`, {
+        timeout: 15000
+      });
+      
+      console.log("Delete response:", res.status, res.statusText);
       await fetchRecords();
       setDeleteConfirm(null);
       setSuccess("Record deleted successfully");
       setIsLoading(false);
       setTimeout(() => setSuccess(""), 2000);
     } catch (err: any) {
+      console.error("Error deleting record:", err);
+      
+      let errorMessage = "Could not delete record.";
+      
+      if (err.response) {
+        errorMessage = `Delete failed: ${err.response.status} - ${err.response.statusText}`;
+        console.error("Response data:", err.response.data);
+      } else if (err.request) {
+        errorMessage = "No response received during delete operation.";
+      } else {
+        errorMessage = `Delete error: ${err.message}`;
+      }
+      
       setIsLoading(false);
-      setError("Could not delete record.");
+      setError(errorMessage);
     }
   };
 
@@ -75,6 +123,7 @@ const ServicePerCustomer: React.FC = () => {
   };
 
   useEffect(() => {
+    console.log("Search term changed, fetching records...");
     fetchRecords();
   }, [search]);
 

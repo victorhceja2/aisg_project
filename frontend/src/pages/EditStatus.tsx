@@ -7,26 +7,34 @@ import AISGBackground from "../components/catalogs/fondo";
 const EditStatus: React.FC = () => {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
-  // apiURL ya no es necesario, usando axiosInstance
   const [statusName, setStatusName] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isFetching, setIsFetching] = useState(true);
   const [error, setError] = useState("");
+  const [currentUser, setCurrentUser] = useState<string | null>(null);
 
+  // Cargar el usuario actual
+  useEffect(() => {
+    const storedUser = sessionStorage.getItem("userName");
+    setCurrentUser(storedUser || "admin");
+  }, []);
+
+  // Cargar datos del status
   useEffect(() => {
     const fetchStatus = async () => {
       try {
         setIsFetching(true);
         const res = await axiosInstance.get(`/catalog/service-status/${id}`);
         setStatusName(res.data.status_name);
-      } catch {
+      } catch (err) {
+        console.error("Error fetching status:", err);
         setError("Could not load status data.");
       } finally {
         setIsFetching(false);
       }
     };
     fetchStatus();
-  }, [id, apiURL]);
+  }, [id]); // Eliminar apiURL de aquí, ya que no está definido
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -37,11 +45,19 @@ const EditStatus: React.FC = () => {
     try {
       setIsLoading(true);
       setError("");
+      
+      // Obtener el usuario actual para incluirlo en la actualización
+      const whonew = sessionStorage.getItem("userName") || "admin";
+      console.log("Usuario para actualización:", whonew);
+      
       await axiosInstance.put(`/catalog/service-status/${id}`, {
-        status_name: statusName
+        status_name: statusName,
+        whonew: whonew // Incluir quién modificó el registro
       });
+      
       navigate("/catalogs/status");
-    } catch {
+    } catch (err) {
+      console.error("Error updating status:", err);
       setError("Could not update status. Try again.");
       setIsLoading(false);
     }
@@ -77,6 +93,11 @@ const EditStatus: React.FC = () => {
             {error && (
               <div className="bg-red-500 text-white p-4 rounded-lg mb-6 shadow-md animate-pulse">
                 <p className="font-medium">{error}</p>
+              </div>
+            )}
+            {currentUser && (
+              <div className="mb-4 text-gray-300 text-sm">
+                <p>Logged in as: {currentUser}</p>
               </div>
             )}
             <form onSubmit={handleSubmit} className="space-y-6">

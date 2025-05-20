@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import axiosInstance from '../api/axiosInstance';
 
 import { useNavigate } from "react-router-dom";
@@ -6,10 +6,25 @@ import AISGBackground from "../components/catalogs/fondo";
 
 const AddStatus: React.FC = () => {
   const navigate = useNavigate();
-  // apiURL ya no es necesario, usando axiosInstance
   const [statusName, setStatusName] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+  const [currentUser, setCurrentUser] = useState<string | null>(null);
+
+  // Verificar el usuario almacenado al cargar el componente
+  useEffect(() => {
+    const storedUser = sessionStorage.getItem("userName");
+    console.log("Usuario en sessionStorage:", storedUser);
+    
+    // Si no hay usuario en sessionStorage, intentar establecer uno por defecto
+    if (!storedUser) {
+      console.log("No se encontró usuario en sessionStorage, estableciendo valor predeterminado");
+      sessionStorage.setItem("userName", "admin");
+      setCurrentUser("admin");
+    } else {
+      setCurrentUser(storedUser);
+    }
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -20,12 +35,55 @@ const AddStatus: React.FC = () => {
     try {
       setIsLoading(true);
       setError("");
-      await axiosInstance.post(`/catalog/service-status/`, {
-        status_name: statusName
+      
+      // Asegurar que siempre haya un usuario, incluso si sessionStorage falla
+      const whonew = sessionStorage.getItem("userName") || "admin";
+      console.log("Usuario obtenido para el registro:", whonew);
+      
+      // Asegurarnos de que el nombre del campo coincida EXACTAMENTE con lo que espera el backend
+      const data = {
+        status_name: statusName.trim(),
+        whonew: whonew  // Asegúrate de que este campo se llame exactamente igual que en el backend
+      };
+      
+      console.log("Datos que se enviarán al backend:", JSON.stringify(data));
+      
+      const response = await axiosInstance.post(`/catalog/service-status/`, data, {
+        timeout: 15000,
+        headers: {
+          'Content-Type': 'application/json'
+        }
       });
+      
+      console.log("Respuesta del servidor completa:", response);
+      console.log("Estructura de la respuesta:", Object.keys(response.data || {}));
+      console.log("Contenido completo de response.data:", response.data);
+      
+      // Verificar si la respuesta incluye el usuario (para depuración)
+      if (response.data && response.data.whonew) {
+        console.log("Usuario guardado:", response.data.whonew);
+      } else {
+        console.warn("La respuesta no incluye el campo whonew");
+        console.warn("Campos disponibles en response.data:", Object.keys(response.data || {}));
+      }
+      
       navigate("/catalogs/status");
-    } catch {
-      setError("Could not create status. Try again.");
+    } catch (err: any) {
+      console.error("Error creating status:", err);
+      
+      let errorMessage = "Could not create status. Try again.";
+      
+      if (err.response) {
+        console.error("Respuesta de error:", err.response.status, err.response.data);
+        errorMessage = err.response.data?.detail || `Error ${err.response.status}: ${err.response.statusText}`;
+      } else if (err.request) {
+        console.error("No se recibió respuesta del servidor");
+        errorMessage = "No response received from server. Please check your connection.";
+      } else {
+        errorMessage = `Request error: ${err.message}`;
+      }
+      
+      setError(errorMessage);
       setIsLoading(false);
     }
   };
@@ -44,6 +102,11 @@ const AddStatus: React.FC = () => {
             {error && (
               <div className="bg-red-500 text-white p-4 rounded-lg mb-6 shadow-md animate-pulse">
                 <p className="font-medium">{error}</p>
+              </div>
+            )}
+            {currentUser && (
+              <div className="mb-4 text-gray-300 text-sm">
+                <p>Logged in as: {currentUser}</p>
               </div>
             )}
             <form onSubmit={handleSubmit} className="space-y-6">
