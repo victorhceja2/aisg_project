@@ -91,8 +91,8 @@ const CatalogServiceType: React.FC = () => {
                         <table className="w-full border-collapse">
                             <thead>
                                 <tr className="bg-white text-[#002057]">
-                                    <th className="px-4 py-3 text-left font-semibold">ID</th>
                                     <th className="px-4 py-3 text-left font-semibold">Name</th>
+                                    <th className="px-4 py-3 text-left font-semibold">Created/Modified By</th>
                                     <th className="px-4 py-3 text-left font-semibold">Created At</th>
                                     <th className="px-4 py-3 text-left font-semibold">Updated At</th>
                                     <th className="px-4 py-3 text-center font-semibold">Actions</th>
@@ -108,8 +108,8 @@ const CatalogServiceType: React.FC = () => {
                                 ) : (
                                     serviceTypes.map((t) => (
                                         <tr key={t.id_service_type} className="hover:bg-[#1E2A45] transition-colors">
-                                            <td className="px-4 py-3 text-white">{t.id_service_type}</td>
                                             <td className="px-4 py-3 text-white font-medium">{t.service_type_name}</td>
+                                            <td className="px-4 py-3 text-white">{t.whonew || "-"}</td>
                                             <td className="px-4 py-3 text-white">
                                                 {t.create_at ? new Date(t.create_at).toLocaleString() : "-"}
                                             </td>

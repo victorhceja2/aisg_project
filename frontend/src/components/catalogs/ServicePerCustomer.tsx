@@ -4,8 +4,6 @@ import axiosInstance from '../../api/axiosInstance';
 import { useNavigate } from "react-router-dom";
 import AISGBackground from "../catalogs/fondo";
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
-
 interface ServicePerCustomerRecord {
   id_service_per_customer: number;
   id_service: number;
@@ -20,10 +18,6 @@ interface ServicePerCustomerRecord {
   updated_at: string;
 }
 
-/**
- * Catálogo de servicios por cliente/aerolínea.
- * Aplica diseño consistente con el resto del sistema.
- */
 const ServicePerCustomer: React.FC = () => {
   const navigate = useNavigate();
   const [records, setRecords] = useState<ServicePerCustomerRecord[]>([]);
@@ -37,8 +31,8 @@ const ServicePerCustomer: React.FC = () => {
     try {
       setIsLoading(true);
       setError("");
-      const res = await axios.get(
-        `${API_BASE_URL}/catalog/service-per-customer${search ? `?fuselage_type=${encodeURIComponent(search)}` : ""}`
+      const res = await axiosInstance.get(
+        `/catalog/service-per-customer${search ? `?fuselage_type=${encodeURIComponent(search)}` : ""}`
       );
       setRecords(res.data);
       setIsLoading(false);
@@ -56,7 +50,7 @@ const ServicePerCustomer: React.FC = () => {
     try {
       setIsLoading(true);
       setError("");
-      await axios.delete(`${API_BASE_URL}/catalog/service-per-customer/${id}`);
+      await axiosInstance.delete(`/catalog/service-per-customer/${id}`);
       await fetchRecords();
       setDeleteConfirm(null);
       setSuccess("Record deleted successfully");
@@ -87,7 +81,6 @@ const ServicePerCustomer: React.FC = () => {
   return (
     <AISGBackground>
       <div className="max-w-7xl mx-auto p-6 font-['Montserrat']">
-        {/* Cabecera principal con título y descripción */}
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-white">Services by Airline</h1>
           <div className="mt-2 w-20 h-1 bg-[#e6001f] mx-auto"></div>
@@ -95,8 +88,6 @@ const ServicePerCustomer: React.FC = () => {
             Manage the relationship between services and airlines with specific parameters
           </p>
         </div>
-
-        {/* Filtros y botón agregar */}
         <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
           <div className="w-full md:w-2/3 relative">
             <input
@@ -123,8 +114,6 @@ const ServicePerCustomer: React.FC = () => {
             Add Service by Airline
           </button>
         </div>
-
-        {/* Mensajes de error y éxito */}
         {error && (
           <div className="bg-red-500 text-white p-4 rounded-lg mb-6 shadow-md animate-pulse">
             <p className="font-medium">{error}</p>
@@ -140,13 +129,10 @@ const ServicePerCustomer: React.FC = () => {
             <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#00B140]"></div>
           </div>
         )}
-
-        {/* Tabla de resultados */}
         <div className="overflow-x-auto">
           <table className="w-full border-collapse">
             <thead>
               <tr className="bg-white text-[#002057]">
-                <th className="px-4 py-3 text-left font-semibold">ID</th>
                 <th className="px-4 py-3 text-left font-semibold">Service</th>
                 <th className="px-4 py-3 text-left font-semibold">Client</th>
                 <th className="px-4 py-3 text-left font-semibold">Company</th>
@@ -154,7 +140,7 @@ const ServicePerCustomer: React.FC = () => {
                 <th className="px-4 py-3 text-left font-semibold">Minutes Minimum</th>
                 <th className="px-4 py-3 text-left font-semibold">Fuselage Type</th>
                 <th className="px-4 py-3 text-left font-semibold">Technicians Included</th>
-                <th className="px-4 py-3 text-left font-semibold">Who New</th>
+                <th className="px-4 py-3 text-left font-semibold">Created/Modified By</th>
                 <th className="px-4 py-3 text-left font-semibold">Created At</th>
                 <th className="px-4 py-3 text-left font-semibold">Updated At</th>
                 <th className="px-4 py-3 text-center font-semibold">Actions</th>
@@ -164,12 +150,11 @@ const ServicePerCustomer: React.FC = () => {
               {records.length > 0 ? (
                 records.map((r) => (
                   <tr key={r.id_service_per_customer} className="hover:bg-[#1E2A45] transition-colors">
-                    <td className="px-4 py-3 text-white">{r.id_service_per_customer}</td>
                     <td className="px-4 py-3 text-white">{r.id_service}</td>
                     <td className="px-4 py-3 text-white">{r.id_client}</td>
                     <td className="px-4 py-3 text-white">{r.id_company}</td>
                     <td className="px-4 py-3 text-white">{r.minutes_included}</td>
-                    <td className="px-4 py-3 text-white">{r.minutes_minimum}</td> {/* CORREGIDO: Cambié 'minutes_minimun' a 'minutes_minimum' */}
+                    <td className="px-4 py-3 text-white">{r.minutes_minimum}</td>
                     <td className="px-4 py-3 text-white">{r.fuselage_type}</td>
                     <td className="px-4 py-3 text-white">{r.technicians_included}</td>
                     <td className="px-4 py-3 text-white">{r.whonew}</td>
@@ -203,7 +188,7 @@ const ServicePerCustomer: React.FC = () => {
                 ))
               ) : (
                 <tr>
-                  <td colSpan={12} className="px-6 py-8 text-center text-white">
+                  <td colSpan={11} className="px-6 py-8 text-center text-white">
                     {isLoading ? "Loading data..." : "No records found"}
                   </td>
                 </tr>
@@ -211,8 +196,6 @@ const ServicePerCustomer: React.FC = () => {
             </tbody>
           </table>
         </div>
-
-        {/* Modal de confirmación de borrado */}
         {deleteConfirm && (
           <div className="fixed inset-0 z-50 overflow-auto bg-black bg-opacity-50 flex items-center justify-center p-4">
             <div className="bg-[#16213E] rounded-lg shadow-lg max-w-md w-full p-6 border-2 border-red-500 animate-fadeIn">

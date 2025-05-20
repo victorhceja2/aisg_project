@@ -7,7 +7,7 @@ import AISGBackground from "../components/catalogs/fondo";
 const AddService: React.FC = () => {
   const [form, setForm] = useState({
     id_service_status: 1,
-    id_service_classification: 1,  // Mantener con una sola "s" como en el modelo
+    id_service_classification: 1,
     id_service_category: 1,
     id_service_type: 1,
     id_service_include: 1,
@@ -18,53 +18,38 @@ const AddService: React.FC = () => {
     service_by_time: false,
     min_time_configured: false,
     service_technicians_included: false,
-    whonew: "",
+    // whonew eliminado del form
   });
 
   const [error, setError] = useState<string | null>(null);
-  // apiURL ya no es necesario, usando axiosInstance
   const navigate = useNavigate();
 
-  useEffect(() => {
-    // Inicializar whonew con el usuario guardado en sesión o un valor default
-    const userName = sessionStorage.getItem("userName") || "admin";
-    if (userName) {
-      setForm(prevForm => ({ ...prevForm, whonew: userName }));
-    }
-  }, []);
+  // Eliminar el useEffect que inicializaba whonew
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Depuración: muestra el payload que se enviará
+
+    // Obtener el usuario desde sessionStorage para enviarlo en el payload
+    const whonew = sessionStorage.getItem("userName") || "admin";
+
     const payload = {
       ...form,
       service_aircraft_type: form.service_aircraft_type ? 2 : 1,
       service_by_time: form.service_by_time ? 2 : 1,
       min_time_configured: form.min_time_configured ? 2 : 1,
       service_technicians_included: form.service_technicians_included ? 2 : 1,
+      whonew, // Se agrega aquí automáticamente
     };
-    
-    console.log("Enviando payload:", payload);
-    
+
     try {
       const response = await axiosInstance.post(`/catalog/services/`, payload, {
         headers: {
           "Content-Type": "application/json"
         }
       });
-      
-      console.log("Respuesta del servidor:", response.data);
       navigate("/services");
     } catch (err: any) {
-      console.error("Error completo:", err);
-      
       if (err.response) {
-        // El servidor respondió con un estado de error
-        console.error("Error de respuesta:", err.response);
-        console.error("Datos de error:", err.response.data);
-        console.error("Estado HTTP:", err.response.status);
-        
         if (err.response.data && err.response.data.detail) {
           if (Array.isArray(err.response.data.detail)) {
             const errorMessages = err.response.data.detail
@@ -78,12 +63,8 @@ const AddService: React.FC = () => {
           setError(`Error ${err.response.status}: ${err.response.statusText}`);
         }
       } else if (err.request) {
-        // La petición se hizo pero no se recibió respuesta
-        console.error("No se recibió respuesta:", err.request);
         setError("No se recibió respuesta del servidor");
       } else {
-        // Algo sucedió al configurar la petición
-        console.error("Error de configuración:", err.message);
         setError(`Error: ${err.message}`);
       }
     }
@@ -278,20 +259,7 @@ const AddService: React.FC = () => {
                   </label>
                 </div>
               </div>
-              <div>
-                <label className="block text-white text-sm font-medium mb-2">
-                  Created/Modified By
-                </label>
-                <input
-                  type="text"
-                  value={form.whonew}
-                  onChange={e =>
-                    setForm({ ...form, whonew: e.target.value })
-                  }
-                  className="w-full px-4 py-3 rounded-lg bg-white text-[#002057] border border-[#cccccc] focus:border-[#00B140] focus:ring-2 focus:ring-[#00B140] focus:outline-none transition-all"
-                  required
-                />
-              </div>
+              {/* Eliminado el campo de Created/Modified By */}
               <div className="flex space-x-4 pt-4">
                 <button
                   type="button"

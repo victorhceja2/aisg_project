@@ -26,9 +26,9 @@ const Dashboard: React.FC = () => {
       <div className="max-w-7xl mx-auto p-6 font-['Montserrat'] min-h-screen">
         {/* Cabecera principal */}
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-white">Bienvenido, {userName}!</h1>
+          <h1 className="text-3xl font-bold text-white">Welcome, {userName}!</h1>
           <div className="mt-2 w-20 h-1 bg-[#e6001f] mx-auto"></div>
-          <p className="text-gray-200 mt-2 font-light">Perfil: {perfil}</p>
+          <p className="text-gray-200 mt-2 font-light">Profile: {perfil}</p>
         </div>
 
         {/* KPIs estilo CatalogClassif */}
@@ -41,7 +41,7 @@ const Dashboard: React.FC = () => {
               </svg>
             </div>
             <div className="text-2xl font-bold text-[#002057]">12</div>
-            <div className="text-[#002057] font-medium mt-1">Clientes</div>
+            <div className="text-[#002057] font-medium mt-1">Clients</div>
           </div>
           {/* Servicios */}
           <div className="bg-white rounded-lg shadow-md border border-[#cccccc] flex flex-col items-center justify-center py-6 px-4">
@@ -57,7 +57,7 @@ const Dashboard: React.FC = () => {
               </svg>
             </div>
             <div className="text-2xl font-bold text-[#002057]">28</div>
-            <div className="text-[#002057] font-medium mt-1">Servicios</div>
+            <div className="text-[#002057] font-medium mt-1">Services</div>
           </div>
           {/* Clasificaciones */}
           <div className="bg-white rounded-lg shadow-md border border-[#cccccc] flex flex-col items-center justify-center py-6 px-4">
@@ -67,7 +67,7 @@ const Dashboard: React.FC = () => {
               </svg>
             </div>
             <div className="text-2xl font-bold text-[#002057]">5</div>
-            <div className="text-[#002057] font-medium mt-1">Clasificaciones</div>
+            <div className="text-[#002057] font-medium mt-1">Classifications</div>
           </div>
           {/* Estatus */}
           <div className="bg-white rounded-lg shadow-md border border-[#cccccc] flex flex-col items-center justify-center py-6 px-4">
@@ -77,7 +77,7 @@ const Dashboard: React.FC = () => {
               </svg>
             </div>
             <div className="text-2xl font-bold text-[#002057]">3</div>
-            <div className="text-[#002057] font-medium mt-1">Estatus</div>
+            <div className="text-[#002057] font-medium mt-1">Status</div>
           </div>
         </div>
 
@@ -96,16 +96,16 @@ const Dashboard: React.FC = () => {
                   ></path>
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
                 </svg>
-                <h2 className="text-xl font-semibold text-white">Servicios</h2>
+                <h2 className="text-xl font-semibold text-white">Services</h2>
               </div>
               <p className="text-sm text-gray-300 mb-4">
-                Consulta y gestiona los servicios aeronáuticos ofrecidos.
+                View and manage the offered aeronautical services.
               </p>
               <button
                 onClick={() => navigate("/catalogs/services")}
                 className="w-full bg-gradient-to-r from-[#0033A0] to-[#00B140] hover:from-[#002D8A] hover:to-[#009935] text-white font-medium py-2 px-4 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg"
               >
-                Ir a Servicios
+                Go to Services
               </button>
             </div>
           </div>
@@ -121,14 +121,14 @@ const Dashboard: React.FC = () => {
                     d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"
                   ></path>
                 </svg>
-                <h2 className="text-xl font-semibold text-white">Clientes</h2>
+                <h2 className="text-xl font-semibold text-white">Clients</h2>
               </div>
-              <p className="text-sm text-gray-300 mb-4">Gestión completa de clientes y asignaciones.</p>
+              <p className="text-sm text-gray-300 mb-4">Full client and assignment management.</p>
               <button
                 className="w-full bg-gradient-to-r from-gray-500 to-gray-600 text-white font-medium py-2 px-4 rounded-lg transition-all duration-200 shadow-md cursor-not-allowed opacity-75"
                 disabled
               >
-                En desarrollo
+                In development
               </button>
             </div>
           </div>
@@ -145,14 +145,14 @@ const Dashboard: React.FC = () => {
                   ></path>
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
                 </svg>
-                <h2 className="text-xl font-semibold text-white">Configuraciones</h2>
+                <h2 className="text-xl font-semibold text-white">Settings</h2>
               </div>
-              <p className="text-sm text-gray-300 mb-4">Parámetros extra y ajustes por empresa.</p>
+              <p className="text-sm text-gray-300 mb-4">Extra parameters and company-specific settings.</p>
               <button
                 className="w-full bg-gradient-to-r from-gray-500 to-gray-600 text-white font-medium py-2 px-4 rounded-lg transition-all duration-200 shadow-md cursor-not-allowed opacity-75"
                 disabled
               >
-                En desarrollo
+                In development
               </button>
             </div>
           </div>

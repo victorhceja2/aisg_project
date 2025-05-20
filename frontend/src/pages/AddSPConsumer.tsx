@@ -12,43 +12,37 @@ const AddSPConsumer: React.FC = () => {
     id_client: "",
     id_company: "",
     minutes_included: 0,
-    minutes_minimum: 0, // CORREGIDO: "minimum" en lugar de "minimun"
+    minutes_minimum: 0,
     fuselage_type: "",
     technicians_included: 0,
-    whonew: "",
+    // whonew eliminado del form
   });
 
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // apiURL ya no es necesario, usando axiosInstance
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError("");
-    
-    console.log("Enviando datos:", form); // Para debug
-    
+
     try {
+      const whonew = sessionStorage.getItem("userName") || "admin";
       const data = {
         id_service: parseInt(form.id_service),
         id_client: parseInt(form.id_client),
         id_company: parseInt(form.id_company),
         minutes_included: form.minutes_included,
-        minutes_minimum: form.minutes_minimum, // CORREGIDO: "minimum" en lugar de "minimun"
+        minutes_minimum: form.minutes_minimum,
         fuselage_type: form.fuselage_type,
         technicians_included: form.technicians_included,
-        whonew: form.whonew,
+        whonew, // Se agrega automáticamente aquí
       };
-      
+
       const response = await axiosInstance.post(`/catalog/service-per-customer`, data);
-      console.log("Respuesta:", response.data);
       navigate("/catalogs/customer");
     } catch (err: any) {
-      console.error("Error completo:", err);
       if (err.response) {
-        console.error("Detalles del error:", err.response.data);
         if (err.response.data.detail) {
           setError(`Error: ${err.response.data.detail}`);
         } else {
@@ -156,16 +150,7 @@ const AddSPConsumer: React.FC = () => {
                     onChange={(e) => setForm({ ...form, fuselage_type: e.target.value })}
                   />
                 </div>
-                <div>
-                  <label className="block text-white text-sm font-medium mb-2">User</label>
-                  <input
-                    className="w-full px-4 py-3 rounded-lg bg-white text-[#002057] border border-[#cccccc] focus:border-[#00B140] focus:ring-2 focus:ring-[#00B140] focus:outline-none transition-all"
-                    placeholder="User"
-                    value={form.whonew}
-                    onChange={(e) => setForm({ ...form, whonew: e.target.value })}
-                    required
-                  />
-                </div>
+                {/* Eliminado el campo de usuario (whonew) del formulario */}
               </div>
               <div className="flex space-x-4 pt-4">
                 <button

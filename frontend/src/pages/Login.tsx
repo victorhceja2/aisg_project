@@ -17,7 +17,7 @@ const Login: React.FC = () => {
     const checkSession = () => {
       const user = sessionStorage.getItem("user");
       if (user && window.location.pathname === '/') {
-        navigate("/dashboard", { replace: true });
+        navigate("/reports", { replace: true }); // Redirige a Reports si ya hay sesión
       }
     };
     checkSession();
@@ -43,7 +43,7 @@ const Login: React.FC = () => {
       }));
 
       window.dispatchEvent(new Event('storageChange'));
-      navigate("/dashboard", { replace: true });
+      navigate("/reports", { replace: true }); // Redirige a Reports después de login
     } catch (err) {
       if (username === "admin" && password === "admin123") {
         const mockUserData = {
@@ -56,7 +56,7 @@ const Login: React.FC = () => {
         sessionStorage.setItem("perfil", mockUserData.perfil);
         sessionStorage.setItem("user", JSON.stringify(mockUserData));
         window.dispatchEvent(new Event('storageChange'));
-        navigate("/dashboard", { replace: true });
+        navigate("/reports", { replace: true }); // También aquí
         return;
       }
       setError("Invalid credentials. Please check your username and password.");

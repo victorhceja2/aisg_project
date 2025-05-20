@@ -105,7 +105,6 @@ const CatalogServices: React.FC = () => {
             <table className="w-full border-collapse">
               <thead>
                 <tr className="bg-white text-[#002057]">
-                  <th className="px-4 py-3">ID</th>
                   <th className="px-4 py-3">Status</th>
                   <th className="px-4 py-3">Classification</th>
                   <th className="px-4 py-3">Category</th>
@@ -118,6 +117,7 @@ const CatalogServices: React.FC = () => {
                   <th className="px-4 py-3">By Time</th>
                   <th className="px-4 py-3">Min Time Configured</th>
                   <th className="px-4 py-3">Technicians Included</th>
+                  <th className="px-4 py-3">Created/Modified By</th>
                   <th className="px-4 py-3">Actions</th>
                 </tr>
               </thead>
@@ -131,9 +131,8 @@ const CatalogServices: React.FC = () => {
                 ) : (
                   services.map((s) => (
                     <tr key={s.id_service} className="bg-transparent hover:bg-[#1E2A45] transition-colors">
-                      <td className="px-4 py-3 text-white">{s.id_service}</td>
                       <td className="px-4 py-3 text-white">{s.id_service_status}</td>
-                      <td className="px-4 py-3 text-white">{s.id_service_classification || s.id_service_clasification}</td> {/* CORREGIDO: accede a ambas opciones posibles */}
+                      <td className="px-4 py-3 text-white">{s.id_service_classification || s.id_service_clasification}</td>
                       <td className="px-4 py-3 text-white">{s.id_service_category}</td>
                       <td className="px-4 py-3 text-white">{s.id_service_type}</td>
                       <td className="px-4 py-3 text-white">{s.id_service_include}</td>
@@ -144,6 +143,7 @@ const CatalogServices: React.FC = () => {
                       <td className="px-4 py-3 text-white">{s.service_by_time === 2 ? "Yes" : "No"}</td>
                       <td className="px-4 py-3 text-white">{s.min_time_configured === 2 ? "Yes" : "No"}</td>
                       <td className="px-4 py-3 text-white">{s.service_technicians_included === 2 ? "Yes" : "No"}</td>
+                      <td className="px-4 py-3 text-white">{s.whonew || "-"}</td>
                       <td className="px-4 py-3">
                         <div className="flex justify-center space-x-2">
                           <Link

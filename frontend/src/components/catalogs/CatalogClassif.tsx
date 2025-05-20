@@ -88,10 +88,10 @@ const CatalogClassif: React.FC = () => {
               <thead>
                 <tr className="bg-white">
                   <th className="px-4 py-3 text-left font-semibold text-[#002057] border border-[#cccccc]">
-                    Created/Modified By
+                    Name
                   </th>
                   <th className="px-4 py-3 text-left font-semibold text-[#002057] border border-[#cccccc]">
-                    Name
+                    Created/Modified By
                   </th>
                   <th className="px-4 py-3 text-left font-semibold text-[#002057] border border-[#cccccc]">
                     Created At
@@ -114,8 +114,8 @@ const CatalogClassif: React.FC = () => {
                 ) : (
                   classifications.map((c) => (
                     <tr key={c.id_service_classification} className="bg-transparent">
-                      <td className="px-4 py-3 border border-[#1e3462] text-white">{c.whonew || "-"}</td>
                       <td className="px-4 py-3 border border-[#1e3462] font-medium text-white">{c.service_classification_name}</td>
+                      <td className="px-4 py-3 border border-[#1e3462] text-white">{c.whonew || "-"}</td>
                       <td className="px-4 py-3 border border-[#1e3462] text-white">
                         {c.create_at ? new Date(c.create_at).toLocaleString() : "-"}
                       </td>

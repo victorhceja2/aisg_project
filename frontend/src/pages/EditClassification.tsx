@@ -9,26 +9,31 @@ const EditClassification: React.FC = () => {
   const [name, setName] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  // apiURL ya no es necesario, usando axiosInstance
   const navigate = useNavigate();
 
   useEffect(() => {
     const fetchClassification = async () => {
       try {
         const res = await axiosInstance.get(`/catalog/service-classification/${id}`);
-        if (res.data) {
+        if (res.data && res.data.service_classification_name) {
           setName(res.data.service_classification_name);
+          setError(null);
         } else {
           setError("No data found for this classification.");
         }
-        setLoading(false);
       } catch (err) {
         setError("Error loading classification.");
+      } finally {
         setLoading(false);
       }
     };
-    fetchClassification();
-  }, [id, apiURL]);
+    if (id) {
+      fetchClassification();
+    } else {
+      setError("No classification ID provided.");
+      setLoading(false);
+    }
+  }, [id]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

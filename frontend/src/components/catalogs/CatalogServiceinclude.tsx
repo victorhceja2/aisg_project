@@ -91,8 +91,8 @@ const CatalogServiceInclude: React.FC = () => {
             <table className="w-full border-collapse">
               <thead>
                 <tr className="bg-white">
-                  <th className="px-4 py-3 text-left font-semibold text-[#002057] border border-[#cccccc]">ID</th>
                   <th className="px-4 py-3 text-left font-semibold text-[#002057] border border-[#cccccc]">Name</th>
+                  <th className="px-4 py-3 text-left font-semibold text-[#002057] border border-[#cccccc]">Created/Modified By</th>
                   <th className="px-4 py-3 text-left font-semibold text-[#002057] border border-[#cccccc]">Created At</th>
                   <th className="px-4 py-3 text-left font-semibold text-[#002057] border border-[#cccccc]">Updated At</th>
                   <th className="px-4 py-3 text-center font-semibold text-[#002057] border border-[#cccccc]">Actions</th>
@@ -108,8 +108,8 @@ const CatalogServiceInclude: React.FC = () => {
                 ) : (
                   includes.map((inc) => (
                     <tr key={inc.id_service_include} className="bg-transparent">
-                      <td className="px-4 py-3 border border-[#1e3462] text-white">{inc.id_service_include}</td>
                       <td className="px-4 py-3 border border-[#1e3462] font-medium text-white">{inc.service_include}</td>
+                      <td className="px-4 py-3 border border-[#1e3462] text-white">{inc.whonew || "-"}</td>
                       <td className="px-4 py-3 border border-[#1e3462] text-white">
                         {inc.create_at ? new Date(inc.create_at).toLocaleString() : "-"}
                       </td>

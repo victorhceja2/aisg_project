@@ -90,8 +90,8 @@ const CatalogServiceCategory: React.FC = () => {
                         <table className="w-full border-collapse">
                             <thead>
                                 <tr className="bg-white">
-                                    <th className="px-4 py-3 text-left font-semibold text-[#002057] border border-[#cccccc]">ID</th>
                                     <th className="px-4 py-3 text-left font-semibold text-[#002057] border border-[#cccccc]">Name</th>
+                                    <th className="px-4 py-3 text-left font-semibold text-[#002057] border border-[#cccccc]">Created/Modified By</th>
                                     <th className="px-4 py-3 text-left font-semibold text-[#002057] border border-[#cccccc]">Created At</th>
                                     <th className="px-4 py-3 text-left font-semibold text-[#002057] border border-[#cccccc]">Updated At</th>
                                     <th className="px-4 py-3 text-center font-semibold text-[#002057] border border-[#cccccc]">Actions</th>
@@ -107,8 +107,8 @@ const CatalogServiceCategory: React.FC = () => {
                                 ) : (
                                     categories.map((cat) => (
                                         <tr key={cat.id_service_category} className="bg-transparent">
-                                            <td className="px-4 py-3 border border-[#1e3462] text-white">{cat.id_service_category}</td>
                                             <td className="px-4 py-3 border border-[#1e3462] font-medium text-white">{cat.service_category_name}</td>
+                                            <td className="px-4 py-3 border border-[#1e3462] text-white">{cat.whonew || "-"}</td>
                                             <td className="px-4 py-3 border border-[#1e3462] text-white">
                                                 {cat.create_at ? new Date(cat.create_at).toLocaleString() : "-"}
                                             </td>

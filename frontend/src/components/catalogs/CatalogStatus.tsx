@@ -91,8 +91,8 @@ const CatalogStatus: React.FC = () => {
             <table className="w-full border-collapse">
               <thead>
                 <tr className="bg-white text-[#002057]">
-                  <th className="px-4 py-3 text-left font-semibold">ID</th>
                   <th className="px-4 py-3 text-left font-semibold">Name</th>
+                  <th className="px-4 py-3 text-left font-semibold">Created/Modified By</th>
                   <th className="px-4 py-3 text-left font-semibold">Created At</th>
                   <th className="px-4 py-3 text-left font-semibold">Updated At</th>
                   <th className="px-4 py-3 text-center font-semibold">Actions</th>
@@ -108,8 +108,8 @@ const CatalogStatus: React.FC = () => {
                 ) : (
                   statuses.map((s) => (
                     <tr key={s.id_service_status} className="hover:bg-[#1E2A45] transition-colors">
-                      <td className="px-4 py-3 text-white">{s.id_service_status}</td>
                       <td className="px-4 py-3 text-white font-medium">{s.status_name}</td>
+                      <td className="px-4 py-3 text-white">{s.whonew || "-"}</td>
                       <td className="px-4 py-3 text-white">
                         {s.create_at ? new Date(s.create_at).toLocaleString() : "-"}
                       </td>
