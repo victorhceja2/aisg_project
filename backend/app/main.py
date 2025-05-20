@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-# Importa routers individualmente
+# Routers del sistema
 from app.routers import (
     login,
     catalog_services,
@@ -10,13 +10,14 @@ from app.routers import (
     service_per_customer,
     extra_company_configuration,
     extra_service_sale_assignment,
-    service_catalogs,             # Nuevo: CRUD catálogos
-    catalog_services_full         # Nuevo: /catalog-services/full con joins
+    service_catalogs,
+    catalog_services_full,
+    catalog_router_aliases,
+    operations_report
 )
 
 app = FastAPI()
 
-# Middleware CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -25,8 +26,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Agrega todos los routers
-all_routers = [
+# Registrar routers
+routers = [
     login.router,
     catalog_services.router,
     catalog_service_classification.router,
@@ -35,13 +36,14 @@ all_routers = [
     extra_company_configuration.router,
     extra_service_sale_assignment.router,
     service_catalogs.router,
-    catalog_services_full.router
+    catalog_services_full.router,
+    catalog_router_aliases.router,
+    operations_report.router
 ]
 
-for r in all_routers:
+for r in routers:
     app.include_router(r)
 
-# Ruta de prueba
 @app.get("/ping")
 def ping():
     return {"message": "pong 🏓"}
