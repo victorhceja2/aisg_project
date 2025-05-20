@@ -2,8 +2,7 @@ from pydantic import BaseModel, Field
 from typing import Optional
 from datetime import datetime
 
-<<<<<<< HEAD
-# Clase directa con los campos exactos para recibir del frontend
+# Clases específicas para creación directa desde frontend
 class ServiceTypeCreate(BaseModel):
     service_type_name: str
     whonew: Optional[str] = None
@@ -20,16 +19,12 @@ class ServiceStatusCreate(BaseModel):
     status_name: str
     whonew: Optional[str] = None
 
-# Clase base genérica (mantener para compatibilidad con frontend antiguo)
-=======
-# Base genérica para creación
->>>>>>> 7c3d8ce (backend)
+# Clase base genérica reutilizable
 class CatalogBase(BaseModel):
     name: str
     whonew: Optional[str] = None
 
-<<<<<<< HEAD
-# Clases específicas para cada tipo, heredan de CatalogBase
+# Alias para entrada con campos personalizados
 class CatalogServiceTypeBase(CatalogBase):
     name: str = Field(alias="service_type_name")
 
@@ -42,61 +37,20 @@ class CatalogServiceCategoryBase(CatalogBase):
 class CatalogServiceStatusBase(CatalogBase):
     name: str = Field(alias="status_name")
 
-# Respuestas (sin cambios)
-class CatalogServiceTypeResponse(BaseModel):
-    id_service_type: int
-    service_type_name: str
-    whonew: Optional[str] = None
-    create_at: Optional[datetime] = None
-    updated_at: Optional[datetime] = None
-=======
-# Base para respuestas
+# Clase base para respuestas genéricas
 class CatalogResponse(CatalogBase):
     id: int
     create_at: Optional[datetime]
     updated_at: Optional[datetime]
->>>>>>> 7c3d8ce (backend)
 
     class Config:
         orm_mode = True
 
-<<<<<<< HEAD
-class CatalogServiceIncludeResponse(BaseModel):
-    id_service_include: int
-    service_include: str
-    whonew: Optional[str] = None
-    create_at: Optional[datetime] = None
-    updated_at: Optional[datetime] = None
-
-    class Config:
-        orm_mode = True
-
-class CatalogServiceCategoryResponse(BaseModel):
-    id_service_category: int
-    service_category_name: str
-    whonew: Optional[str] = None
-    create_at: Optional[datetime] = None
-    updated_at: Optional[datetime] = None
-
-    class Config:
-        orm_mode = True
-
-class CatalogServiceStatusResponse(BaseModel):
-    id_service_status: int
-    status_name: str
-    whonew: Optional[str] = None
-    create_at: Optional[datetime] = None
-    updated_at: Optional[datetime] = None
-
-    class Config:
-        orm_mode = True
-=======
-# Modelos para diferentes catálogos (respuestas)
+# Modelos de respuesta para cada catálogo
 class CatalogServiceTypeResponse(CatalogResponse): pass
 class CatalogServiceIncludeResponse(CatalogResponse): pass
 class CatalogServiceCategoryResponse(CatalogResponse): pass
 class CatalogServiceStatusResponse(CatalogResponse): pass
 
-# Modelo para creación (alias usado en catalog_router_aliases.py)
+# Modelo utilizado en alias
 class CatalogServiceCreate(CatalogBase): pass
->>>>>>> 7c3d8ce (backend)
