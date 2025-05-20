@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios";
+import axiosInstance from '../../api/axiosInstance';
+
 import { Link, useNavigate } from "react-router-dom";
 import AISGBackground from "../catalogs/fondo";
 
@@ -8,14 +9,13 @@ const CatalogServiceType: React.FC = () => {
     const [search, setSearch] = useState("");
     const [error, setError] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
-    const apiURL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+    // apiURL ya no es necesario, usando axiosInstance
     const navigate = useNavigate();
 
     const fetchServiceTypes = async () => {
         setLoading(true);
         try {
-            const res = await axios.get(
-                `${apiURL}/catalog/service-types/${search ? `?search=${encodeURIComponent(search)}` : ""}`
+            const res = await axiosInstance.get(`/catalog/service-types/${search ? `?search=${encodeURIComponent(search)}` : ""}`
             );
             setServiceTypes(res.data);
             setError(null);
@@ -29,7 +29,7 @@ const CatalogServiceType: React.FC = () => {
     const handleDelete = async (id: number, name: string) => {
         if (window.confirm(`Are you sure you want to delete the service type "${name}"? This action cannot be undone.`)) {
             try {
-                await axios.delete(`${apiURL}/catalog/service-types/${id}`);
+                await axiosInstance.delete(`/catalog/service-types/${id}`);
                 fetchServiceTypes();
                 setError(null);
             } catch (err) {

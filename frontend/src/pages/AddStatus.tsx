@@ -1,11 +1,12 @@
 import React, { useState } from "react";
-import axios from "axios";
+import axiosInstance from '../api/axiosInstance';
+
 import { useNavigate } from "react-router-dom";
 import AISGBackground from "../components/catalogs/fondo";
 
 const AddStatus: React.FC = () => {
   const navigate = useNavigate();
-  const apiURL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+  // apiURL ya no es necesario, usando axiosInstance
   const [statusName, setStatusName] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
@@ -19,7 +20,7 @@ const AddStatus: React.FC = () => {
     try {
       setIsLoading(true);
       setError("");
-      await axios.post(`${apiURL}/catalog/service-status/`, {
+      await axiosInstance.post(`/catalog/service-status/`, {
         status_name: statusName
       });
       navigate("/catalogs/status");

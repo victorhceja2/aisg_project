@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios";
+import axiosInstance from '../api/axiosInstance';
+
 import { useNavigate, useParams } from "react-router-dom";
 import AISGBackground from "../components/catalogs/fondo";
 
 const EditStatus: React.FC = () => {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
-  const apiURL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+  // apiURL ya no es necesario, usando axiosInstance
   const [statusName, setStatusName] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isFetching, setIsFetching] = useState(true);
@@ -16,7 +17,7 @@ const EditStatus: React.FC = () => {
     const fetchStatus = async () => {
       try {
         setIsFetching(true);
-        const res = await axios.get(`${apiURL}/catalog/service-status/${id}`);
+        const res = await axiosInstance.get(`/catalog/service-status/${id}`);
         setStatusName(res.data.status_name);
       } catch {
         setError("Could not load status data.");
@@ -36,7 +37,7 @@ const EditStatus: React.FC = () => {
     try {
       setIsLoading(true);
       setError("");
-      await axios.put(`${apiURL}/catalog/service-status/${id}`, {
+      await axiosInstance.put(`/catalog/service-status/${id}`, {
         status_name: statusName
       });
       navigate("/catalogs/status");

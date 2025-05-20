@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios";
+import axiosInstance from '../api/axiosInstance';
+
 import { useParams, useNavigate } from "react-router-dom";
 import AISGBackground from "../components/catalogs/fondo";
 
@@ -18,13 +19,13 @@ const EditService: React.FC = () => {
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const apiURL = import.meta.env.VITE_API_URL || "http://82.165.213.124:8000";
+  // apiURL ya no es necesario, usando axiosInstance
   const navigate = useNavigate();
 
   useEffect(() => {
     const fetchService = async () => {
       try {
-        const res = await axios.get(`${apiURL}/catalog/services/${id}`);
+        const res = await axiosInstance.get(`/catalog/services/${id}`);
         if (res.data) {
           setForm(res.data);
         } else {
@@ -42,7 +43,7 @@ const EditService: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await axios.put(`${apiURL}/catalog/services/${id}`, form);
+      await axiosInstance.put(`/catalog/services/${id}`, form);
       navigate("/services");
     } catch (err) {
       setError("Could not update the service.");

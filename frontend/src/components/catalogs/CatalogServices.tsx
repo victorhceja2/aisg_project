@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios";
+import axiosInstance from '../../api/axiosInstance';
+
 import { Link, useNavigate } from "react-router-dom";
 import AISGBackground from "../catalogs/fondo";
 
@@ -10,14 +11,13 @@ const CatalogServices: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [serviceToDelete, setServiceToDelete] = useState<number | null>(null);
   const [showConfirmation, setShowConfirmation] = useState(false);
-  const apiURL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+  // apiURL ya no es necesario, usando axiosInstance
   const navigate = useNavigate();
 
   const fetchServices = async () => {
     setLoading(true);
     try {
-      const res = await axios.get(
-        `${apiURL}/catalog/services${search ? `?search=${encodeURIComponent(search)}` : ""}`
+      const res = await axiosInstance.get(`/catalog/services${search ? `?search=${encodeURIComponent(search)}` : ""}`
       );
       setServices(res.data);
       setError(null);
@@ -36,7 +36,7 @@ const CatalogServices: React.FC = () => {
   const confirmDelete = async () => {
     if (!serviceToDelete) return;
     try {
-      await axios.delete(`${apiURL}/catalog/services/${serviceToDelete}`);
+      await axiosInstance.delete(`/catalog/services/${serviceToDelete}`);
       fetchServices();
       setError(null);
     } catch (err) {

@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
+import axiosInstance from '../api/axiosInstance';
+
 import { useNavigate, useParams } from "react-router-dom";
 import AISGBackground from "../components/catalogs/fondo";
 
 const EditCompany: React.FC = () => {
     const navigate = useNavigate();
     const { id } = useParams<{ id: string }>();
-    const apiURL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+    // apiURL ya no es necesario, usando axiosInstance
 
     const [form, setForm] = useState({
         id_company: "",
@@ -21,7 +22,7 @@ const EditCompany: React.FC = () => {
         const fetchConfig = async () => {
             try {
                 setLoading(true);
-                const res = await axios.get(`${apiURL}/catalog/extra-company-configuration/${id}`);
+                const res = await axiosInstance.get(`/catalog/extra-company-configuration/${id}`);
                 const config = res.data;
                 setForm({
                     id_company: config.id_company.toString(),
@@ -45,7 +46,7 @@ const EditCompany: React.FC = () => {
                 applies_detail: form.applies_detail,
                 status: form.status,
             };
-            await axios.put(`${apiURL}/catalog/extra-company-configuration/${id}`, data);
+            await axiosInstance.put(`/catalog/extra-company-configuration/${id}`, data);
             navigate("/catalogs/company");
         } catch (err) {
             setError("Could not update the configuration. Please check the data and try again.");

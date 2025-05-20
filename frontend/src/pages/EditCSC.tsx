@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios";
+import axiosInstance from '../api/axiosInstance';
+
 import { useNavigate, useParams } from "react-router-dom";
 import AISGBackground from "../components/catalogs/fondo";
 
@@ -10,13 +11,13 @@ const EditCSC: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
-  const apiURL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+  // apiURL ya no es necesario, usando axiosInstance
   const navigate = useNavigate();
 
   useEffect(() => {
     const fetchCategory = async () => {
       try {
-        const res = await axios.get(`${apiURL}/catalog/service-categories`);
+        const res = await axiosInstance.get(`/catalog/service-categories`);
         const found = res.data.find((cat: any) => cat.id_service_category?.toString() === id);
         if (found) {
           setCategoryName(found.service_category_name);
@@ -38,7 +39,7 @@ const EditCSC: React.FC = () => {
     setError(null);
 
     try {
-      await axios.put(`${apiURL}/catalog/service-categories/${id}`, {
+      await axiosInstance.put(`/catalog/service-categories/${id}`, {
         service_category_name: categoryName,
         whonew,
       });

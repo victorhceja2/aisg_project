@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios";
+import axiosInstance from '../../api/axiosInstance';
+
 import { Link } from "react-router-dom";
 import AISGBackground from "../catalogs/fondo";
 
@@ -8,13 +9,12 @@ const CatalogServiceCategory: React.FC = () => {
     const [search, setSearch] = useState("");
     const [error, setError] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
-    const apiURL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+    // apiURL ya no es necesario, usando axiosInstance
 
     const fetchCategories = async () => {
         setLoading(true);
         try {
-            const res = await axios.get(
-                `${apiURL}/catalog/service-categories/${search ? `?search=${encodeURIComponent(search)}` : ""}`
+            const res = await axiosInstance.get(`/catalog/service-categories/${search ? `?search=${encodeURIComponent(search)}` : ""}`
             );
             setCategories(res.data);
             setError(null);
@@ -28,7 +28,7 @@ const CatalogServiceCategory: React.FC = () => {
     const handleDelete = async (id: number, name: string) => {
         if (window.confirm(`Are you sure you want to delete "${name}"? This action cannot be undone.`)) {
             try {
-                await axios.delete(`${apiURL}/catalog/service-categories/${id}`);
+                await axiosInstance.delete(`/catalog/service-categories/${id}`);
                 fetchCategories();
                 setError(null);
             } catch {

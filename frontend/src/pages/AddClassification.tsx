@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import axios from "axios";
+import axiosInstance from '../api/axiosInstance';
+
 import { useNavigate } from "react-router-dom";
 import AISGBackground from "../components/catalogs/fondo";
 
@@ -14,7 +15,7 @@ const AddClassification: React.FC = () => {
   // Estado para mensajes de error
   const [error, setError] = useState<string | null>(null);
   // URL base de la API (usa variable de entorno o localhost por defecto)
-  const apiURL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+  // apiURL ya no es necesario, usando axiosInstance
   // Hook para navegación programática
   const navigate = useNavigate();
 
@@ -31,7 +32,7 @@ const AddClassification: React.FC = () => {
 
     try {
       const whonew = sessionStorage.getItem("userName") || "system";
-      await axios.post(`${apiURL}/catalog/service-classification/`, {
+      await axiosInstance.post(`/catalog/service-classification/`, {
         service_classification_name: name,
         whonew: whonew
       });

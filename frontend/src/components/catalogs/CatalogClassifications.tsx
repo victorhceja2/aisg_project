@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios";
+import axiosInstance from '../../api/axiosInstance';
+
 import { Link } from "react-router-dom";
 
 /**
@@ -16,7 +17,7 @@ const CatalogClassifications: React.FC = () => {
   // Loading state for the table
   const [loading, setLoading] = useState(true);
   // API base URL from environment or default
-  const apiURL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+  // apiURL ya no es necesario, usando axiosInstance
 
   // AISG corporate color palette
   const colors = {
@@ -37,8 +38,7 @@ const CatalogClassifications: React.FC = () => {
   const fetchClassifications = async () => {
     setLoading(true);
     try {
-      const res = await axios.get(
-        `${apiURL}/catalog/service-classification/${search ? `?search=${encodeURIComponent(search)}` : ""}`
+      const res = await axiosInstance.get(`/catalog/service-classification/${search ? `?search=${encodeURIComponent(search)}` : ""}`
       );
       setClassifications(res.data);
       setError(null);

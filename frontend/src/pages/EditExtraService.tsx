@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios";
+import axiosInstance from '../api/axiosInstance';
+
 import { useNavigate, useParams } from "react-router-dom";
 import AISGBackground from "../components/catalogs/fondo";
 
@@ -15,7 +16,7 @@ interface ExtraServiceAssignment {
 const EditExtraService: React.FC = () => {
     const navigate = useNavigate();
     const { id } = useParams<{ id: string }>();
-    const apiURL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+    // apiURL ya no es necesario, usando axiosInstance
 
     const [form, setForm] = useState({
         id_service_per_customer: "",
@@ -66,7 +67,7 @@ const EditExtraService: React.FC = () => {
                 return;
             }
 
-            await axios.put(`${apiURL}/catalog/extra-service-sale-assignment/${id}`, {
+            await axiosInstance.put(`/catalog/extra-service-sale-assignment/${id}`, {
                 id_service_per_customer: parseInt(form.id_service_per_customer),
                 id_sale_flight: parseInt(form.id_sale_flight),
                 id_sale_employee: parseInt(form.id_sale_employee),

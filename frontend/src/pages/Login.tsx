@@ -1,5 +1,6 @@
 import React, { useState, FormEvent, useEffect } from "react";
-import axios from "axios";
+import axiosInstance from '../api/axiosInstance';
+
 import { useNavigate } from "react-router-dom";
 import AISGBackground from "../components/catalogs/fondo";
 
@@ -10,7 +11,7 @@ const Login: React.FC = () => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const navigate = useNavigate();
 
-  const apiURL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+  // apiURL ya no es necesario, usando axiosInstance
 
   useEffect(() => {
     const checkSession = () => {
@@ -27,7 +28,7 @@ const Login: React.FC = () => {
     setIsLoading(true);
     setError("");
     try {
-      const response = await axios.post(`${apiURL}/login`, {
+      const response = await axiosInstance.post(`/login`, {
         username: username.trim().toLowerCase(),
         password: password.trim(),
       });

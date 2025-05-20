@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import AISGBackground from "./fondo";
-import axios from "axios";
+import axiosInstance from '../../api/axiosInstance';
+
 
 // Definir la interfaz para los reportes de operación
 interface OperationReportData {
@@ -44,7 +45,7 @@ const OperationReport: React.FC = () => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [useStaticData, setUseStaticData] = useState(true); // Temporalmente usamos datos estáticos
-    const apiURL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+    // apiURL ya no es necesario, usando axiosInstance
 
     // Datos estáticos para usar mientras no haya conexión a la BD
     const staticData: OperationReportData[] = [
@@ -233,7 +234,7 @@ const OperationReport: React.FC = () => {
             if (filters.startDate) params.append('start_date', filters.startDate);
             if (filters.endDate) params.append('end_date', filters.endDate);
             
-            const response = await axios.get(`${apiURL}/api/operation-reports?${params}`);
+            const response = await axiosInstance.get(`/api/operation-reports?${params}`);
             setReports(response.data);
         } catch (err) {
             console.error("Error fetching reports:", err);

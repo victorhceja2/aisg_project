@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
+import axiosInstance from '../../api/axiosInstance';
+
 import { Link, useNavigate } from "react-router-dom"; // Added Link for consistency
 // import AISGBackground from "./fondo"; // Assuming it might be used if this component becomes standalone
 

@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
+import axiosInstance from '../api/axiosInstance';
+
 import { useNavigate, useParams } from "react-router-dom";
 import AISGBackground from "../components/catalogs/fondo";
 
 const EditSPConsumer: React.FC = () => {
     const navigate = useNavigate();
     const { id } = useParams<{ id: string }>();
-    const apiURL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+    // apiURL ya no es necesario, usando axiosInstance
 
     const [form, setForm] = useState({
         id_service: "",
@@ -26,7 +27,7 @@ const EditSPConsumer: React.FC = () => {
         const fetchData = async () => {
             try {
                 setLoading(true);
-                const res = await axios.get(`${apiURL}/catalog/service-per-customer/${id}`);
+                const res = await axiosInstance.get(`/catalog/service-per-customer/${id}`);
                 const record = res.data;
                 setForm({
                     id_service: record.id_service?.toString() || "",
@@ -62,7 +63,7 @@ const EditSPConsumer: React.FC = () => {
             };
             
             console.log("Enviando datos de actualización:", data);
-            await axios.put(`${apiURL}/catalog/service-per-customer/${id}`, data);
+            await axiosInstance.put(`/catalog/service-per-customer/${id}`, data);
             navigate("/catalogs/customer");
         } catch (err: any) {
             console.error("Error al actualizar:", err);

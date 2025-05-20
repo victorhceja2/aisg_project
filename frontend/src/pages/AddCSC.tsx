@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import axios from "axios";
+import axiosInstance from '../api/axiosInstance';
+
 import { useNavigate } from "react-router-dom";
 import AISGBackground from "../components/catalogs/fondo";
 
@@ -8,7 +9,7 @@ const AddCSC: React.FC = () => {
   const [whonew, setWhonew] = useState("system");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const apiURL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+  // apiURL ya no es necesario, usando axiosInstance
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -17,7 +18,7 @@ const AddCSC: React.FC = () => {
     setError(null);
 
     try {
-      await axios.post(`${apiURL}/catalog/service-categories`, {
+      await axiosInstance.post(`/catalog/service-categories`, {
         service_category_name: categoryName,
         whonew,
       });

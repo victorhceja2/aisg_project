@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import axios from "axios";
+import axiosInstance from '../api/axiosInstance';
+
 import { useNavigate } from "react-router-dom";
 
 /**
@@ -32,7 +33,7 @@ const AddExtraService: React.FC = () => {
                 return;
             }
 
-            await axios.post("http://localhost:8000/catalog/extra-service-sale-assignment", {
+            await axiosInstance.post(`/catalog/extra-service-sale-assignment`, {
                 id_service_per_customer: parseInt(form.id_service_per_customer),
                 id_sale_flight: parseInt(form.id_sale_flight),
                 id_sale_employee: parseInt(form.id_sale_employee),

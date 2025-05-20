@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
+import axiosInstance from '../../api/axiosInstance';
+
 import AISGBackground from "../catalogs/fondo";
 
 interface OperationRow {
@@ -471,7 +472,7 @@ const OperationService: React.FC = () => {
                     start_date: filters.startDate,
                     end_date: filters.endDate,
                 };
-                const res = await axios.get("http://localhost:8000/operations/report", { params });
+                const res = await axiosInstance.get(`/operations/report`, { params });
                 setData(res.data);
             }
         } catch (err) {

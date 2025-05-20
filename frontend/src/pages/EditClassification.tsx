@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios";
+import axiosInstance from '../api/axiosInstance';
+
 import { useParams, useNavigate } from "react-router-dom";
 import AISGBackground from "../components/catalogs/fondo";
 
@@ -8,13 +9,13 @@ const EditClassification: React.FC = () => {
   const [name, setName] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const apiURL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+  // apiURL ya no es necesario, usando axiosInstance
   const navigate = useNavigate();
 
   useEffect(() => {
     const fetchClassification = async () => {
       try {
-        const res = await axios.get(`${apiURL}/catalog/service-classification/${id}`);
+        const res = await axiosInstance.get(`/catalog/service-classification/${id}`);
         if (res.data) {
           setName(res.data.service_classification_name);
         } else {
@@ -37,7 +38,7 @@ const EditClassification: React.FC = () => {
     }
     try {
       const whonew = sessionStorage.getItem("userName") || "system";
-      await axios.put(`${apiURL}/catalog/service-classification/${id}`, {
+      await axiosInstance.put(`/catalog/service-classification/${id}`, {
         service_classification_name: name,
         whonew: whonew
       });

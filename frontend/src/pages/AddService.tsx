@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios";
+import axiosInstance from '../api/axiosInstance';
+
 import { useNavigate } from "react-router-dom";
 import AISGBackground from "../components/catalogs/fondo";
 
@@ -21,7 +22,7 @@ const AddService: React.FC = () => {
   });
 
   const [error, setError] = useState<string | null>(null);
-  const apiURL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+  // apiURL ya no es necesario, usando axiosInstance
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -47,7 +48,7 @@ const AddService: React.FC = () => {
     console.log("Enviando payload:", payload);
     
     try {
-      const response = await axios.post(`${apiURL}/catalog/services/`, payload, {
+      const response = await axiosInstance.post(`/catalog/services/`, payload, {
         headers: {
           "Content-Type": "application/json"
         }

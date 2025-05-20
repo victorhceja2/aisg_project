@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
+import axiosInstance from '../api/axiosInstance';
+
 import { useParams, useNavigate } from "react-router-dom";
 import AISGBackground from "../components/catalogs/fondo";
 
@@ -10,13 +11,13 @@ const EditServiceType: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const apiURL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+  // apiURL ya no es necesario, usando axiosInstance
   const navigate = useNavigate();
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const res = await axios.get(`${apiURL}/catalog/service-types`);
+        const res = await axiosInstance.get(`/catalog/service-types`);
         const found = res.data.find((t: any) => t.id_service_type === Number(id));
         if (found) setName(found.service_type_name);
         else setError("Service type not found.");
@@ -34,7 +35,7 @@ const EditServiceType: React.FC = () => {
     setError(null);
     setSaving(true);
     try {
-      await axios.put(`${apiURL}/catalog/service-types/${id}`, { service_type_name: name, whonew });
+      await axiosInstance.put(`/catalog/service-types/${id}`, { service_type_name: name, whonew });
       navigate("/catalogs/servicetype");
     } catch {
       setError("Could not update the service type. Please try again.");

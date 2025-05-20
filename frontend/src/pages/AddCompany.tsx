@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import axios from "axios";
+import axiosInstance from '../api/axiosInstance';
+
 import { useNavigate } from "react-router-dom";
 
 /**
@@ -48,7 +49,7 @@ const AddCompany: React.FC = () => {
             };
 
             // Envía la nueva configuración al backend
-            await axios.post("http://localhost:8000/catalog/extra-company-configuration", data);
+            await axiosInstance.post(`/catalog/extra-company-configuration`, data);
 
             // Redirige al listado de compañías tras guardar
             navigate("/catalogs/company");

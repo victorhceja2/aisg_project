@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import axios from "axios";
+import axiosInstance from '../api/axiosInstance';
+
 import { useNavigate } from "react-router-dom";
 import AISGBackground from "../components/catalogs/fondo";
 
@@ -20,7 +21,7 @@ const AddSPConsumer: React.FC = () => {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const apiURL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+  // apiURL ya no es necesario, usando axiosInstance
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,7 +42,7 @@ const AddSPConsumer: React.FC = () => {
         whonew: form.whonew,
       };
       
-      const response = await axios.post(`${apiURL}/catalog/service-per-customer`, data);
+      const response = await axiosInstance.post(`/catalog/service-per-customer`, data);
       console.log("Respuesta:", response.data);
       navigate("/catalogs/customer");
     } catch (err: any) {
