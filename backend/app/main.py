@@ -14,7 +14,8 @@ from app.routers import (
     catalog_services_full,
     catalog_router_aliases,
     operations_report,
-    client  # ✅ este es el correcto
+    client,  # ✅ este es el correcto
+    aircraft_models
 )
 
 app = FastAPI()

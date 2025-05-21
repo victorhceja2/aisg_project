@@ -140,3 +140,9 @@ class Cliente(Base):
     taxFree = Column(Integer)
     codigoPostal = Column(String)
     regimenFiscal = Column(String)
+
+# 👇 Esta clase debe estar FUERA de Cliente
+class DBTableAvion(Base):
+    __tablename__ = "DBTableAvion"
+    modelo = Column(String(50), primary_key=True, index=True)
+    fuselaje = Column(String(10))
