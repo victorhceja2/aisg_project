@@ -1,0 +1,8 @@
+INFO:     Will watch for changes in these directories: ['/root/aisg_project/backend']
+INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+INFO:     Started reloader process [3019149] using WatchFiles
+INFO:     Started server process [3019158]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+Login attempt: admin 123456
+INFO:     200.188.103.224:64220 - "POST /login HTTP/1.1" 200 OK
