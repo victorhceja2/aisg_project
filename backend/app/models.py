@@ -12,7 +12,7 @@ class CatalogServiceStatus(Base):
 
 class CatalogServiceClassification(Base):
     __tablename__ = "CatalogServiceClassification"
-    id_service_classification = Column(Integer, primary_key=True, index=True)  # CAMBIADO: ahora con doble "s"
+    id_service_classification = Column(Integer, primary_key=True, index=True)
     service_classification_name = Column(String(100), nullable=False)
     whonew = Column(String(100))
     create_at = Column(DateTime, default=datetime.utcnow)
@@ -46,7 +46,7 @@ class CatalogService(Base):
     __tablename__ = "CatalogServices"
     id_service = Column(Integer, primary_key=True, index=True)
     id_service_status = Column(Integer, ForeignKey("CatalogServiceStatus.id_service_status"), nullable=False)
-    id_service_classification = Column(Integer, ForeignKey("CatalogServiceClassification.id_service_classification"), nullable=False)  # CAMBIADO: ahora con doble "s" 
+    id_service_classification = Column(Integer, ForeignKey("CatalogServiceClassification.id_service_classification"), nullable=False)
     id_service_category = Column(Integer, ForeignKey("CatalogServiceCategory.id_service_category"), nullable=False)
     id_service_type = Column(Integer, ForeignKey("CatalogServiceType.id_service_type"), nullable=False)
     id_service_include = Column(Integer, ForeignKey("CatalogServiceInclude.id_service_include"), nullable=False)
@@ -100,7 +100,6 @@ class ExtraServiceSaleAssignment(Base):
 
 class Cliente(Base):
     __tablename__ = "DBTableCliente"
-
     llave = Column(String, primary_key=True, index=True)
     mote = Column(String)
     nombre = Column(String)
@@ -141,7 +140,6 @@ class Cliente(Base):
     codigoPostal = Column(String)
     regimenFiscal = Column(String)
 
-# 👇 Esta clase debe estar FUERA de Cliente
 class DBTableAvion(Base):
     __tablename__ = "DBTableAvion"
     modelo = Column(String(50), primary_key=True, index=True)
