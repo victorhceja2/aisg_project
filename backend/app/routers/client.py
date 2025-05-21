@@ -4,7 +4,7 @@ from app.database import get_db
 from app.models import Cliente
 
 router = APIRouter(
-    prefix="/clients",
+    prefix="/catalog/clients",  # dejamos esta ruta que es más descriptiva
     tags=["Clients"]
 )
 
