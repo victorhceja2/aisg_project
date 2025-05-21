@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-# Importa routers individualmente
+# Importa routers individuales
 from app.routers import (
     login,
     catalog_services,
@@ -11,8 +11,10 @@ from app.routers import (
     extra_company_configuration,
     extra_service_sale_assignment,
     service_catalogs,             # Nuevo: CRUD catálogos
-    catalog_services_full         # Nuevo: /catalog-services/full con joins
+    catalog_services_full,        # Nuevo: /catalog-services/full con joins
 )
+# Importa el router de clientes desde su módulo
+from app.routers.client import router as clients_router
 
 app = FastAPI()
 
@@ -35,7 +37,8 @@ all_routers = [
     extra_company_configuration.router,
     extra_service_sale_assignment.router,
     service_catalogs.router,
-    catalog_services_full.router
+    catalog_services_full.router,
+    clients_router,  
 ]
 
 for r in all_routers:

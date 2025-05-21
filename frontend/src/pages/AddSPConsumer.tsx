@@ -1,11 +1,21 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import axiosInstance from '../api/axiosInstance';
 
 import { useNavigate } from "react-router-dom";
 import AISGBackground from "../components/catalogs/fondo";
 
+// Interface para los clientes
+interface Client {
+  llave: number;  // Cambiado de id_client a llave (según tu modelo)
+  nombre: string;
+  razonSocial: string;
+}
+
 const AddSPConsumer: React.FC = () => {
   const navigate = useNavigate();
+  // Estado para almacenar la lista de clientes
+  const [clients, setClients] = useState<Client[]>([]);
+  const [clientsLoading, setClientsLoading] = useState(true);
 
   const [form, setForm] = useState({
     id_service: "",
@@ -15,11 +25,28 @@ const AddSPConsumer: React.FC = () => {
     minutes_minimum: 0,
     fuselage_type: "",
     technicians_included: 0,
-    // whonew eliminado del form
   });
 
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  // Obtener la lista de clientes cuando el componente se monta
+  useEffect(() => {
+    const fetchClients = async () => {
+      try {
+        const response = await axiosInstance.get('/catalog/clients');
+        console.log("Clientes recibidos:", response.data);
+        setClients(response.data);
+      } catch (err: any) {
+        console.error("Error fetching clients:", err);
+        setError("Error loading clients. Please refresh the page.");
+      } finally {
+        setClientsLoading(false);
+      }
+    };
+
+    fetchClients();
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -27,6 +54,13 @@ const AddSPConsumer: React.FC = () => {
     setError("");
 
     try {
+      // Validación básica
+      if (!form.id_service || !form.id_client || !form.id_company) {
+        setError("Todos los campos de ID son requeridos");
+        setLoading(false);
+        return;
+      }
+
       const whonew = sessionStorage.getItem("userName") || "admin";
       const data = {
         id_service: parseInt(form.id_service),
@@ -34,20 +68,30 @@ const AddSPConsumer: React.FC = () => {
         id_company: parseInt(form.id_company),
         minutes_included: form.minutes_included,
         minutes_minimum: form.minutes_minimum,
-        fuselage_type: form.fuselage_type,
+        fuselage_type: form.fuselage_type || "",  // Asegurar que no sea undefined
         technicians_included: form.technicians_included,
-        whonew, // Se agrega automáticamente aquí
+        whonew,
       };
 
+      console.log("Enviando datos:", data);
+
       const response = await axiosInstance.post(`/catalog/service-per-customer`, data);
+      console.log("Respuesta:", response.data);
       navigate("/catalogs/customer");
     } catch (err: any) {
-      if (err.response) {
+      console.error("Error completo:", err);
+      
+      if (err.response && err.response.data) {
+        console.error("Detalles del error:", err.response.data);
+        
+        // Mostrar detalles de validación si están disponibles
         if (err.response.data.detail) {
           setError(`Error: ${err.response.data.detail}`);
         } else {
-          setError(`Error ${err.response.status}: ${err.response.statusText}`);
+          setError(`Error de validación: ${JSON.stringify(err.response.data)}`);
         }
+      } else if (err.response) {
+        setError(`Error ${err.response.status}: ${err.response.statusText}`);
       } else {
         setError("Could not save the record. Please check the data and try again.");
       }
@@ -89,20 +133,33 @@ const AddSPConsumer: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-white text-sm font-medium mb-2">Client ID</label>
-                  <input
-                    className="w-full px-4 py-3 rounded-lg bg-white text-[#002057] border border-[#cccccc] focus:border-[#00B140] focus:ring-2 focus:ring-[#00B140] focus:outline-none transition-all"
-                    placeholder="Client ID"
-                    value={form.id_client}
-                    onChange={(e) => setForm({ ...form, id_client: e.target.value })}
-                    required
-                  />
+                  <label className="block text-white text-sm font-medium mb-2">Client</label>
+                  {clientsLoading ? (
+                    <div className="w-full px-4 py-3 rounded-lg bg-gray-200 animate-pulse text-center">
+                      Loading clients...
+                    </div>
+                  ) : (
+                    <select
+                      className="w-full px-4 py-3 rounded-lg bg-white text-[#002057] border border-[#cccccc] focus:border-[#00B140] focus:ring-2 focus:ring-[#00B140] focus:outline-none transition-all"
+                      value={form.id_client}
+                      onChange={(e) => setForm({ ...form, id_client: e.target.value })}
+                      required
+                    >
+                      <option value="">Select a client</option>
+                      {clients.map((client) => (
+                        <option key={client.llave} value={client.llave}>
+                          {client.razonSocial || client.nombre || `Client #${client.llave}`}
+                        </option>
+                      ))}
+                    </select>
+                  )}
                 </div>
                 <div>
                   <label className="block text-white text-sm font-medium mb-2">Company ID</label>
                   <input
                     className="w-full px-4 py-3 rounded-lg bg-white text-[#002057] border border-[#cccccc] focus:border-[#00B140] focus:ring-2 focus:ring-[#00B140] focus:outline-none transition-all"
                     placeholder="Company ID"
+                    type="number"
                     value={form.id_company}
                     onChange={(e) => setForm({ ...form, id_company: e.target.value })}
                     required
@@ -150,7 +207,6 @@ const AddSPConsumer: React.FC = () => {
                     onChange={(e) => setForm({ ...form, fuselage_type: e.target.value })}
                   />
                 </div>
-                {/* Eliminado el campo de usuario (whonew) del formulario */}
               </div>
               <div className="flex space-x-4 pt-4">
                 <button

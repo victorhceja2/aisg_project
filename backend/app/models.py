@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey
+from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Numeric
 from app.database import Base
 from datetime import datetime
 
@@ -97,3 +97,46 @@ class ExtraServiceSaleAssignment(Base):
     whonew = Column(String(100))
     create_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+class Client(Base):
+    __tablename__ = "DBTableCliente"
+    # id_client                   = Column(Integer, primary_key=True, index=True)
+    mote                         = Column(String(40))
+    nombre                       = Column(String(40))
+    comercial                    = Column(String(40))
+    razonSocial                  = Column(String(200))
+    rfc                          = Column(String(13))
+    taxId                        = Column(String(25))
+    noCliente                    = Column(String(25))
+    isNacional                   = Column(Integer)
+    isParteRelacionada           = Column(Integer)
+    residenciaFiscal             = Column(String(5))
+    usoCfdi                      = Column(String(5))
+    referenciaBancariaValor      = Column(String(35))
+    referenciaBancariaPatron     = Column(Integer)
+    metodoPago                   = Column(String(75))
+    formaPago                    = Column(String(75))
+    condicionesDePago            = Column(String(75))
+    moneda                       = Column(String(5))
+    idCif                        = Column(String(25))
+    lineaCredito                 = Column(Numeric(15,6))
+    saldo                        = Column(Numeric(15,6))
+    jerarquia                    = Column(Numeric(15,6))
+    grupo                        = Column(Integer)
+    language                     = Column(Integer)
+    invoiceFileName              = Column(Integer)
+    estatus                      = Column(Integer)
+    usuarioRegistro              = Column(String(40))
+    fechaRegistro                = Column(Integer)
+    horaRegistro                 = Column(Integer)
+    companyCode                  = Column(String(25))
+    keyObjectId                  = Column(String(25))
+    objectKeyValue               = Column(String(25))
+    objectKeyIndex               = Column(Integer)
+    llave                        = Column(Integer, primary_key=True, index=True)
+    llaveAgente                  = Column(Integer)
+    adminFeePercentage           = Column(Numeric(15,6))
+    formatoMonthlyFee            = Column(Integer)
+    taxFree                      = Column(Integer)
+    codigoPostal                 = Column(String(10))
+    regimenFiscal                = Column(String(10))
