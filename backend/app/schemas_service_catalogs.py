@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import Optional
+from typing import Optional, List
 from datetime import datetime
 
 # Clases específicas para creación directa desde frontend
@@ -40,17 +40,42 @@ class CatalogServiceStatusBase(CatalogBase):
 # Clase base para respuestas genéricas
 class CatalogResponse(CatalogBase):
     id: int
-    create_at: Optional[datetime]
-    updated_at: Optional[datetime]
+    create_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
 
     class Config:
         orm_mode = True
+        allow_population_by_field_name = True
 
 # Modelos de respuesta para cada catálogo
-class CatalogServiceTypeResponse(CatalogResponse): pass
-class CatalogServiceIncludeResponse(CatalogResponse): pass
-class CatalogServiceCategoryResponse(CatalogResponse): pass
-class CatalogServiceStatusResponse(CatalogResponse): pass
+class CatalogServiceTypeResponse(CatalogResponse): 
+    id: int = Field(alias="id_service_type")
+    name: str = Field(alias="service_type_name")
+
+class CatalogServiceIncludeResponse(CatalogResponse):
+    id: int = Field(alias="id_service_include")
+    name: str = Field(alias="service_include")
+
+class CatalogServiceCategoryResponse(CatalogResponse):
+    id: int = Field(alias="id_service_category")
+    name: str = Field(alias="service_category_name")
+
+class CatalogServiceStatusResponse(CatalogResponse):
+    id: int = Field(alias="id_service_status")
+    name: str = Field(alias="status_name")
+
+# Para respuestas tipo lista
+class CatalogServiceTypeListResponse(BaseModel):
+    response: List[CatalogServiceTypeResponse]
+
+class CatalogServiceIncludeListResponse(BaseModel):
+    response: List[CatalogServiceIncludeResponse]
+
+class CatalogServiceCategoryListResponse(BaseModel):
+    response: List[CatalogServiceCategoryResponse]
+
+class CatalogServiceStatusListResponse(BaseModel):
+    response: List[CatalogServiceStatusResponse]
 
 # Modelo utilizado en alias
 class CatalogServiceCreate(CatalogBase): pass
