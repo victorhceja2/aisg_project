@@ -1,16 +1,17 @@
 {
   "name": "frontend",
   "private": true,
-  "version": null,
+  "version": "2.2.35",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "release:major": "standard-version --release-as major",
-    "release:minor": "standard-version --release-as minor",
-    "release:patch": "standard-version --release-as patch"
+    "version:patch": "npm version patch",
+    "version:minor": "npm version minor",
+    "version:major": "npm version major",
+    "update-version": "node version-updater.js"
   },
   "dependencies": {
     "axios": "^1.9.0",
@@ -30,6 +31,7 @@
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.19",
     "globals": "^16.0.0",
+    "husky": "^9.1.7",
     "postcss": "^8.4.21",
     "standard-version": "^9.5.0",
     "tailwindcss": "^3.3.5",
