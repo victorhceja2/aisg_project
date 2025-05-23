@@ -1,13 +1,16 @@
 {
   "name": "frontend",
   "private": true,
-  "version": "0.0.0",
+  "version": null,
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "release:major": "standard-version --release-as major",
+    "release:minor": "standard-version --release-as minor",
+    "release:patch": "standard-version --release-as patch"
   },
   "dependencies": {
     "axios": "^1.9.0",
@@ -28,7 +31,14 @@
     "eslint-plugin-react-refresh": "^0.4.19",
     "globals": "^16.0.0",
     "postcss": "^8.4.21",
+    "standard-version": "^9.5.0",
     "tailwindcss": "^3.3.5",
     "vite": "^6.3.1"
+  },
+  "husky": {
+    "hooks": {
+      "commit-msg": "commitlint -E HUSKY_GIT_PARAMS",
+      "post-commit": "node version-updater.js && git add package.json && git commit --amend --no-edit"
+    }
   }
 }
