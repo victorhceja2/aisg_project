@@ -26,46 +26,30 @@ const ServicePerCustomer: React.FC = () => {
   const [success, setSuccess] = useState("");
   const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
 
   const fetchRecords = async () => {
     try {
       setIsLoading(true);
       setError("");
-      console.log("Fetching records with URL:", `/catalog/service-per-customer${search ? `?fuselage_type=${encodeURIComponent(search)}` : ""}`);
-      
       const res = await axiosInstance.get(
         `/catalog/service-per-customer${search ? `?fuselage_type=${encodeURIComponent(search)}` : ""}`,
-        {
-          // Añadir timeout para evitar esperas prolongadas
-          timeout: 30000
-        }
+        { timeout: 30000 }
       );
-      
-      console.log("Response received:", res.status, res.statusText);
-      console.log("Records count:", res.data?.length || 0);
       setRecords(res.data || []);
       setIsLoading(false);
     } catch (err: any) {
-      console.error("Error fetching data:", err);
-      
       let errorMessage = "Could not load data. Please try again.";
-      
       if (err.response) {
-        // El servidor respondió con un código de estado diferente a 2xx
         errorMessage = `Server error: ${err.response.status} - ${err.response.statusText}`;
-        console.error("Response data:", err.response.data);
       } else if (err.request) {
-        // La solicitud se hizo pero no se recibió respuesta
         errorMessage = "No response received from server. Please check your connection.";
       } else {
-        // Ocurrió un error durante la configuración de la solicitud
         errorMessage = `Request error: ${err.message}`;
       }
-      
       if (err.code === 'ECONNABORTED') {
         errorMessage = "Request timeout. The server took too long to respond.";
       }
-      
       setError(errorMessage);
       setIsLoading(false);
     }
@@ -79,32 +63,21 @@ const ServicePerCustomer: React.FC = () => {
     try {
       setIsLoading(true);
       setError("");
-      console.log("Deleting record:", id);
-      
-      const res = await axiosInstance.delete(`/catalog/service-per-customer/${id}`, {
-        timeout: 15000
-      });
-      
-      console.log("Delete response:", res.status, res.statusText);
+      await axiosInstance.delete(`/catalog/service-per-customer/${id}`, { timeout: 15000 });
       await fetchRecords();
       setDeleteConfirm(null);
+      setShowSuccessModal(true);
       setSuccess("Record deleted successfully");
       setIsLoading(false);
-      setTimeout(() => setSuccess(""), 2000);
     } catch (err: any) {
-      console.error("Error deleting record:", err);
-      
       let errorMessage = "Could not delete record.";
-      
       if (err.response) {
         errorMessage = `Delete failed: ${err.response.status} - ${err.response.statusText}`;
-        console.error("Response data:", err.response.data);
       } else if (err.request) {
         errorMessage = "No response received during delete operation.";
       } else {
         errorMessage = `Delete error: ${err.message}`;
       }
-      
       setIsLoading(false);
       setError(errorMessage);
     }
@@ -122,13 +95,50 @@ const ServicePerCustomer: React.FC = () => {
     navigate("/catalogs/customer/add");
   };
 
+  const handleSuccessClose = () => {
+    setShowSuccessModal(false);
+  };
+
   useEffect(() => {
-    console.log("Search term changed, fetching records...");
     fetchRecords();
+    // eslint-disable-next-line
   }, [search]);
+
+  // Modal de alerta de éxito
+  const SuccessAlert = () => (
+    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+      <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
+        <div className="px-6 py-4 border-b border-gray-200">
+          <h3 className="text-xl font-bold text-center text-[#002057]">
+            Success
+          </h3>
+          <div className="mt-1 w-14 h-1 bg-[#e6001f] mx-auto rounded"></div>
+        </div>
+        <div className="bg-[#1E2A45] p-6 flex flex-col items-center">
+          <div className="bg-green-600 rounded-full h-14 w-14 flex items-center justify-center mb-4">
+            <svg className="h-9 w-9 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"></path>
+            </svg>
+          </div>
+          <p className="text-white text-lg mb-6 text-center">
+            Classification has been successfully added!
+          </p>
+          <button 
+            onClick={handleSuccessClose}
+            className="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-4 rounded-lg transition-colors duration-200"
+          >
+            OK
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <AISGBackground>
+      {/* Render modal de éxito si showSuccessModal es true */}
+      {showSuccessModal && <SuccessAlert />}
+      
       <div className="max-w-7xl mx-auto p-6 font-['Montserrat']">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-white">Services by Airline</h1>
@@ -163,16 +173,7 @@ const ServicePerCustomer: React.FC = () => {
             Add Service by Airline
           </button>
         </div>
-        {error && (
-          <div className="bg-red-500 text-white p-4 rounded-lg mb-6 shadow-md animate-pulse">
-            <p className="font-medium">{error}</p>
-          </div>
-        )}
-        {success && (
-          <div className="bg-green-500 text-white p-4 rounded-lg mb-6 shadow-md animate-pulse">
-            <p className="font-medium">{success}</p>
-          </div>
-        )}
+        
         {isLoading && (
           <div className="flex justify-center py-12 bg-transparent">
             <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#00B140]"></div>
@@ -247,29 +248,41 @@ const ServicePerCustomer: React.FC = () => {
         </div>
         {deleteConfirm && (
           <div className="fixed inset-0 z-50 overflow-auto bg-black bg-opacity-50 flex items-center justify-center p-4">
-            <div className="bg-[#16213E] rounded-lg shadow-lg max-w-md w-full p-6 border-2 border-red-500 animate-fadeIn">
-              <h2 className="text-xl font-semibold mb-4 text-white">Confirm Delete</h2>
-              <p className="text-gray-300 mb-6">
-                Are you sure you want to delete record #{deleteConfirm}? This action cannot be undone.
-              </p>
-              <div className="flex justify-end gap-3">
-                <button
-                  className="bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded-md transition-all duration-200 shadow-md hover:shadow-lg"
-                  onClick={handleCancelDelete}
-                  disabled={isLoading}
-                >
-                  Cancel
-                </button>
-                <button
-                  className="bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded-md transition-all duration-200 shadow-md hover:shadow-lg flex items-center"
-                  onClick={() => handleDelete(deleteConfirm)}
-                  disabled={isLoading}
-                >
-                  {isLoading && (
-                    <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white mr-2"></div>
-                  )}
-                  Delete
-                </button>
+            <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
+              <div className="px-6 py-4 border-b border-gray-200">
+                <h3 className="text-xl font-bold text-center text-[#002057]">
+                  Confirm Deletion
+                </h3>
+                <div className="mt-1 w-14 h-1 bg-[#e6001f] mx-auto rounded"></div>
+              </div>
+              <div className="bg-[#1E2A45] p-6 flex flex-col items-center">
+                <div className="bg-red-600 rounded-full h-14 w-14 flex items-center justify-center mb-4">
+                  <svg className="h-9 w-9 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                  </svg>
+                </div>
+                <p className="text-white text-lg mb-6 text-center">
+                  Are you sure you want to delete the classification "#{deleteConfirm}"? This action cannot be undone.
+                </p>
+                <div className="flex w-full gap-3">
+                  <button
+                    className="w-1/2 bg-[#4D70B8] hover:bg-[#3A5A9F] text-white font-bold py-3 px-4 rounded-lg transition-all duration-200"
+                    onClick={handleCancelDelete}
+                    disabled={isLoading}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    className="w-1/2 bg-[#e6001f] hover:bg-red-700 text-white font-bold py-3 px-4 rounded-lg transition-all duration-200 flex items-center justify-center"
+                    onClick={() => handleDelete(deleteConfirm)}
+                    disabled={isLoading}
+                  >
+                    {isLoading && (
+                      <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white mr-2"></div>
+                    )}
+                    Delete
+                  </button>
+                </div>
               </div>
             </div>
           </div>

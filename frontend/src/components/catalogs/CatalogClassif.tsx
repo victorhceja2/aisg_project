@@ -9,7 +9,15 @@ const CatalogClassif: React.FC = () => {
   const [search, setSearch] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  // apiURL ya no es necesario, usando axiosInstance
+  
+  // Estados para el popup de confirmación de eliminación
+  const [showDeletePopup, setShowDeletePopup] = useState(false);
+  const [deleteItemId, setDeleteItemId] = useState<number | null>(null);
+  const [deleteItemName, setDeleteItemName] = useState<string>("");
+  
+  // Estado para el popup de éxito de eliminación
+  const [showDeleteSuccessPopup, setShowDeleteSuccessPopup] = useState(false);
+  const [deletedItemName, setDeletedItemName] = useState<string>("");
 
   const fetchClassifications = async () => {
     setLoading(true);
@@ -25,16 +33,55 @@ const CatalogClassif: React.FC = () => {
     }
   };
 
-  const handleDelete = async (id: number, name: string) => {
-    if (window.confirm(`Are you sure you want to delete the classification "${name}"? This action cannot be undone.`)) {
-      try {
-        await axiosInstance.delete(`/catalog/service-classification/${id}`);
-        fetchClassifications();
-        setError(null);
-      } catch {
-        setError("Could not delete the classification. It may be used by an active service.");
-      }
+  // Inicia el proceso de eliminación mostrando el popup
+  const handleDelete = (id: number, name: string) => {
+    setDeleteItemId(id);
+    setDeleteItemName(name);
+    setShowDeletePopup(true);
+  };
+
+  // Confirma la eliminación desde el popup
+  const confirmDelete = async () => {
+    if (deleteItemId === null) return;
+    
+    try {
+      await axiosInstance.delete(`/catalog/service-classification/${deleteItemId}`);
+      
+      // Guardar el nombre del elemento eliminado para mostrarlo en el popup de éxito
+      setDeletedItemName(deleteItemName);
+      
+      // Cerrar el popup de confirmación
+      setShowDeletePopup(false);
+      setDeleteItemId(null);
+      setDeleteItemName("");
+      
+      // Mostrar el popup de éxito
+      setShowDeleteSuccessPopup(true);
+      
+      // Actualizar la lista
+      fetchClassifications();
+      setError(null);
+      
+    } catch {
+      setError("Could not delete the classification. It may be used by an active service.");
+      // Cerrar el popup de confirmación en caso de error
+      setShowDeletePopup(false);
+      setDeleteItemId(null);
+      setDeleteItemName("");
     }
+  };
+
+  // Cierra el popup de éxito de eliminación
+  const closeDeleteSuccessPopup = () => {
+    setShowDeleteSuccessPopup(false);
+    setDeletedItemName("");
+  };
+
+  // Cancela la eliminación
+  const cancelDelete = () => {
+    setShowDeletePopup(false);
+    setDeleteItemId(null);
+    setDeleteItemName("");
   };
 
   useEffect(() => {
@@ -152,6 +199,86 @@ const CatalogClassif: React.FC = () => {
           )}
         </div>
       </div>
+
+      {/* Popup de confirmación de eliminación */}
+      {showDeletePopup && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="overflow-hidden max-w-md w-full mx-4 rounded-lg shadow-xl">
+            {/* Encabezado blanco con texto azul */}
+            <div className="bg-white rounded-t-lg px-6 py-4 shadow-lg">
+              <h2 className="text-2xl font-bold text-center text-[#002057]">
+                Confirm Deletion
+              </h2>
+              <div className="mt-2 w-20 h-1 bg-[#e6001f] mx-auto rounded"></div>
+            </div>
+            
+            {/* Cuerpo con fondo azul oscuro */}
+            <div className="bg-[#1E2A45] rounded-b-lg shadow-lg px-8 py-8">
+              <div className="flex items-center mb-4">
+                <div className="bg-[#e6001f] rounded-full p-2 mr-4">
+                  <svg className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                </div>
+                <p className="text-white text-lg">
+                  Are you sure you want to delete the classification "{deleteItemName}"? This action cannot be undone.
+                </p>
+              </div>
+              <div className="mt-8 flex justify-between space-x-4">
+                <button
+                  onClick={cancelDelete}
+                  className="w-1/2 bg-[#4D70B8] hover:bg-[#3A5A9F] text-white font-medium py-3 px-4 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmDelete}
+                  className="w-1/2 bg-[#e6001f] hover:bg-red-700 text-white font-medium py-3 px-4 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg"
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Popup de éxito de eliminación */}
+      {showDeleteSuccessPopup && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="overflow-hidden max-w-md w-full mx-4 rounded-lg shadow-xl">
+            {/* Encabezado blanco con texto azul */}
+            <div className="bg-white rounded-t-lg px-6 py-4 shadow-lg">
+              <h2 className="text-2xl font-bold text-center text-[#002057]">
+                Success
+              </h2>
+              <div className="mt-2 w-20 h-1 bg-[#e6001f] mx-auto rounded"></div>
+            </div>
+            
+            {/* Cuerpo con fondo azul oscuro */}
+            <div className="bg-[#1E2A45] rounded-b-lg shadow-lg px-8 py-8">
+              <div className="flex items-center mb-4 justify-center">
+                <div className="bg-[#00B140] rounded-full p-2 mr-4">
+                  <svg className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+                <p className="text-white text-lg">
+                  Classification "{deletedItemName}" has been successfully deleted!
+                </p>
+              </div>
+              <div className="mt-6 flex justify-center space-x-4">
+                <button
+                  onClick={closeDeleteSuccessPopup}
+                  className="w-full bg-[#00B140] hover:bg-[#009935] text-white font-medium py-3 px-4 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg"
+                >
+                  OK
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </AISGBackground>
   );
 };

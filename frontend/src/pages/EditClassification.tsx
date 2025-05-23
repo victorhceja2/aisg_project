@@ -7,8 +7,13 @@ import AISGBackground from "../components/catalogs/fondo";
 const EditClassification: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const [name, setName] = useState("");
+  const [originalName, setOriginalName] = useState(""); // Guardamos el nombre original
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  // Estado para mostrar el popup de éxito
+  const [showSuccessPopup, setShowSuccessPopup] = useState(false);
+  // Estado para mostrar el popup de advertencia de duplicado
+  const [showDuplicateWarningPopup, setShowDuplicateWarningPopup] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -17,6 +22,7 @@ const EditClassification: React.FC = () => {
         const res = await axiosInstance.get(`/catalog/service-classification/${id}`);
         if (res.data && res.data.service_classification_name) {
           setName(res.data.service_classification_name);
+          setOriginalName(res.data.service_classification_name); // Guardamos el nombre original
           setError(null);
         } else {
           setError("No data found for this classification.");
@@ -35,22 +41,68 @@ const EditClassification: React.FC = () => {
     }
   }, [id]);
 
+  /**
+   * Verifica si una clasificación con el mismo nombre ya existe
+   */
+  const checkDuplicateClassification = async (name: string) => {
+    try {
+      const res = await axiosInstance.get(`/catalog/service-classification/?search=${encodeURIComponent(name)}`);
+      // Si hay resultados, verificamos si alguno coincide exactamente con el nombre
+      // pero ignoramos el elemento actual que estamos editando
+      return res.data.some((item: any) => 
+        item.service_classification_name.toLowerCase() === name.toLowerCase() && 
+        item.id_service_classification.toString() !== id
+      );
+    } catch (err) {
+      console.error("Error checking for duplicate classification", err);
+      return false; // En caso de error, asumimos que no es duplicado
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name) {
       setError("Classification name is required.");
       return;
     }
+
+    // Solo realizar la verificación si el nombre ha cambiado
+    if (name.toLowerCase() !== originalName.toLowerCase()) {
+      // Verificar si el nombre ya existe
+      const isDuplicate = await checkDuplicateClassification(name);
+      if (isDuplicate) {
+        // Mostrar el popup de advertencia
+        setShowDuplicateWarningPopup(true);
+        return;
+      }
+    }
+
     try {
       const whonew = sessionStorage.getItem("userName") || "system";
       await axiosInstance.put(`/catalog/service-classification/${id}`, {
         service_classification_name: name,
         whonew: whonew
       });
-      navigate("/catalogs/classif");
+      // Mostrar popup de éxito en lugar de redirigir inmediatamente
+      setShowSuccessPopup(true);
     } catch (err) {
       setError("Could not update the classification.");
     }
+  };
+
+  /**
+   * Cierra el popup y navega al listado de clasificaciones
+   */
+  const handleClosePopup = () => {
+    setShowSuccessPopup(false);
+    navigate("/catalogs/classif");
+  };
+
+  /**
+   * Cierra el popup de advertencia
+   */
+  const closeDuplicateWarningPopup = () => {
+    setShowDuplicateWarningPopup(false);
   };
 
   if (loading) {
@@ -114,6 +166,76 @@ const EditClassification: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Popup de éxito */}
+      {showSuccessPopup && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="overflow-hidden max-w-md w-full mx-4 rounded-lg shadow-xl">
+            {/* Encabezado blanco con texto azul */}
+            <div className="bg-white rounded-t-lg px-6 py-4 shadow-lg">
+              <h2 className="text-2xl font-bold text-center text-[#002057]">
+                Success
+              </h2>
+              <div className="mt-2 w-20 h-1 bg-[#e6001f] mx-auto rounded"></div>
+            </div>
+            
+            {/* Cuerpo con fondo azul oscuro */}
+            <div className="bg-[#1E2A45] rounded-b-lg shadow-lg px-8 py-8">
+              <div className="flex items-center mb-4 justify-center">
+                <div className="bg-[#00B140] rounded-full p-2 mr-4">
+                  <svg className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+                <p className="text-white text-lg">Classification has been successfully updated!</p>
+              </div>
+              <div className="mt-6 flex justify-center space-x-4">
+                <button
+                  onClick={handleClosePopup}
+                  className="w-full bg-[#00B140] hover:bg-[#009935] text-white font-medium py-3 px-4 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg"
+                >
+                  OK
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Popup de advertencia de clasificación duplicada */}
+      {showDuplicateWarningPopup && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="overflow-hidden max-w-md w-full mx-4 rounded-lg shadow-xl">
+            {/* Encabezado blanco con texto azul */}
+            <div className="bg-white rounded-t-lg px-6 py-4 shadow-lg">
+              <h2 className="text-2xl font-bold text-center text-[#002057]">
+                Warning
+              </h2>
+              <div className="mt-2 w-20 h-1 bg-[#e6001f] mx-auto rounded"></div>
+            </div>
+            
+            {/* Cuerpo con fondo azul oscuro */}
+            <div className="bg-[#1E2A45] rounded-b-lg shadow-lg px-8 py-8">
+              <div className="flex items-center mb-4 justify-center">
+                <div className="bg-[#f59e0b] rounded-full p-2 mr-4">
+                  <svg className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                </div>
+                <p className="text-white text-lg">A classification with the name "{name}" already exists!</p>
+              </div>
+              <div className="mt-6 flex justify-center space-x-4">
+                <button
+                  onClick={closeDuplicateWarningPopup}
+                  className="w-full bg-[#f59e0b] hover:bg-[#d97706] text-white font-medium py-3 px-4 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg"
+                >
+                  OK
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </AISGBackground>
   );
 };

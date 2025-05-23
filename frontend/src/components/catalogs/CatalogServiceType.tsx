@@ -9,8 +9,14 @@ const CatalogServiceType: React.FC = () => {
     const [search, setSearch] = useState("");
     const [error, setError] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
-    // apiURL ya no es necesario, usando axiosInstance
     const navigate = useNavigate();
+
+    // Estados para modales
+    const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
+    const [showDeleteSuccess, setShowDeleteSuccess] = useState(false);
+    const [serviceTypeToDelete, setServiceTypeToDelete] = useState<{id: number, name: string} | null>(null);
+    const [deletedServiceTypeName, setDeletedServiceTypeName] = useState("");
+    const [deletingServiceType, setDeletingServiceType] = useState(false);
 
     const fetchServiceTypes = async () => {
         setLoading(true);
@@ -26,16 +32,44 @@ const CatalogServiceType: React.FC = () => {
         }
     };
 
-    const handleDelete = async (id: number, name: string) => {
-        if (window.confirm(`Are you sure you want to delete the service type "${name}"? This action cannot be undone.`)) {
-            try {
-                await axiosInstance.delete(`/catalog/service-types/${id}`);
-                fetchServiceTypes();
-                setError(null);
-            } catch (err) {
-                setError("Could not delete the service type. It may be used by an active service.");
+    const confirmDelete = (id: number, name: string) => {
+        setServiceTypeToDelete({ id, name });
+        setShowDeleteConfirmation(true);
+    };
+
+    const handleDelete = async () => {
+        if (!serviceTypeToDelete) return;
+        
+        try {
+            setDeletingServiceType(true);
+            await axiosInstance.delete(`/catalog/service-types/${serviceTypeToDelete.id}`);
+            setDeletedServiceTypeName(serviceTypeToDelete.name);
+            setShowDeleteConfirmation(false);
+            setServiceTypeToDelete(null);
+            fetchServiceTypes();
+            setError(null);
+            setShowDeleteSuccess(true);
+        } catch (err: any) {
+            let errorMessage = "Could not delete the service type. It may be used by an active service.";
+            
+            if (err.response?.data?.detail) {
+                errorMessage = err.response.data.detail;
             }
+            
+            setError(errorMessage);
+            setShowDeleteConfirmation(false);
+        } finally {
+            setDeletingServiceType(false);
         }
+    };
+
+    const cancelDelete = () => {
+        setShowDeleteConfirmation(false);
+        setServiceTypeToDelete(null);
+    };
+
+    const closeSuccessModal = () => {
+        setShowDeleteSuccess(false);
     };
 
     useEffect(() => {
@@ -128,7 +162,7 @@ const CatalogServiceType: React.FC = () => {
                                                         </svg>
                                                     </Link>
                                                     <button
-                                                        onClick={() => handleDelete(t.id_service_type, t.service_type_name)}
+                                                        onClick={() => confirmDelete(t.id_service_type, t.service_type_name)}
                                                         className="p-1.5 bg-[#e6001f] text-white rounded hover:bg-red-700 transition-colors"
                                                         title="Delete"
                                                     >
@@ -146,6 +180,95 @@ const CatalogServiceType: React.FC = () => {
                     )}
                 </div>
             </div>
+
+            {/* Modal de confirmación de eliminación */}
+            {showDeleteConfirmation && serviceTypeToDelete && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                    <div className="w-full max-w-md overflow-hidden rounded-lg shadow-xl">
+                        {/* Encabezado blanco con texto azul */}
+                        <div className="bg-white py-4 px-6">
+                            <h2 className="text-2xl font-bold text-center text-[#002057]">
+                                Confirm Deletion
+                            </h2>
+                            <div className="mt-1 w-24 h-1 bg-[#e6001f] mx-auto"></div>
+                        </div>
+
+                        {/* Cuerpo con fondo azul oscuro */}
+                        <div className="bg-[#1E2A45] py-8 px-6">
+                            <div className="flex items-start gap-3">
+                                <div className="bg-red-600 rounded-full p-2 flex-shrink-0">
+                                    <svg className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                    </svg>
+                                </div>
+                                <p className="text-white text-lg mt-1">
+                                    Are you sure you want to delete the service type "{serviceTypeToDelete.name}"? This action cannot be undone.
+                                </p>
+                            </div>
+
+                            {/* Botones uno al lado del otro como en la imagen */}
+                            <div className="mt-8 flex gap-3">
+                                {deletingServiceType ? (
+                                    <div className="w-full flex justify-center">
+                                        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-white"></div>
+                                    </div>
+                                ) : (
+                                    <>
+                                        <button
+                                            onClick={cancelDelete}
+                                            className="w-1/2 bg-[#4D70B8] hover:bg-[#3A5A9F] text-white font-medium py-3 px-4 rounded transition-all"
+                                        >
+                                            Cancel
+                                        </button>
+                                        <button
+                                            onClick={handleDelete}
+                                            className="w-1/2 bg-[#e6001f] hover:bg-red-700 text-white font-medium py-3 px-4 rounded transition-all"
+                                        >
+                                            Delete
+                                        </button>
+                                    </>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Modal de éxito después de eliminar */}
+            {showDeleteSuccess && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                    <div className="w-full max-w-md overflow-hidden rounded-lg shadow-xl">
+                        <div className="bg-white py-4 px-6">
+                            <h2 className="text-2xl font-bold text-center text-[#002057]">
+                                Success
+                            </h2>
+                            <div className="mt-1 w-24 h-1 bg-[#e6001f] mx-auto"></div>
+                        </div>
+
+                        <div className="bg-[#1E2A45] py-8 px-6">
+                            <div className="flex items-center gap-3">
+                                <div className="bg-green-500 rounded-full p-2 flex-shrink-0">
+                                    <svg className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                    </svg>
+                                </div>
+                                <p className="text-white text-lg">
+                                    Service type "{deletedServiceTypeName}" has been successfully deleted!
+                                </p>
+                            </div>
+
+                            <div className="mt-8">
+                                <button
+                                    onClick={closeSuccessModal}
+                                    className="w-full bg-green-500 hover:bg-green-600 text-white font-medium py-3 px-4 rounded transition-all"
+                                >
+                                    OK
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </AISGBackground>
     );
 };

@@ -164,7 +164,7 @@ def update_service_category(item_id: int, item: ServiceCategoryCreate, db: Sessi
         if not registro:
             raise HTTPException(status_code=404, detail="No encontrado")
         registro.service_category_name = item.service_category_name
-        registro.whonew = item.whonew  # <-- Aquí se actualiza el usuario
+        registro.whonew = item.whonew
         db.commit()
         db.refresh(registro)
         return registro
@@ -200,7 +200,6 @@ def get_service_status(db: Session = Depends(get_db)):
         logger.error(f"Error al obtener service-status: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-# NUEVO ENDPOINT PARA OBTENER UN STATUS POR ID
 @router.get("/service-status/{item_id}", response_model=CatalogServiceStatusResponse)
 def get_service_status_by_id(item_id: int, db: Session = Depends(get_db)):
     try:
@@ -219,26 +218,16 @@ def get_service_status_by_id(item_id: int, db: Session = Depends(get_db)):
         logger.error(f"Error al obtener service-status por ID: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-# Modificar solo esta función para solucionar el problema
 @router.post("/service-status", response_model=CatalogServiceStatusResponse)
 def create_service_status(item: ServiceStatusCreate, db: Session = Depends(get_db)):
     try:
-        # Imprimir el request body completo para diagnóstico
         logger.info(f"Request body completo: {item}")
         logger.info(f"Datos recibidos para crear status: {item.dict()}")
-        
-        # Inspeccionar específicamente el campo whonew
-        if hasattr(item, 'whonew'):
-            logger.info(f"Usuario que crea (whonew): {item.whonew!r}")
-        else:
-            logger.warning("El objeto item no tiene un atributo 'whonew'")
         
         # Asegurar que siempre haya un valor para whonew
         usuario = "system"
         if hasattr(item, 'whonew') and item.whonew:
             usuario = item.whonew
-        else:
-            logger.warning(f"Campo whonew no presente o vacío, usando valor predeterminado '{usuario}'")
         
         # Crear el registro con el valor de usuario garantizado
         nuevo = models.CatalogServiceStatus(
@@ -246,15 +235,12 @@ def create_service_status(item: ServiceStatusCreate, db: Session = Depends(get_d
             whonew=usuario
         )
         
-        # Verificar registro antes de guardar
         logger.info(f"Objeto a guardar: status_name={nuevo.status_name!r}, whonew={nuevo.whonew!r}")
         
-        # Guardar en la base de datos
         db.add(nuevo)
         db.commit()
         db.refresh(nuevo)
         
-        # Verificar después de guardar
         logger.info(f"Registro guardado en DB: id={nuevo.id_service_status}, whonew={nuevo.whonew!r}")
         
         return nuevo
@@ -267,14 +253,17 @@ def create_service_status(item: ServiceStatusCreate, db: Session = Depends(get_d
 @router.put("/service-status/{item_id}", response_model=CatalogServiceStatusResponse)
 def update_service_status(item_id: int, item: ServiceStatusCreate, db: Session = Depends(get_db)):
     try:
-        # Añadir logs para depuración
         logger.info(f"Actualizando status ID={item_id} con datos: {item.dict()}")
-        logger.info(f"Usuario que modifica (whonew): {item.whonew}")
         
         registro = db.query(models.CatalogServiceStatus).filter_by(id_service_status=item_id).first()
         if not registro:
             logger.warning(f"No se encontró el status con ID={item_id}")
             raise HTTPException(status_code=404, detail="No encontrado")
+        
+        # Asegurar que whonew siempre tenga un valor
+        usuario = "system"
+        if hasattr(item, 'whonew') and item.whonew:
+            usuario = item.whonew
         
         # Guardar valores anteriores para comparar
         old_values = {
@@ -283,15 +272,13 @@ def update_service_status(item_id: int, item: ServiceStatusCreate, db: Session =
         }
         
         registro.status_name = item.status_name
-        registro.whonew = item.whonew  # <-- Aquí se actualiza el usuario
+        registro.whonew = usuario
         
-        # Verificar cambios
         logger.info(f"Cambios: {old_values} -> {{'status_name': '{registro.status_name}', 'whonew': '{registro.whonew}'}}")
         
         db.commit()
         db.refresh(registro)
         
-        # Verificar que se guardó correctamente
         logger.info(f"Registro actualizado en DB: id={registro.id_service_status}, whonew={registro.whonew}")
         
         return registro

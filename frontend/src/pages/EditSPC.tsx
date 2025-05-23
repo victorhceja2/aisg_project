@@ -5,43 +5,133 @@ import { useParams, useNavigate } from "react-router-dom";
 import AISGBackground from "../components/catalogs/fondo";
 
 const EditServiceType: React.FC = () => {
-  const { id } = useParams();
+  const { id } = useParams<{ id: string }>();
   const [name, setName] = useState("");
-  const [whonew, setWhonew] = useState("system");
+  const [originalName, setOriginalName] = useState(""); // Para verificar duplicados
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  // apiURL ya no es necesario, usando axiosInstance
+  
+  // Estados para los popups
+  const [showSuccessPopup, setShowSuccessPopup] = useState(false);
+  const [showDuplicateWarningPopup, setShowDuplicateWarningPopup] = useState(false);
+  
   const navigate = useNavigate();
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const res = await axiosInstance.get(`/catalog/service-types`);
-        const found = res.data.find((t: any) => t.id_service_type === Number(id));
-        if (found) setName(found.service_type_name);
-        else setError("Service type not found.");
-      } catch {
-        setError("Could not load the service type.");
+        console.log(`Fetching service type with ID: ${id}`);
+        // Primero obtenemos todos los tipos de servicio 
+        const res = await axiosInstance.get('/catalog/service-types');
+        
+        // Luego filtramos para encontrar el que coincide con nuestro ID
+        if (res.data && Array.isArray(res.data)) {
+          const serviceType = res.data.find(
+            (item: any) => item.id_service_type.toString() === id
+          );
+          
+          if (serviceType) {
+            console.log("Service type found:", serviceType);
+            setName(serviceType.service_type_name);
+            setOriginalName(serviceType.service_type_name);
+            setError(null);
+          } else {
+            console.error(`Service type with ID ${id} not found in response`);
+            setError(`Service type with ID ${id} not found.`);
+          }
+        } else {
+          console.error("Response data is not an array:", res.data);
+          setError("Invalid response from server.");
+        }
+      } catch (err) {
+        console.error("Error loading service type:", err);
+        setError("Could not load the service type. Please check network connection or try again later.");
       } finally {
         setLoading(false);
       }
     };
-    fetchData();
-  }, [id, apiURL]);
+    
+    if (id) {
+      fetchData();
+    } else {
+      setError("No service type ID provided.");
+      setLoading(false);
+    }
+  }, [id]);
+
+  /**
+   * Verifica si un tipo de servicio con el mismo nombre ya existe
+   */
+  const checkDuplicateServiceType = async (name: string) => {
+    try {
+      const res = await axiosInstance.get(`/catalog/service-types`);
+      // Si hay resultados, verificamos si alguno coincide exactamente con el nombre
+      // pero ignoramos el elemento actual que estamos editando
+      return res.data.some((item: any) => 
+        item.service_type_name.toLowerCase() === name.toLowerCase() && 
+        item.id_service_type.toString() !== id
+      );
+    } catch (err) {
+      console.error("Error checking for duplicate service type", err);
+      return false; // En caso de error, asumimos que no es duplicado
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    
+    if (!name.trim()) {
+      setError("Service type name is required.");
+      return;
+    }
+    
     setSaving(true);
+    
     try {
-      await axiosInstance.put(`/catalog/service-types/${id}`, { service_type_name: name, whonew });
-      navigate("/catalogs/servicetype");
-    } catch {
+      // Solo realizar la verificación si el nombre ha cambiado
+      if (name.toLowerCase() !== originalName.toLowerCase()) {
+        // Verificar si el nombre ya existe
+        const isDuplicate = await checkDuplicateServiceType(name);
+        if (isDuplicate) {
+          // Mostrar el popup de advertencia
+          setShowDuplicateWarningPopup(true);
+          setSaving(false);
+          return;
+        }
+      }
+      
+      const whonew = sessionStorage.getItem("userName") || "system";
+      
+      await axiosInstance.put(`/catalog/service-types/${id}`, { 
+        service_type_name: name, 
+        whonew 
+      });
+      
+      // Mostrar popup de éxito en lugar de redirigir inmediatamente
+      setShowSuccessPopup(true);
+    } catch (err) {
+      console.error("Error updating service type:", err);
       setError("Could not update the service type. Please try again.");
     } finally {
       setSaving(false);
     }
+  };
+
+  /**
+   * Cierra el popup y navega al listado de tipos de servicio
+   */
+  const handleClosePopup = () => {
+    setShowSuccessPopup(false);
+    navigate("/catalogs/servicetype");
+  };
+
+  /**
+   * Cierra el popup de advertencia
+   */
+  const closeDuplicateWarningPopup = () => {
+    setShowDuplicateWarningPopup(false);
   };
 
   if (loading) {
@@ -65,10 +155,6 @@ const EditServiceType: React.FC = () => {
             <h1 className="text-2xl font-bold text-center text-[#002057]">
               Edit Service Type
             </h1>
-            <div className="mt-2 w-20 h-1 bg-[#e6001f] mx-auto rounded"></div>
-            <p className="text-gray-500 mt-2 font-light text-center">
-              Editing service type #{id}
-            </p>
           </div>
           <div className="bg-[#1E2A45] rounded-b-lg shadow-lg px-8 py-8">
             {error && (
@@ -119,6 +205,76 @@ const EditServiceType: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Popup de éxito */}
+      {showSuccessPopup && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="overflow-hidden max-w-md w-full mx-4 rounded-lg shadow-xl">
+            {/* Encabezado blanco con texto azul */}
+            <div className="bg-white rounded-t-lg px-6 py-4 shadow-lg">
+              <h2 className="text-2xl font-bold text-center text-[#002057]">
+                Success
+              </h2>
+              <div className="mt-2 w-20 h-1 bg-[#e6001f] mx-auto rounded"></div>
+            </div>
+            
+            {/* Cuerpo con fondo azul oscuro */}
+            <div className="bg-[#1E2A45] rounded-b-lg shadow-lg px-8 py-8">
+              <div className="flex items-center mb-4 justify-center">
+                <div className="bg-[#00B140] rounded-full p-2 mr-4">
+                  <svg className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+                <p className="text-white text-lg">Service type has been successfully updated!</p>
+              </div>
+              <div className="mt-6 flex justify-center space-x-4">
+                <button
+                  onClick={handleClosePopup}
+                  className="w-full bg-[#00B140] hover:bg-[#009935] text-white font-medium py-3 px-4 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg"
+                >
+                  OK
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Popup de advertencia de servicio duplicado */}
+      {showDuplicateWarningPopup && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="overflow-hidden max-w-md w-full mx-4 rounded-lg shadow-xl">
+            {/* Encabezado blanco con texto azul */}
+            <div className="bg-white rounded-t-lg px-6 py-4 shadow-lg">
+              <h2 className="text-2xl font-bold text-center text-[#002057]">
+                Warning
+              </h2>
+              <div className="mt-2 w-20 h-1 bg-[#e6001f] mx-auto rounded"></div>
+            </div>
+            
+            {/* Cuerpo con fondo azul oscuro */}
+            <div className="bg-[#1E2A45] rounded-b-lg shadow-lg px-8 py-8">
+              <div className="flex items-center mb-4 justify-center">
+                <div className="bg-[#f59e0b] rounded-full p-2 mr-4">
+                  <svg className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                </div>
+                <p className="text-white text-lg">A service type with the name "{name}" already exists!</p>
+              </div>
+              <div className="mt-6 flex justify-center space-x-4">
+                <button
+                  onClick={closeDuplicateWarningPopup}
+                  className="w-full bg-[#f59e0b] hover:bg-[#d97706] text-white font-medium py-3 px-4 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg"
+                >
+                  OK
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </AISGBackground>
   );
 };

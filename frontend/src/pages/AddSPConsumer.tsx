@@ -6,9 +6,16 @@ import AISGBackground from "../components/catalogs/fondo";
 
 // Interface para los clientes
 interface Client {
-  llave: number;  // Cambiado de id_client a llave (según tu modelo)
+  llave: number;
   nombre: string;
   razonSocial: string;
+}
+
+// Interface para los servicios
+interface Service {
+  id_service: number;
+  service_name: string;
+  service_code: string;
 }
 
 const AddSPConsumer: React.FC = () => {
@@ -16,6 +23,10 @@ const AddSPConsumer: React.FC = () => {
   // Estado para almacenar la lista de clientes
   const [clients, setClients] = useState<Client[]>([]);
   const [clientsLoading, setClientsLoading] = useState(true);
+  
+  // Estado para almacenar la lista de servicios
+  const [services, setServices] = useState<Service[]>([]);
+  const [servicesLoading, setServicesLoading] = useState(true);
 
   const [form, setForm] = useState({
     id_service: "",
@@ -29,23 +40,33 @@ const AddSPConsumer: React.FC = () => {
 
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  // Estado para controlar la alerta de éxito
+  const [showSuccess, setShowSuccess] = useState(false);
 
-  // Obtener la lista de clientes cuando el componente se monta
+  // Obtener la lista de clientes y servicios cuando el componente se monta
   useEffect(() => {
-    const fetchClients = async () => {
+    const fetchData = async () => {
       try {
-        const response = await axiosInstance.get('/catalog/clients');
-        console.log("Clientes recibidos:", response.data);
-        setClients(response.data);
-      } catch (err: any) {
-        console.error("Error fetching clients:", err);
-        setError("Error loading clients. Please refresh the page.");
-      } finally {
+        // Cargar clientes
+        const clientsResponse = await axiosInstance.get('/catalog/clients');
+        console.log("Clientes recibidos:", clientsResponse.data);
+        setClients(clientsResponse.data);
         setClientsLoading(false);
+        
+        // Cargar servicios
+        const servicesResponse = await axiosInstance.get('/catalog/services');
+        console.log("Servicios recibidos:", servicesResponse.data);
+        setServices(servicesResponse.data);
+        setServicesLoading(false);
+      } catch (err: any) {
+        console.error("Error fetching data:", err);
+        setError("Error loading data. Please refresh the page.");
+        setClientsLoading(false);
+        setServicesLoading(false);
       }
     };
 
-    fetchClients();
+    fetchData();
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -56,7 +77,7 @@ const AddSPConsumer: React.FC = () => {
     try {
       // Validación básica
       if (!form.id_service || !form.id_client || !form.id_company) {
-        setError("Todos los campos de ID son requeridos");
+        setError("All ID fields are required");
         setLoading(false);
         return;
       }
@@ -77,7 +98,9 @@ const AddSPConsumer: React.FC = () => {
 
       const response = await axiosInstance.post(`/catalog/service-per-customer`, data);
       console.log("Respuesta:", response.data);
-      navigate("/catalogs/customer");
+      
+      // Mostrar alerta de éxito en lugar de navegar inmediatamente
+      setShowSuccess(true);
     } catch (err: any) {
       console.error("Error completo:", err);
       
@@ -103,9 +126,48 @@ const AddSPConsumer: React.FC = () => {
   const handleCancel = () => {
     navigate("/catalogs/customer");
   };
+  
+  // Función para manejar el cierre del modal de éxito
+  const handleSuccessClose = () => {
+    setShowSuccess(false);
+    navigate("/catalogs/customer");
+  };
+
+  // Modal de alerta de éxito
+  const SuccessAlert = () => (
+    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+      <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
+        <div className="px-6 py-4 border-b border-gray-200">
+          <h3 className="text-xl font-bold text-center text-[#002057]">
+            Success
+          </h3>
+          <div className="mt-1 w-14 h-1 bg-[#e6001f] mx-auto rounded"></div>
+        </div>
+        <div className="bg-[#1E2A45] p-6 flex flex-col items-center">
+          <div className="bg-green-600 rounded-full h-14 w-14 flex items-center justify-center mb-4">
+            <svg className="h-9 w-9 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"></path>
+            </svg>
+          </div>
+          <p className="text-white text-lg mb-6 text-center">
+            Service per customer has been successfully added!
+          </p>
+          <button 
+            onClick={handleSuccessClose}
+            className="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-4 rounded-lg transition-colors duration-200"
+          >
+            OK
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <AISGBackground>
+      {/* Render modal de éxito si showSuccess es true */}
+      {showSuccess && <SuccessAlert />}
+      
       <div className="max-w-7xl mx-auto p-6 font-['Montserrat'] min-h-screen flex items-center justify-center">
         <div className="w-full max-w-lg">
           <div className="bg-white rounded-t-lg px-6 py-4 shadow-lg">
@@ -123,14 +185,26 @@ const AddSPConsumer: React.FC = () => {
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-white text-sm font-medium mb-2">Service ID</label>
-                  <input
-                    className="w-full px-4 py-3 rounded-lg bg-white text-[#002057] border border-[#cccccc] focus:border-[#00B140] focus:ring-2 focus:ring-[#00B140] focus:outline-none transition-all"
-                    placeholder="Service ID"
-                    value={form.id_service}
-                    onChange={(e) => setForm({ ...form, id_service: e.target.value })}
-                    required
-                  />
+                  <label className="block text-white text-sm font-medium mb-2">Service</label>
+                  {servicesLoading ? (
+                    <div className="w-full px-4 py-3 rounded-lg bg-gray-200 animate-pulse text-center">
+                      Loading services...
+                    </div>
+                  ) : (
+                    <select
+                      className="w-full px-4 py-3 rounded-lg bg-white text-[#002057] border border-[#cccccc] focus:border-[#00B140] focus:ring-2 focus:ring-[#00B140] focus:outline-none transition-all"
+                      value={form.id_service}
+                      onChange={(e) => setForm({ ...form, id_service: e.target.value })}
+                      required
+                    >
+                      <option value="">Select a service</option>
+                      {services.map((service) => (
+                        <option key={service.id_service} value={service.id_service}>
+                          {service.service_code} - {service.service_name}
+                        </option>
+                      ))}
+                    </select>
+                  )}
                 </div>
                 <div>
                   <label className="block text-white text-sm font-medium mb-2">Client</label>

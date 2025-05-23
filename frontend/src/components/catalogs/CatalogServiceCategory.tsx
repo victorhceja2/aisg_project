@@ -9,8 +9,12 @@ const CatalogServiceCategory: React.FC = () => {
     const [search, setSearch] = useState("");
     const [error, setError] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
-    // apiURL ya no es necesario, usando axiosInstance
-
+    
+    // Estados para los popups de eliminación
+    const [showDeleteConfirmPopup, setShowDeleteConfirmPopup] = useState(false);
+    const [showDeleteSuccessPopup, setShowDeleteSuccessPopup] = useState(false);
+    const [categoryToDelete, setCategoryToDelete] = useState<{id: number, name: string} | null>(null);
+    
     const fetchCategories = async () => {
         setLoading(true);
         try {
@@ -25,16 +29,45 @@ const CatalogServiceCategory: React.FC = () => {
         }
     };
 
-    const handleDelete = async (id: number, name: string) => {
-        if (window.confirm(`Are you sure you want to delete "${name}"? This action cannot be undone.`)) {
-            try {
-                await axiosInstance.delete(`/catalog/service-categories/${id}`);
-                fetchCategories();
-                setError(null);
-            } catch {
-                setError("Could not delete the service category. It may be used by an active service.");
-            }
+    // Mostrar el popup de confirmación de eliminación
+    const confirmDelete = (id: number, name: string) => {
+        setCategoryToDelete({ id, name });
+        setShowDeleteConfirmPopup(true);
+    };
+
+    // Ejecutar la eliminación después de confirmar
+    const handleDelete = async () => {
+        if (!categoryToDelete) return;
+        
+        try {
+            setLoading(true);
+            await axiosInstance.delete(`/catalog/service-categories/${categoryToDelete.id}`);
+            
+            // Ocultar el popup de confirmación
+            setShowDeleteConfirmPopup(false);
+            
+            // Mostrar mensaje de éxito
+            setShowDeleteSuccessPopup(true);
+            
+            // Refrescar la lista de categorías
+            await fetchCategories();
+            setError(null);
+        } catch (err) {
+            setShowDeleteConfirmPopup(false);
+            setError("Could not delete the service category. It may be used by an active service.");
+            setLoading(false);
         }
+    };
+
+    // Cerrar el popup de éxito
+    const handleCloseSuccessPopup = () => {
+        setShowDeleteSuccessPopup(false);
+    };
+
+    // Cancelar la eliminación
+    const cancelDelete = () => {
+        setCategoryToDelete(null);
+        setShowDeleteConfirmPopup(false);
     };
 
     useEffect(() => {
@@ -91,7 +124,7 @@ const CatalogServiceCategory: React.FC = () => {
                             <thead>
                                 <tr className="bg-white">
                                     <th className="px-4 py-3 text-left font-semibold text-[#002057] border border-[#cccccc]">Name</th>
-                                    <th className="px-4 py-3 text-left font-semibold text-[#002057] border border-[#cccccc]">Created/Modified By</th>
+                                    <th className="px-4 py-3 text-left font-semibold text-[#002057] border border-[#cccccc]">Created By</th>
                                     <th className="px-4 py-3 text-left font-semibold text-[#002057] border border-[#cccccc]">Created At</th>
                                     <th className="px-4 py-3 text-left font-semibold text-[#002057] border border-[#cccccc]">Updated At</th>
                                     <th className="px-4 py-3 text-center font-semibold text-[#002057] border border-[#cccccc]">Actions</th>
@@ -127,7 +160,7 @@ const CatalogServiceCategory: React.FC = () => {
                                                         </svg>
                                                     </Link>
                                                     <button
-                                                        onClick={() => handleDelete(cat.id_service_category, cat.service_category_name)}
+                                                        onClick={() => confirmDelete(cat.id_service_category, cat.service_category_name)}
                                                         className="p-1.5 bg-[#e6001f] text-white rounded hover:bg-red-700 transition-colors"
                                                         title="Delete"
                                                     >
@@ -145,6 +178,87 @@ const CatalogServiceCategory: React.FC = () => {
                     )}
                 </div>
             </div>
+
+            {/* Popup de confirmación de eliminación */}
+            {showDeleteConfirmPopup && categoryToDelete && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                    <div className="overflow-hidden max-w-md w-full mx-4 rounded-lg shadow-xl">
+                        {/* Encabezado blanco con texto azul */}
+                        <div className="bg-white rounded-t-lg px-6 py-4 shadow-lg">
+                            <h2 className="text-2xl font-bold text-center text-[#002057]">
+                                Confirm Deletion
+                            </h2>
+                            <div className="mt-2 w-20 h-1 bg-[#e6001f] mx-auto rounded"></div>
+                        </div>
+                        
+                        {/* Cuerpo con fondo azul oscuro */}
+                        <div className="bg-[#1E2A45] rounded-b-lg shadow-lg px-8 py-8">
+                            <div className="flex items-center mb-4 justify-center">
+                                <div className="bg-[#e6001f] rounded-full p-2 mr-4">
+                                    <svg className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                    </svg>
+                                </div>
+                                <div>
+                                    <p className="text-white text-lg font-medium">Are you sure you want to delete?</p>
+                                    <p className="text-gray-300 mt-1">
+                                        The category "{categoryToDelete.name}" will be permanently deleted.
+                                    </p>
+                                </div>
+                            </div>
+                            <div className="mt-6 flex justify-center space-x-4">
+                                <button
+                                    onClick={cancelDelete}
+                                    className="w-1/2 bg-gray-500 hover:bg-gray-600 text-white font-medium py-3 px-4 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={handleDelete}
+                                    className="w-1/2 bg-[#e6001f] hover:bg-red-700 text-white font-medium py-3 px-4 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg"
+                                >
+                                    Delete
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+            
+            {/* Popup de éxito después de eliminar */}
+            {showDeleteSuccessPopup && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                    <div className="overflow-hidden max-w-md w-full mx-4 rounded-lg shadow-xl">
+                        {/* Encabezado blanco con texto azul */}
+                        <div className="bg-white rounded-t-lg px-6 py-4 shadow-lg">
+                            <h2 className="text-2xl font-bold text-center text-[#002057]">
+                                Success
+                            </h2>
+                            <div className="mt-2 w-20 h-1 bg-[#e6001f] mx-auto rounded"></div>
+                        </div>
+                        
+                        {/* Cuerpo con fondo azul oscuro */}
+                        <div className="bg-[#1E2A45] rounded-b-lg shadow-lg px-8 py-8">
+                            <div className="flex items-center mb-4 justify-center">
+                                <div className="bg-[#00B140] rounded-full p-2 mr-4">
+                                    <svg className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                    </svg>
+                                </div>
+                                <p className="text-white text-lg">The service category has been successfully deleted!</p>
+                            </div>
+                            <div className="mt-6 flex justify-center space-x-4">
+                                <button
+                                    onClick={handleCloseSuccessPopup}
+                                    className="w-full bg-[#00B140] hover:bg-[#009935] text-white font-medium py-3 px-4 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg"
+                                >
+                                    OK
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </AISGBackground>
     );
 };

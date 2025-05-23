@@ -7,48 +7,159 @@ import AISGBackground from "../components/catalogs/fondo";
 const EditCSC: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const [categoryName, setCategoryName] = useState("");
-  const [whonew, setWhonew] = useState("system");
+  const [originalName, setOriginalName] = useState("");
+  const [originalCreator, setOriginalCreator] = useState(""); // Guarda quién creó originalmente
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
-  // apiURL ya no es necesario, usando axiosInstance
+
+  // Estados para los popups
+  const [showSuccessPopup, setShowSuccessPopup] = useState(false);
+  const [showDuplicateWarningPopup, setShowDuplicateWarningPopup] = useState(false);
+
   const navigate = useNavigate();
 
   useEffect(() => {
     const fetchCategory = async () => {
       try {
+        console.log(`Fetching service category with ID: ${id}`);
         const res = await axiosInstance.get(`/catalog/service-categories`);
         const found = res.data.find((cat: any) => cat.id_service_category?.toString() === id);
         if (found) {
+          console.log("Category found:", found);
           setCategoryName(found.service_category_name);
+          setOriginalName(found.service_category_name);
+          setOriginalCreator(found.whonew || "system");
+          setError(null);
         } else {
+          console.error(`Category with ID ${id} not found in response`);
           setError("Service category not found.");
         }
       } catch (err) {
-        setError("Could not load the service category.");
+        console.error("Error loading service category:", err);
+        setError("Could not load the service category. Please check your connection and try again.");
       } finally {
         setInitialLoading(false);
       }
     };
-    fetchCategory();
-  }, [id, apiURL]);
+
+    if (id) {
+      fetchCategory();
+    } else {
+      setError("No category ID provided.");
+      setInitialLoading(false);
+    }
+  }, [id]);
+
+  const checkDuplicateCategory = async (name: string) => {
+    try {
+      const res = await axiosInstance.get(`/catalog/service-categories`);
+      return res.data.some((cat: any) =>
+        cat.service_category_name.toLowerCase() === name.toLowerCase() &&
+        cat.id_service_category.toString() !== id
+      );
+    } catch (err) {
+      console.error("Error checking for duplicate category", err);
+      return false;
+    }
+  };
+
+  /**
+   * Obtiene el nombre del usuario actual con sesión activa
+   */
+  const getCurrentUser = (): string => {
+    // Primero intentamos obtener el nombre de la sesión local
+    let currentUser = localStorage.getItem("userName");
+
+    // Si no existe en localStorage, intentamos con sessionStorage
+    if (!currentUser) {
+      currentUser = sessionStorage.getItem("userName");
+    }
+
+    // Si aún no hay nombre, buscamos en otros posibles lugares
+    if (!currentUser) {
+      // Intentamos otros posibles nombres de variables
+      currentUser = localStorage.getItem("username") ||
+        localStorage.getItem("user") ||
+        sessionStorage.getItem("username") ||
+        sessionStorage.getItem("user");
+    }
+
+    if (!currentUser) {
+      currentUser = "system";
+      console.warn("No se encontró usuario en sesión. Usando 'system' como valor predeterminado.");
+    }
+
+    console.log("Usuario actual con sesión activa:", currentUser);
+    return currentUser;
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
 
+    if (!categoryName.trim()) {
+      setError("Category name is required.");
+      setLoading(false);
+      return;
+    }
+
     try {
-      await axiosInstance.put(`/catalog/service-categories/${id}`, {
+      // Solo realizar la verificación si el nombre ha cambiado
+      if (categoryName.toLowerCase() !== originalName.toLowerCase()) {
+        // Verificar si el nombre ya existe
+        const isDuplicate = await checkDuplicateCategory(categoryName);
+        if (isDuplicate) {
+          // Mostrar el popup de advertencia
+          setShowDuplicateWarningPopup(true);
+          setLoading(false);
+          return;
+        }
+      }
+
+      // Obtenemos el nombre de usuario actual con sesión activa
+      const currentUser = getCurrentUser();
+
+      console.log("Current user updating record:", currentUser);
+      console.log("Original creator:", originalCreator);
+
+      // Información completa para la actualización
+      const payload = {
         service_category_name: categoryName,
-        whonew,
-      });
-      navigate("/catalogs/servicecategory");
+        whonew: originalCreator,  // Preservamos el creador original
+        whoedit: currentUser      // Usuario actual con sesión activa que modifica
+      };
+
+      console.log("Sending update payload:", payload);
+
+      const response = await axiosInstance.put(`/catalog/service-categories/${id}`, payload);
+
+      console.log("Update response:", response.data);
+
+      // Mostrar popup de éxito en lugar de redirigir inmediatamente
+      setShowSuccessPopup(true);
     } catch (err) {
+      console.error("Error updating category:", err);
       setError("Could not update the service category. Please try again.");
     } finally {
       setLoading(false);
     }
+  };
+
+  /**
+   * Cierra el popup y navega al listado de categorías
+   */
+  const handleClosePopup = () => {
+    setShowSuccessPopup(false);
+    navigate("/catalogs/servicecategory");
+  };
+
+  /**
+   * Cierra el popup de advertencia
+   */
+  const closeDuplicateWarningPopup = () => {
+    setShowDuplicateWarningPopup(false);
   };
 
   if (initialLoading) {
@@ -73,9 +184,6 @@ const EditCSC: React.FC = () => {
               Edit Service Category
             </h1>
             <div className="mt-2 w-20 h-1 bg-[#e6001f] mx-auto rounded"></div>
-            <p className="text-gray-500 mt-2 font-light text-center">
-              Editing category #{id}
-            </p>
           </div>
           <div className="bg-[#1E2A45] rounded-b-lg shadow-lg px-8 py-8">
             {error && (
@@ -108,9 +216,8 @@ const EditCSC: React.FC = () => {
                 <button
                   type="submit"
                   disabled={loading}
-                  className={`w-1/2 ${
-                    loading ? "bg-gray-500" : "bg-[#00B140] hover:bg-[#009935]"
-                  } text-white font-medium py-3 px-4 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg flex items-center justify-center`}
+                  className={`w-1/2 ${loading ? "bg-gray-500" : "bg-[#00B140] hover:bg-[#009935]"
+                    } text-white font-medium py-3 px-4 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg flex items-center justify-center`}
                 >
                   {loading ? (
                     <>
@@ -126,6 +233,76 @@ const EditCSC: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Popup de éxito */}
+      {showSuccessPopup && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="overflow-hidden max-w-md w-full mx-4 rounded-lg shadow-xl">
+            {/* Encabezado blanco con texto azul */}
+            <div className="bg-white rounded-t-lg px-6 py-4 shadow-lg">
+              <h2 className="text-2xl font-bold text-center text-[#002057]">
+                Success
+              </h2>
+              <div className="mt-2 w-20 h-1 bg-[#e6001f] mx-auto rounded"></div>
+            </div>
+
+            {/* Cuerpo con fondo azul oscuro */}
+            <div className="bg-[#1E2A45] rounded-b-lg shadow-lg px-8 py-8">
+              <div className="flex items-center mb-4 justify-center">
+                <div className="bg-[#00B140] rounded-full p-2 mr-4">
+                  <svg className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+                <p className="text-white text-lg">Service category has been successfully updated!</p>
+              </div>
+              <div className="mt-6 flex justify-center space-x-4">
+                <button
+                  onClick={handleClosePopup}
+                  className="w-full bg-[#00B140] hover:bg-[#009935] text-white font-medium py-3 px-4 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg"
+                >
+                  OK
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Popup de advertencia de categoría duplicada */}
+      {showDuplicateWarningPopup && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="overflow-hidden max-w-md w-full mx-4 rounded-lg shadow-xl">
+            {/* Encabezado blanco con texto azul */}
+            <div className="bg-white rounded-t-lg px-6 py-4 shadow-lg">
+              <h2 className="text-2xl font-bold text-center text-[#002057]">
+                Warning
+              </h2>
+              <div className="mt-2 w-20 h-1 bg-[#e6001f] mx-auto rounded"></div>
+            </div>
+
+            {/* Cuerpo con fondo azul oscuro */}
+            <div className="bg-[#1E2A45] rounded-b-lg shadow-lg px-8 py-8">
+              <div className="flex items-center mb-4 justify-center">
+                <div className="bg-[#f59e0b] rounded-full p-2 mr-4">
+                  <svg className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                </div>
+                <p className="text-white text-lg">A category with the name "{categoryName}" already exists!</p>
+              </div>
+              <div className="mt-6 flex justify-center space-x-4">
+                <button
+                  onClick={closeDuplicateWarningPopup}
+                  className="w-full bg-[#f59e0b] hover:bg-[#d97706] text-white font-medium py-3 px-4 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg"
+                >
+                  OK
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </AISGBackground>
   );
 };

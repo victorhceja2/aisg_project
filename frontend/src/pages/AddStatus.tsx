@@ -1,3 +1,5 @@
+// Componente para agregar estados de servicio, con validación de duplicados, 
+// manejo de sesión de usuario y ventanas emergentes de confirmación/advertencia.
 import React, { useState, useEffect } from "react";
 import axiosInstance from '../api/axiosInstance';
 
@@ -11,81 +13,125 @@ const AddStatus: React.FC = () => {
   const [error, setError] = useState("");
   const [currentUser, setCurrentUser] = useState<string | null>(null);
 
-  // Verificar el usuario almacenado al cargar el componente
+  const [showSuccessPopup, setShowSuccessPopup] = useState(false);
+  const [showDuplicateWarningPopup, setShowDuplicateWarningPopup] = useState(false);
+  const [duplicateStatusName, setDuplicateStatusName] = useState("");
+
   useEffect(() => {
-    const storedUser = sessionStorage.getItem("userName");
-    console.log("Usuario en sessionStorage:", storedUser);
-    
-    // Si no hay usuario en sessionStorage, intentar establecer uno por defecto
-    if (!storedUser) {
-      console.log("No se encontró usuario en sessionStorage, estableciendo valor predeterminado");
-      sessionStorage.setItem("userName", "admin");
-      setCurrentUser("admin");
-    } else {
-      setCurrentUser(storedUser);
-    }
+    const user = getCurrentUser();
+    setCurrentUser(user);
+    sessionStorage.setItem("userName", user);
   }, []);
+
+  const getCurrentUser = (): string => {
+    const storageUser = localStorage.getItem("userName") ||
+      sessionStorage.getItem("userName") ||
+      localStorage.getItem("username") ||
+      sessionStorage.getItem("username") ||
+      localStorage.getItem("user") ||
+      sessionStorage.getItem("user");
+
+    if (storageUser) {
+      return storageUser;
+    }
+
+    const token = localStorage.getItem("token") ||
+      sessionStorage.getItem("token") ||
+      localStorage.getItem("accessToken") ||
+      sessionStorage.getItem("accessToken");
+
+    if (token) {
+      try {
+        const parts = token.split('.');
+        if (parts.length === 3) {
+          const payload = JSON.parse(atob(parts[1]));
+          const fromToken = payload.username || payload.userName || payload.name ||
+            payload.sub || payload.email || payload.userId;
+
+          if (fromToken) {
+            sessionStorage.setItem("userName", fromToken);
+            return fromToken;
+          }
+        }
+      } catch (e) {
+        // Error al procesar token
+      }
+    }
+
+    const defaultUser = "admin";
+    sessionStorage.setItem("userName", defaultUser);
+    return defaultUser;
+  };
+
+  const checkDuplicateStatus = async (name: string): Promise<boolean> => {
+    try {
+      const res = await axiosInstance.get(`/catalog/service-status`);
+      return res.data.some((status: any) =>
+        status.status_name.toLowerCase() === name.toLowerCase()
+      );
+    } catch (err) {
+      return false;
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
     if (!statusName.trim()) {
       setError("Status name is required");
       return;
     }
+
     try {
       setIsLoading(true);
       setError("");
-      
-      // Asegurar que siempre haya un usuario, incluso si sessionStorage falla
-      const whonew = sessionStorage.getItem("userName") || "admin";
-      console.log("Usuario obtenido para el registro:", whonew);
-      
-      // Asegurarnos de que el nombre del campo coincida EXACTAMENTE con lo que espera el backend
+
+      const isDuplicate = await checkDuplicateStatus(statusName);
+      if (isDuplicate) {
+        setDuplicateStatusName(statusName);
+        setShowDuplicateWarningPopup(true);
+        setIsLoading(false);
+        return;
+      }
+
+      const whonew = currentUser || "admin";
+
       const data = {
         status_name: statusName.trim(),
-        whonew: whonew  // Asegúrate de que este campo se llame exactamente igual que en el backend
+        whonew: whonew
       };
-      
-      console.log("Datos que se enviarán al backend:", JSON.stringify(data));
-      
+
       const response = await axiosInstance.post(`/catalog/service-status/`, data, {
-        timeout: 15000,
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'X-Username': whonew
         }
       });
-      
-      console.log("Respuesta del servidor completa:", response);
-      console.log("Estructura de la respuesta:", Object.keys(response.data || {}));
-      console.log("Contenido completo de response.data:", response.data);
-      
-      // Verificar si la respuesta incluye el usuario (para depuración)
-      if (response.data && response.data.whonew) {
-        console.log("Usuario guardado:", response.data.whonew);
-      } else {
-        console.warn("La respuesta no incluye el campo whonew");
-        console.warn("Campos disponibles en response.data:", Object.keys(response.data || {}));
-      }
-      
-      navigate("/catalogs/status");
+
+      setShowSuccessPopup(true);
     } catch (err: any) {
-      console.error("Error creating status:", err);
-      
       let errorMessage = "Could not create status. Try again.";
-      
+
       if (err.response) {
-        console.error("Respuesta de error:", err.response.status, err.response.data);
         errorMessage = err.response.data?.detail || `Error ${err.response.status}: ${err.response.statusText}`;
       } else if (err.request) {
-        console.error("No se recibió respuesta del servidor");
         errorMessage = "No response received from server. Please check your connection.";
       } else {
         errorMessage = `Request error: ${err.message}`;
       }
-      
+
       setError(errorMessage);
       setIsLoading(false);
     }
+  };
+
+  const handleCloseSuccessPopup = () => {
+    setShowSuccessPopup(false);
+    navigate("/catalogs/status");
+  };
+
+  const closeDuplicateWarningPopup = () => {
+    setShowDuplicateWarningPopup(false);
   };
 
   return (
@@ -102,11 +148,6 @@ const AddStatus: React.FC = () => {
             {error && (
               <div className="bg-red-500 text-white p-4 rounded-lg mb-6 shadow-md animate-pulse">
                 <p className="font-medium">{error}</p>
-              </div>
-            )}
-            {currentUser && (
-              <div className="mb-4 text-gray-300 text-sm">
-                <p>Logged in as: {currentUser}</p>
               </div>
             )}
             <form onSubmit={handleSubmit} className="space-y-6">
@@ -134,9 +175,8 @@ const AddStatus: React.FC = () => {
                 <button
                   type="submit"
                   disabled={isLoading}
-                  className={`w-1/2 ${
-                    isLoading ? "bg-gray-500" : "bg-[#00B140] hover:bg-[#009935]"
-                  } text-white font-medium py-3 px-4 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg flex items-center justify-center`}
+                  className={`w-1/2 ${isLoading ? "bg-gray-500" : "bg-[#00B140] hover:bg-[#009935]"
+                    } text-white font-medium py-3 px-4 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg flex items-center justify-center`}
                 >
                   {isLoading ? (
                     <>
@@ -152,6 +192,72 @@ const AddStatus: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {showSuccessPopup && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="w-full max-w-md overflow-hidden rounded-lg shadow-xl">
+            <div className="bg-white py-4 px-6">
+              <h2 className="text-2xl font-bold text-center text-[#002057]">
+                Success
+              </h2>
+              <div className="mt-1 w-24 h-1 bg-[#e6001f] mx-auto"></div>
+            </div>
+
+            <div className="bg-[#1E2A45] py-8 px-6">
+              <div className="flex items-center gap-3">
+                <div className="bg-green-500 rounded-full p-2 flex-shrink-0">
+                  <svg className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+                <p className="text-white text-lg">Status has been successfully added!</p>
+              </div>
+
+              <div className="mt-8">
+                <button
+                  onClick={handleCloseSuccessPopup}
+                  className="w-full bg-green-500 hover:bg-green-600 text-white font-medium py-3 px-4 rounded transition-all"
+                >
+                  OK
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showDuplicateWarningPopup && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="w-full max-w-md overflow-hidden rounded-lg shadow-xl">
+            <div className="bg-white py-4 px-6">
+              <h2 className="text-2xl font-bold text-center text-[#002057]">
+                Warning
+              </h2>
+              <div className="mt-1 w-24 h-1 bg-[#e6001f] mx-auto"></div>
+            </div>
+
+            <div className="bg-[#1E2A45] py-8 px-6">
+              <div className="flex items-center gap-3">
+                <div className="bg-[#f59e0b] rounded-full p-2 flex-shrink-0">
+                  <svg className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                </div>
+                <p className="text-white text-lg">A status with the name "{duplicateStatusName}" already exists!</p>
+              </div>
+
+              <div className="mt-8">
+                <button
+                  onClick={closeDuplicateWarningPopup}
+                  className="w-full bg-[#f59e0b] hover:bg-[#d97706] text-white font-medium py-3 px-4 rounded transition-all"
+                >
+                  OK
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </AISGBackground>
   );
 };
