@@ -1,0 +1,11 @@
+
+> frontend@2.2.35 preview
+> vite preview --host
+
+  ➜  Local:   http://localhost:4174/
+  ➜  Network: http://82.165.213.124:4174/
+  ➜  Network: http://172.18.0.1:4174/
+  ➜  Network: http://172.24.0.1:4174/
+  ➜  Network: http://172.22.0.1:4174/
+  ➜  Network: http://172.20.0.1:4174/
+  ➜  Network: http://172.23.0.1:4174/
