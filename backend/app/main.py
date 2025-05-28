@@ -16,7 +16,8 @@ from app.routers import (
     operations_report,
     client,
     aircraft_models,
-    company
+    company,
+    reports  # Agregar esta línea
 )
 
 app = FastAPI()
@@ -44,7 +45,8 @@ routers = [
     operations_report.router,
     client.router,
     aircraft_models.router,
-    company.router
+    company.router,
+    reports.router  # Agregar esta línea
 ]
 
 for r in routers:

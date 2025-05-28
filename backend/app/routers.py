@@ -5,7 +5,8 @@ from app.routers import (
     catalog_service_status,
     service_per_customer,
     extra_company_configuration,
-    extra_service_sale_assignment
+    extra_service_sale_assignment,
+    reports  # Agregar esta línea
 )
 
 routers = [
@@ -15,5 +16,6 @@ routers = [
     catalog_service_status.router,
     service_per_customer.router,
     extra_company_configuration.router,
-    extra_service_sale_assignment.router
+    extra_service_sale_assignment.router,
+    reports.router  # Agregar esta línea
 ]

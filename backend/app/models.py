@@ -144,8 +144,9 @@ class DBTableAvion(Base):
     __tablename__ = "DBTableAvion"
     modelo = Column(String(50), primary_key=True, index=True)
     fuselaje = Column(String(10))
+
 class Company(Base):
-    __tablename__ = "DBTableCompany"  # Corregido: debe coincidir con el nombre real de la tabla
+    __tablename__ = "DBTableCompany"
     companyCode = Column(String(4), primary_key=True, index=True)
     companyName = Column(String(100), nullable=False, index=True)
     moneda = Column(String(5), nullable=True)
@@ -160,3 +161,39 @@ class Company(Base):
     municipio = Column(String(60), nullable=True)
     estado = Column(String(60), nullable=True)
     pais = Column(String(60), nullable=True)
+
+class ServiceExecution(Base):
+    __tablename__ = "ServiceExecution"
+    id = Column(Integer, primary_key=True, index=True)
+    id_service = Column(Integer, nullable=False)
+    id_client = Column(String, nullable=False)
+    id_company = Column(Integer, nullable=False)
+    id_service_per_customer = Column(Integer, nullable=False)  
+    fuselage_type = Column(String(50), nullable=False)
+    id_avion = Column(Integer, nullable=False)
+    id_user = Column(Integer, nullable=False)
+    work_order = Column(String(50), nullable=False)
+    whonew = Column(String(50), nullable=False)
+    create_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+class DBtableUserHeader(Base):
+    __tablename__ = "DBtableUserHeader"
+    userId = Column(Integer, primary_key=True, index=True)
+    userName = Column(String(100))
+    # Otros campos necesarios
+
+# Modelo adicional para representar la vista de reporte de operación
+# (Este modelo NO crea una tabla en la base de datos, es solo para consulta)
+class OperationReport(Base):
+    __tablename__ = "vw_ReporteOperacion"
+    # No se puede crear/alterar esta vista desde SQLAlchemy, es solo para referencia
+    __table_args__ = {"info": {"is_view": True}}
+    
+    id = Column(Integer, primary_key=True)
+    cliente = Column(String)
+    fuselage_type = Column(String)
+    servicio_principal = Column(String)
+    fecha = Column(DateTime)
+    work_order = Column(String)
+    tecnico_asignado = Column(String)
