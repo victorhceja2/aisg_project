@@ -3,64 +3,274 @@ import axiosInstance from '../api/axiosInstance';
 import { useParams, useNavigate } from "react-router-dom";
 import AISGBackground from "../components/catalogs/fondo";
 
-const EditService: React.FC = () => {
+// Interface para los clientes
+interface Client {
+    llave: number;
+    nombre: string;
+    razonSocial: string;
+}
+
+// Interface para los servicios
+interface Service {
+    id_service: number;
+    service_name: string;
+    service_code: string;
+}
+
+// Interface para las compañías
+interface Company {
+    companyCode: string;
+    companyName: string;
+}
+
+const EditSPConsumer: React.FC = () => {
     const { id } = useParams<{ id: string }>();
-    const [form, setForm] = useState({
-        id_service_status: 1,
-        id_service_classification: 1,
-        id_service_category: 1,
-        id_service_type: 1,
-        id_service_include: 1,
-        service_code: "",
-        service_name: "",
-        service_description: "",
-        service_aircraft_type: false,
-        service_by_time: false,
-        min_time_configured: false,
-        service_technicians_included: false,
-    });
+    const navigate = useNavigate();
 
-    // Estados para almacenar los valores originales
-    const [originalData, setOriginalData] = useState({
-        service_code: "",
-        service_name: "",
-    });
+    // Estado para almacenar las listas
+    const [clients, setClients] = useState<Client[]>([]);
+    const [services, setServices] = useState<Service[]>([]);
+    const [companies, setCompanies] = useState<Company[]>([]);
 
+    // Estados de carga
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
+    const [companiesLoading, setCompaniesLoading] = useState(true);
+    const [clientsLoading, setClientsLoading] = useState(false);
+    const [servicesLoading, setServicesLoading] = useState(false);
+
+    // Estados para controlar la selección en cascada
+    const [selectedCompany, setSelectedCompany] = useState<string>("");
+    const [selectedClient, setSelectedClient] = useState<string>("");
+    const [selectedService, setSelectedService] = useState<string>("");
+
+    // Estados para errores de validación específicos
+    const [validationErrors, setValidationErrors] = useState<{ [key: string]: string }>({});
+
+    // Estado para los datos originales (para verificar cambios)
+    const [originalData, setOriginalData] = useState({
+        id_service: "",
+        id_client: "",
+        company: "",
+        minutes_included: 0,
+        minutes_minimum: 0,
+        fuselage_type: "",
+        technicians_included: 0,
+    });
+
+    const [form, setForm] = useState({
+        id_service: "",
+        id_client: "",
+        company: "",
+        minutes_included: 0,
+        minutes_minimum: 0,
+        fuselage_type: "",
+        technicians_included: 0,
+    });
+
+    const [error, setError] = useState("");
     const [submitting, setSubmitting] = useState(false);
 
     // Estados para los popups
     const [showSuccessPopup, setShowSuccessPopup] = useState(false);
-    const [showErrorPopup, setShowErrorPopup] = useState(false);
     const [showDuplicateWarningPopup, setShowDuplicateWarningPopup] = useState(false);
-    const [duplicateField, setDuplicateField] = useState("");
-
-    const navigate = useNavigate();
-
-    // Estados para los catálogos
-    const [statuses, setStatuses] = useState<any[]>([]);
-    const [classifications, setClassifications] = useState<any[]>([]);
-    const [categories, setCategories] = useState<any[]>([]);
-    const [types, setTypes] = useState<any[]>([]);
-    const [includes, setIncludes] = useState<any[]>([]);
+    const [showInUseWarningPopup, setShowInUseWarningPopup] = useState(false);
 
     // Referencias para manejar el foco
     const successOkButtonRef = useRef<HTMLButtonElement>(null);
-    const errorOkButtonRef = useRef<HTMLButtonElement>(null);
     const duplicateOkButtonRef = useRef<HTMLButtonElement>(null);
+    const inUseOkButtonRef = useRef<HTMLButtonElement>(null);
 
-    // Referencia para el primer campo del formulario
-    const firstFieldRef = useRef<HTMLSelectElement>(null);
+    // Referencia para el primer campo del formulario (Company select)
+    const companySelectRef = useRef<HTMLSelectElement>(null);
 
-    // Efecto para enfocar el primer campo DESPUÉS de que se carguen los datos
+    // Validación para habilitar el botón de envío
+    const isFormValid = () => {
+        return form.id_service !== "" &&
+            form.id_client !== "" &&
+            form.company !== "" &&
+            form.minutes_included >= 0 &&
+            form.minutes_minimum >= 0 &&
+            form.technicians_included >= 0;
+    };
+
+    // Función para validar campos individuales
+    const validateField = (fieldName: string, value: any) => {
+        const errors = { ...validationErrors };
+
+        switch (fieldName) {
+            case 'company':
+                if (!value || value === "" || value.trim() === "") {
+                    errors[fieldName] = 'Company is required';
+                } else {
+                    delete errors[fieldName];
+                }
+                break;
+            case 'id_client':
+                if (!value || value === "" || value.toString().trim() === "") {
+                    errors[fieldName] = 'Client is required';
+                } else {
+                    delete errors[fieldName];
+                }
+                break;
+            case 'id_service':
+                if (!value || value === "" || value.toString().trim() === "") {
+                    errors[fieldName] = 'Service is required';
+                } else {
+                    delete errors[fieldName];
+                }
+                break;
+            case 'minutes_included':
+                const minutesIncluded = typeof value === 'string' ? parseFloat(value) : value;
+                if (isNaN(minutesIncluded) || minutesIncluded < 0) {
+                    errors[fieldName] = 'Minutes included must be 0 or greater';
+                } else {
+                    delete errors[fieldName];
+                }
+                break;
+            case 'minutes_minimum':
+                const minutesMinimum = typeof value === 'string' ? parseFloat(value) : value;
+                if (isNaN(minutesMinimum) || minutesMinimum < 0) {
+                    errors[fieldName] = 'Minimum minutes must be 0 or greater';
+                } else {
+                    delete errors[fieldName];
+                }
+                break;
+            case 'technicians_included':
+                const techniciansIncluded = typeof value === 'string' ? parseFloat(value) : value;
+                if (isNaN(techniciansIncluded) || techniciansIncluded < 0) {
+                    errors[fieldName] = 'Technicians included must be 0 or greater';
+                } else {
+                    delete errors[fieldName];
+                }
+                break;
+        }
+
+        setValidationErrors(errors);
+    };
+
+    // Función para validar todos los campos
+    const validateAllFields = () => {
+        const errors: { [key: string]: string } = {};
+
+        if (!form.company || form.company.trim() === "") {
+            errors.company = 'Company is required';
+        }
+
+        if (!form.id_client || form.id_client.toString().trim() === "") {
+            errors.id_client = 'Client is required';
+        }
+
+        if (!form.id_service || form.id_service.toString().trim() === "") {
+            errors.id_service = 'Service is required';
+        }
+
+        if (isNaN(form.minutes_included) || form.minutes_included < 0) {
+            errors.minutes_included = 'Minutes included must be 0 or greater';
+        }
+
+        if (isNaN(form.minutes_minimum) || form.minutes_minimum < 0) {
+            errors.minutes_minimum = 'Minimum minutes must be 0 or greater';
+        }
+
+        if (isNaN(form.technicians_included) || form.technicians_included < 0) {
+            errors.technicians_included = 'Technicians included must be 0 or greater';
+        }
+
+        setValidationErrors(errors);
+        return Object.keys(errors).length === 0;
+    };
+
+    // Función para cargar clientes por compañía
+    const fetchClientsByCompany = async (companyName: string) => {
+        try {
+            setClientsLoading(true);
+            setClients([]);
+            
+            if (!companyName) {
+                setClientsLoading(false);
+                return;
+            }
+
+            const res = await axiosInstance.get(`/catalog/clients?company=${encodeURIComponent(companyName)}`);
+            setClients(res.data || []);
+        } catch (err) {
+            console.error("Error loading clients:", err);
+            setError("Error loading client data.");
+        } finally {
+            setClientsLoading(false);
+        }
+    };
+
+    // Función para cargar servicios por cliente
+    const fetchServicesByClient = async (clientId: string) => {
+        try {
+            setServicesLoading(true);
+            setServices([]);
+            
+            if (!clientId) {
+                setServicesLoading(false);
+                return;
+            }
+
+            const res = await axiosInstance.get(`/catalog/services?client_id=${encodeURIComponent(clientId)}`);
+            setServices(res.data || []);
+        } catch (err) {
+            console.error("Error loading services:", err);
+            setError("Error loading service data.");
+        } finally {
+            setServicesLoading(false);
+        }
+    };
+
+    // Manejar cambio de compañía
+    const handleCompanyChange = (companyValue: string) => {
+        setSelectedCompany(companyValue);
+
+        setForm(prevForm => ({
+            ...prevForm,
+            company: companyValue,
+            id_client: "",
+            id_service: ""
+        }));
+
+        validateField('company', companyValue);
+        fetchClientsByCompany(companyValue);
+    };
+
+    // Manejar cambio de cliente
+    const handleClientChange = (clientId: string) => {
+        setSelectedClient(clientId);
+
+        setForm(prevForm => ({
+            ...prevForm,
+            id_client: clientId,
+            id_service: ""
+        }));
+
+        validateField('id_client', clientId);
+        fetchServicesByClient(clientId);
+    };
+
+    // Manejar cambio de servicio
+    const handleServiceChange = (serviceId: string) => {
+        setSelectedService(serviceId);
+
+        setForm(prevForm => ({
+            ...prevForm,
+            id_service: serviceId
+        }));
+
+        validateField('id_service', serviceId);
+    };
+
+    // Efecto para enfocar el primer campo al cargar el formulario
     useEffect(() => {
-        if (!loading && firstFieldRef.current) {
+        if (!loading && !companiesLoading && companySelectRef.current) {
             setTimeout(() => {
-                firstFieldRef.current?.focus();
+                companySelectRef.current?.focus();
             }, 100);
         }
-    }, [loading]);
+    }, [loading, companiesLoading]);
 
     // Efecto para enfocar el botón OK del popup de éxito
     useEffect(() => {
@@ -71,16 +281,7 @@ const EditService: React.FC = () => {
         }
     }, [showSuccessPopup]);
 
-    // Efecto para enfocar el botón OK del popup de error
-    useEffect(() => {
-        if (showErrorPopup && errorOkButtonRef.current) {
-            setTimeout(() => {
-                errorOkButtonRef.current?.focus();
-            }, 100);
-        }
-    }, [showErrorPopup]);
-
-    // Efecto para enfocar el botón OK del popup de advertencia de duplicado
+    // Efecto para enfocar el botón OK del popup de advertencia
     useEffect(() => {
         if (showDuplicateWarningPopup && duplicateOkButtonRef.current) {
             setTimeout(() => {
@@ -89,186 +290,243 @@ const EditService: React.FC = () => {
         }
     }, [showDuplicateWarningPopup]);
 
+    // Efecto para enfocar el botón OK del popup de advertencia de uso
+    useEffect(() => {
+        if (showInUseWarningPopup && inUseOkButtonRef.current) {
+            setTimeout(() => {
+                inUseOkButtonRef.current?.focus();
+            }, 100);
+        }
+    }, [showInUseWarningPopup]);
+
     // Efecto para manejar Enter en los popups
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
             if (e.key === 'Enter') {
                 if (showSuccessPopup) {
                     e.preventDefault();
-                    handleCloseSuccessPopup();
-                } else if (showErrorPopup) {
-                    e.preventDefault();
-                    closeErrorPopup();
+                    handleClosePopup();
                 } else if (showDuplicateWarningPopup) {
                     e.preventDefault();
                     closeDuplicateWarningPopup();
+                } else if (showInUseWarningPopup) {
+                    e.preventDefault();
+                    closeInUseWarningPopup();
                 }
             }
         };
 
-        if (showSuccessPopup || showErrorPopup || showDuplicateWarningPopup) {
+        if (showSuccessPopup || showDuplicateWarningPopup || showInUseWarningPopup) {
             document.addEventListener('keydown', handleKeyDown);
             return () => {
                 document.removeEventListener('keydown', handleKeyDown);
             };
         }
-    }, [showSuccessPopup, showErrorPopup, showDuplicateWarningPopup]);
+    }, [showSuccessPopup, showDuplicateWarningPopup, showInUseWarningPopup]);
 
-    // Función para cargar los catálogos
-    const fetchCatalogs = async () => {
-        try {
-            const [statusesRes, classificationsRes, categoriesRes, typesRes, includesRes] = await Promise.all([
-                axiosInstance.get('/catalog/service-status'),
-                axiosInstance.get('/catalog/service-classification'),
-                axiosInstance.get('/catalog/service-categories'),
-                axiosInstance.get('/catalog/service-types'),
-                axiosInstance.get('/catalog/service-includes')
-            ]);
+    // Función para manejar cambios en campos numéricos
+    const handleNumericChange = (field: string, value: string) => {
+        let numericValue: number;
 
-            setStatuses(statusesRes.data);
-            setClassifications(classificationsRes.data);
-            setCategories(categoriesRes.data);
-            setTypes(typesRes.data);
-            setIncludes(includesRes.data);
-
-        } catch (err) {
-            console.error("Error loading catalogs:", err);
-            setError("Error loading catalog data. Please refresh the page.");
+        if (value === "" || value === "0") {
+            numericValue = 0;
+        } else {
+            numericValue = parseFloat(value);
+            if (isNaN(numericValue) || numericValue < 0) {
+                return;
+            }
         }
+
+        setForm(prevForm => ({ ...prevForm, [field]: numericValue }));
+        validateField(field, numericValue);
     };
 
-    // Verificar si existe otro servicio con el mismo código o nombre
-    const checkDuplicateService = async (serviceCode: string, serviceName: string): Promise<string | null> => {
-        try {
-            const res = await axiosInstance.get(`/catalog/services`);
-            const duplicateCode = res.data.find((service: any) =>
-                service.service_code.toLowerCase() === serviceCode.toLowerCase() &&
-                service.id_service !== parseInt(id || "0")
-            );
-
-            if (duplicateCode) {
-                return "code";
-            }
-
-            const duplicateName = res.data.find((service: any) =>
-                service.service_name.toLowerCase() === serviceName.toLowerCase() &&
-                service.id_service !== parseInt(id || "0")
-            );
-
-            if (duplicateName) {
-                return "name";
-            }
-
-            return null;
-        } catch (err) {
-            console.error("Error checking for duplicate service:", err);
-            return null;
-        }
-    };
-
+    // Cargar datos iniciales
     useEffect(() => {
-        const fetchService = async () => {
+        const fetchInitialData = async () => {
             try {
-                const res = await axiosInstance.get(`/catalog/services/${id}`);
-                if (res.data) {
-                    // Convertir los valores enteros a booleanos
-                    const formattedData = {
-                        ...res.data,
-                        service_aircraft_type: res.data.service_aircraft_type === 2,
-                        service_by_time: res.data.service_by_time === 2,
-                        min_time_configured: res.data.min_time_configured === 2,
-                        service_technicians_included: res.data.service_technicians_included === 2
-                    };
-                    setForm(formattedData);
+                setCompaniesLoading(true);
 
-                    // Guardar los valores originales para comparación
-                    setOriginalData({
-                        service_code: res.data.service_code,
-                        service_name: res.data.service_name,
-                    });
+                // Cargar compañías
+                const companiesResponse = await axiosInstance.get('/companies/');
+                setCompanies(companiesResponse.data);
+                setCompaniesLoading(false);
+
+                // Cargar el registro específico para editar
+                const servicePerCustomerResponse = await axiosInstance.get(`/catalog/service-per-customer/${id}`);
+                const data = servicePerCustomerResponse.data;
+
+                if (data) {
+                    const formData = {
+                        id_service: data.id_service.toString(),
+                        id_client: data.id_client.toString(),
+                        company: data.company,
+                        minutes_included: data.minutes_included || 0,
+                        minutes_minimum: data.minutes_minimum || 0,
+                        fuselage_type: data.fuselage_type || "",
+                        technicians_included: data.technicians_included || 0,
+                    };
+
+                    setForm(formData);
+                    setOriginalData(formData);
+                    setSelectedCompany(data.company);
+                    setSelectedClient(data.id_client.toString());
+                    setSelectedService(data.id_service.toString());
+
+                    // Cargar clientes para la compañía seleccionada
+                    await fetchClientsByCompany(data.company);
+
+                    // Cargar servicios para el cliente seleccionado
+                    await fetchServicesByClient(data.id_client.toString());
                 } else {
-                    setError("No data found for this service.");
+                    setError("Service per customer record not found.");
                 }
-            } catch (err) {
-                console.error("Error loading service:", err);
-                setError("Error loading the service.");
+            } catch (err: any) {
+                console.error("Error loading data:", err);
+                setError("Error loading data. Please refresh the page.");
             } finally {
                 setLoading(false);
             }
         };
 
-        // Cargar el servicio y los catálogos
-        Promise.all([fetchService(), fetchCatalogs()]);
+        if (id) {
+            fetchInitialData();
+        }
     }, [id]);
+
+    // Verificar si un service per customer duplicado ya existe (excluyendo el actual)
+    const checkDuplicateServicePerCustomer = async () => {
+        try {
+            const res = await axiosInstance.get(`/catalog/service-per-customer`);
+            return res.data.some((item: any) =>
+                item.id_service.toString() === form.id_service &&
+                item.id_client.toString() === form.id_client &&
+                item.company === form.company &&
+                item.id_service_per_customer.toString() !== id // Excluir el registro actual
+            );
+        } catch (err) {
+            console.error("Error checking for duplicate service per customer", err);
+            return false;
+        }
+    };
+
+    // Verificar si el registro está siendo usado
+    const checkIfInUse = async () => {
+        try {
+            // Aquí deberías implementar la lógica para verificar si el registro está en uso
+            // Por ejemplo, verificar en otras tablas que referencien este service_per_customer
+            // const res = await axiosInstance.get(`/catalog/service-per-customer/${id}/usage`);
+            // return res.data.inUse;
+
+            // Por ahora, retorna false (no está en uso)
+            return false;
+        } catch (err) {
+            console.error("Error checking if service per customer is in use", err);
+            return false;
+        }
+    };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
-        if (submitting) return; // Prevenir múltiples envíos
+        if (submitting) return;
+
+        setError("");
+
+        const isValid = validateAllFields();
+
+        if (!isValid) {
+            setError("Please fill in all required fields correctly.");
+            return;
+        }
 
         setSubmitting(true);
-        setError(null);
 
         try {
-            // Solo verificar duplicados si el código o nombre han cambiado
-            const codeChanged = form.service_code.trim() !== originalData.service_code;
-            const nameChanged = form.service_name.trim() !== originalData.service_name;
+            // Verificar si está en uso solo si los campos clave han cambiado
+            const keyFieldsChanged =
+                form.id_service !== originalData.id_service ||
+                form.id_client !== originalData.id_client ||
+                form.company !== originalData.company;
 
-            if (codeChanged || nameChanged) {
-                const duplicateField = await checkDuplicateService(form.service_code, form.service_name);
-                if (duplicateField) {
-                    setDuplicateField(duplicateField === "code" ? "code" : "name");
+            if (keyFieldsChanged) {
+                const inUse = await checkIfInUse();
+                if (inUse) {
+                    setShowInUseWarningPopup(true);
+                    setSubmitting(false);
+                    return;
+                }
+
+                // Verificar duplicados solo si los campos clave han cambiado
+                const isDuplicate = await checkDuplicateServicePerCustomer();
+                if (isDuplicate) {
                     setShowDuplicateWarningPopup(true);
                     setSubmitting(false);
                     return;
                 }
             }
 
-            // Convertir los valores booleanos a enteros antes de enviar
-            const dataToSend = {
-                ...form,
-                service_aircraft_type: form.service_aircraft_type ? 2 : 1,
-                service_by_time: form.service_by_time ? 2 : 1,
-                min_time_configured: form.min_time_configured ? 2 : 1,
-                service_technicians_included: form.service_technicians_included ? 2 : 1,
-                whonew: sessionStorage.getItem("userName") || "system"
+            const whonew = sessionStorage.getItem("userName") || "admin";
+
+            const data = {
+                id_service: parseInt(form.id_service),
+                id_client: parseInt(form.id_client),
+                company: form.company.trim(),
+                minutes_included: Math.max(0, Math.floor(form.minutes_included)),
+                minutes_minimum: Math.max(0, Math.floor(form.minutes_minimum)),
+                fuselage_type: form.fuselage_type.trim() || "",
+                technicians_included: Math.max(0, Math.floor(form.technicians_included)),
+                whonew,
             };
 
-            await axiosInstance.put(`/catalog/services/${id}`, dataToSend);
-
-            // Mostrar popup de éxito en lugar de navegar inmediatamente
+            await axiosInstance.put(`/catalog/service-per-customer/${id}`, data);
             setShowSuccessPopup(true);
         } catch (err: any) {
-            console.error("Error updating service:", err);
-            const errorMessage = err.response?.data?.detail || "Could not update the service.";
-            setError(errorMessage);
-            setShowErrorPopup(true);
+            console.error("Error:", err);
+
+            if (err.response && err.response.data) {
+                if (err.response.data.detail) {
+                    if (Array.isArray(err.response.data.detail)) {
+                        const errorMessages = err.response.data.detail.map((error: any) => {
+                            const field = error.loc ? error.loc.join('.') : 'Unknown field';
+                            const message = error.msg || 'Validation error';
+                            const input = error.input ? ` (Input: ${error.input})` : '';
+                            return `${field}: ${message}${input}`;
+                        }).join('; ');
+                        setError(`Validation errors: ${errorMessages}`);
+                    } else {
+                        setError(`Error: ${err.response.data.detail}`);
+                    }
+                } else {
+                    setError(`Backend error: ${JSON.stringify(err.response.data)}`);
+                }
+            } else if (err.response) {
+                setError(`HTTP Error ${err.response.status}: ${err.response.statusText}`);
+            } else if (err.request) {
+                setError("Network error: No response received from server");
+            } else {
+                setError(`Request error: ${err.message}`);
+            }
         } finally {
             setSubmitting(false);
         }
     };
 
-    /**
-     * Cierra el popup de éxito y navega al listado
-     */
-    const handleCloseSuccessPopup = () => {
+    const handleCancel = () => {
+        navigate("/catalogs/customer");
+    };
+
+    const handleClosePopup = () => {
         setShowSuccessPopup(false);
-        navigate("/services");
+        navigate("/catalogs/customer");
     };
 
-    /**
-     * Cierra el popup de error
-     */
-    const closeErrorPopup = () => {
-        setShowErrorPopup(false);
-        setError(null);
-    };
-
-    /**
-     * Cierra el popup de advertencia de duplicado
-     */
     const closeDuplicateWarningPopup = () => {
         setShowDuplicateWarningPopup(false);
+    };
+
+    const closeInUseWarningPopup = () => {
+        setShowInUseWarningPopup(false);
     };
 
     if (loading) {
@@ -277,7 +535,7 @@ const EditService: React.FC = () => {
                 <div className="flex items-center justify-center min-h-screen text-white font-['Montserrat']">
                     <div className="text-center">
                         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#00B140] mx-auto mb-4"></div>
-                        <p className="text-lg">Loading service data...</p>
+                        <p className="text-lg">Loading service per customer data...</p>
                     </div>
                 </div>
             </AISGBackground>
@@ -286,311 +544,241 @@ const EditService: React.FC = () => {
 
     return (
         <AISGBackground>
-            <div className="max-w-3xl mx-auto p-6 font-['Montserrat']">
-                <div className="w-full">
+            <div className="max-w-7xl mx-auto p-6 font-['Montserrat'] min-h-screen flex items-center justify-center">
+                <div className="w-full max-w-lg">
                     <div className="bg-white rounded-t-lg px-6 py-4 shadow-lg">
                         <h1 className="text-2xl font-bold text-center text-[#002057]">
-                            Edit Service
+                            Edit Service per Customer
                         </h1>
-                        <div className="mt-2 w-32 h-1 bg-[#e6001f] mx-auto rounded"></div>
+                        <div className="mt-2 w-20 h-1 bg-[#e6001f] mx-auto rounded"></div>
                     </div>
                     <div className="bg-[#1E2A45] rounded-b-lg shadow-lg px-8 py-8">
-                        {error && !showErrorPopup && (
-                            <div className="bg-red-500 text-white p-4 rounded-lg mb-6 shadow-md animate-pulse">
-                                <p className="font-medium">{error}</p>
+                        {error && (
+                            <div className="bg-red-500 text-white p-4 rounded-lg mb-6 shadow-md">
+                                <p className="font-medium whitespace-pre-wrap">{error}</p>
                             </div>
                         )}
 
                         <form onSubmit={handleSubmit} className="space-y-6">
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                {/* Status ID */}
+                            <div className="grid grid-cols-1 gap-4">
+                                {/* Company Dropdown - Primer nivel */}
                                 <div>
                                     <label className="block text-white text-sm font-medium mb-2">
-                                        Status ID
+                                        Company <span className="text-red-400">*</span>
                                     </label>
-                                    <div className="relative">
+                                    {companiesLoading ? (
+                                        <div className="w-full px-4 py-3 rounded-lg bg-gray-200 animate-pulse text-center">
+                                            Loading companies...
+                                        </div>
+                                    ) : (
                                         <select
-                                            ref={firstFieldRef} // Asignamos la referencia al primer campo
-                                            value={form.id_service_status}
-                                            onChange={(e) =>
-                                                setForm({ ...form, id_service_status: Number(e.target.value) })
-                                            }
-                                            className="w-full px-4 py-3 rounded-lg bg-white text-[#002057] border border-[#cccccc] focus:border-[#0033A0] focus:ring-2 focus:ring-[#0033A0] focus:outline-none transition-all appearance-none"
-                                            required
+                                            ref={companySelectRef}
+                                            className={`w-full px-4 py-3 rounded-lg bg-white text-[#002057] border ${validationErrors.company
+                                                    ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
+                                                    : 'border-[#cccccc] focus:border-[#00B140] focus:ring-[#00B140]'
+                                                } focus:ring-2 focus:outline-none transition-all`}
+                                            value={selectedCompany}
+                                            onChange={(e) => handleCompanyChange(e.target.value)}
                                             disabled={submitting}
+                                            required
                                         >
-                                            {statuses.map(status => (
-                                                <option key={status.id_service_status} value={status.id_service_status}>
-                                                    {status.status_name}
+                                            <option value="">Select a company</option>
+                                            {companies.map((company) => (
+                                                <option key={company.companyCode} value={`${company.companyCode} - ${company.companyName}`}>
+                                                    {company.companyCode} - {company.companyName}
                                                 </option>
                                             ))}
                                         </select>
-                                        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
-                                            <svg className="h-5 w-5" fill="none" viewBox="0 0 20 20" stroke="currentColor">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" transform="rotate(90 10 10)" />
-                                            </svg>
-                                        </div>
-                                    </div>
+                                    )}
+                                    {validationErrors.company && (
+                                        <p className="mt-1 text-sm text-red-400">{validationErrors.company}</p>
+                                    )}
                                 </div>
 
-                                {/* Classification ID */}
+                                {/* Client Dropdown - Segundo nivel */}
                                 <div>
                                     <label className="block text-white text-sm font-medium mb-2">
-                                        Classification ID
+                                        Client <span className="text-red-400">*</span>
                                     </label>
-                                    <div className="relative">
+                                    {clientsLoading ? (
+                                        <div className="w-full px-4 py-3 rounded-lg bg-gray-200 animate-pulse text-center">
+                                            Loading clients...
+                                        </div>
+                                    ) : (
                                         <select
-                                            value={form.id_service_classification}
-                                            onChange={(e) =>
-                                                setForm({ ...form, id_service_classification: Number(e.target.value) })
-                                            }
-                                            className="w-full px-4 py-3 rounded-lg bg-white text-[#002057] border border-[#cccccc] focus:border-[#0033A0] focus:ring-2 focus:ring-[#0033A0] focus:outline-none transition-all appearance-none"
+                                            className={`w-full px-4 py-3 rounded-lg bg-white text-[#002057] border ${validationErrors.id_client
+                                                    ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
+                                                    : 'border-[#cccccc] focus:border-[#00B140] focus:ring-[#00B140]'
+                                                } focus:ring-2 focus:outline-none transition-all`}
+                                            value={selectedClient}
+                                            onChange={(e) => handleClientChange(e.target.value)}
+                                            disabled={clientsLoading || submitting}
                                             required
-                                            disabled={submitting}
                                         >
-                                            {classifications.map(classification => (
-                                                <option key={classification.id_service_classification} value={classification.id_service_classification}>
-                                                    {classification.service_classification_name}
+                                            <option value="">Select a client</option>
+                                            {clients.map((client) => (
+                                                <option key={client.llave} value={client.llave}>
+                                                    {client.nombre || `Client #${client.llave}`}
                                                 </option>
                                             ))}
                                         </select>
-                                        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
-                                            <svg className="h-5 w-5" fill="none" viewBox="0 0 20 20" stroke="currentColor">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" transform="rotate(90 10 10)" />
-                                            </svg>
-                                        </div>
-                                    </div>
+                                    )}
+                                    {validationErrors.id_client && (
+                                        <p className="mt-1 text-sm text-red-400">{validationErrors.id_client}</p>
+                                    )}
                                 </div>
 
-                                {/* Category ID */}
+                                {/* Service Dropdown - Tercer nivel */}
                                 <div>
                                     <label className="block text-white text-sm font-medium mb-2">
-                                        Category ID
+                                        Service <span className="text-red-400">*</span>
                                     </label>
-                                    <div className="relative">
+                                    {servicesLoading ? (
+                                        <div className="w-full px-4 py-3 rounded-lg bg-gray-200 animate-pulse text-center">
+                                            Loading services...
+                                        </div>
+                                    ) : (
                                         <select
-                                            value={form.id_service_category}
-                                            onChange={(e) =>
-                                                setForm({ ...form, id_service_category: Number(e.target.value) })
-                                            }
-                                            className="w-full px-4 py-3 rounded-lg bg-white text-[#002057] border border-[#cccccc] focus:border-[#0033A0] focus:ring-2 focus:ring-[#0033A0] focus:outline-none transition-all appearance-none"
+                                            className={`w-full px-4 py-3 rounded-lg bg-white text-[#002057] border ${validationErrors.id_service
+                                                    ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
+                                                    : 'border-[#cccccc] focus:border-[#00B140] focus:ring-[#00B140]'
+                                                } focus:ring-2 focus:outline-none transition-all`}
+                                            value={selectedService}
+                                            onChange={(e) => handleServiceChange(e.target.value)}
+                                            disabled={servicesLoading || submitting}
                                             required
-                                            disabled={submitting}
                                         >
-                                            {categories.map(category => (
-                                                <option key={category.id_service_category} value={category.id_service_category}>
-                                                    {category.service_category_name}
+                                            <option value="">Select a service</option>
+                                            {services.map((service) => (
+                                                <option key={service.id_service} value={service.id_service}>
+                                                    {service.service_code} - {service.service_name}
                                                 </option>
                                             ))}
                                         </select>
-                                        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
-                                            <svg className="h-5 w-5" fill="none" viewBox="0 0 20 20" stroke="currentColor">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" transform="rotate(90 10 10)" />
-                                            </svg>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Type ID */}
-                                <div>
-                                    <label className="block text-white text-sm font-medium mb-2">
-                                        Type ID
-                                    </label>
-                                    <div className="relative">
-                                        <select
-                                            value={form.id_service_type}
-                                            onChange={(e) =>
-                                                setForm({ ...form, id_service_type: Number(e.target.value) })
-                                            }
-                                            className="w-full px-4 py-3 rounded-lg bg-white text-[#002057] border border-[#cccccc] focus:border-[#0033A0] focus:ring-2 focus:ring-[#0033A0] focus:outline-none transition-all appearance-none"
-                                            required
-                                            disabled={submitting}
-                                        >
-                                            {types.map(type => (
-                                                <option key={type.id_service_type} value={type.id_service_type}>
-                                                    {type.service_type_name}
-                                                </option>
-                                            ))}
-                                        </select>
-                                        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
-                                            <svg className="h-5 w-5" fill="none" viewBox="0 0 20 20" stroke="currentColor">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" transform="rotate(90 10 10)" />
-                                            </svg>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Include ID */}
-                                <div>
-                                    <label className="block text-white text-sm font-medium mb-2">
-                                        Include ID
-                                    </label>
-                                    <div className="relative">
-                                        <select
-                                            value={form.id_service_include}
-                                            onChange={(e) =>
-                                                setForm({ ...form, id_service_include: Number(e.target.value) })
-                                            }
-                                            className="w-full px-4 py-3 rounded-lg bg-white text-[#002057] border border-[#cccccc] focus:border-[#0033A0] focus:ring-2 focus:ring-[#0033A0] focus:outline-none transition-all appearance-none"
-                                            required
-                                            disabled={submitting}
-                                        >
-                                            {includes.map(include => (
-                                                <option key={include.id_service_include} value={include.id_service_include}>
-                                                    {include.service_include}
-                                                </option>
-                                            ))}
-                                        </select>
-                                        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
-                                            <svg className="h-5 w-5" fill="none" viewBox="0 0 20 20" stroke="currentColor">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" transform="rotate(90 10 10)" />
-                                            </svg>
-                                        </div>
-                                    </div>
+                                    )}
+                                    {validationErrors.id_service && (
+                                        <p className="mt-1 text-sm text-red-400">{validationErrors.id_service}</p>
+                                    )}
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                {/* Código */}
+                            {/* Resto de campos en grid */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-white text-sm font-medium mb-2">
-                                        Code
+                                        Included Minutes <span className="text-red-400">*</span>
                                     </label>
                                     <input
-                                        type="text"
-                                        value={form.service_code}
-                                        onChange={(e) =>
-                                            setForm({ ...form, service_code: e.target.value })
-                                        }
-                                        className="w-full px-4 py-3 rounded-lg bg-white text-[#002057] border border-[#cccccc] focus:border-[#0033A0] focus:ring-2 focus:ring-[#0033A0] focus:outline-none transition-all"
+                                        className={`w-full px-4 py-3 rounded-lg bg-white text-[#002057] border ${validationErrors.minutes_included
+                                                ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
+                                                : 'border-[#cccccc] focus:border-[#00B140] focus:ring-[#00B140]'
+                                            } focus:ring-2 focus:outline-none transition-all`}
+                                        placeholder="Included Minutes"
+                                        type="number"
+                                        min="0"
+                                        step="1"
+                                        value={form.minutes_included || 0}
+                                        onChange={(e) => handleNumericChange('minutes_included', e.target.value)}
+                                        onKeyDown={(e) => {
+                                            if (e.key === '-' || e.key === 'e' || e.key === 'E') {
+                                                e.preventDefault();
+                                            }
+                                        }}
+                                        disabled={submitting}
                                         required
-                                        disabled={submitting}
                                     />
+                                    {validationErrors.minutes_included && (
+                                        <p className="mt-1 text-sm text-red-400">{validationErrors.minutes_included}</p>
+                                    )}
                                 </div>
-
-                                {/* Nombre */}
                                 <div>
                                     <label className="block text-white text-sm font-medium mb-2">
-                                        Name
+                                        Minimum Minutes <span className="text-red-400">*</span>
                                     </label>
                                     <input
-                                        type="text"
-                                        value={form.service_name}
-                                        onChange={(e) =>
-                                            setForm({ ...form, service_name: e.target.value })
-                                        }
-                                        className="w-full px-4 py-3 rounded-lg bg-white text-[#002057] border border-[#cccccc] focus:border-[#0033A0] focus:ring-2 focus:ring-[#0033A0] focus:outline-none transition-all"
+                                        className={`w-full px-4 py-3 rounded-lg bg-white text-[#002057] border ${validationErrors.minutes_minimum
+                                                ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
+                                                : 'border-[#cccccc] focus:border-[#00B140] focus:ring-[#00B140]'
+                                            } focus:ring-2 focus:outline-none transition-all`}
+                                        placeholder="Minimum Minutes"
+                                        type="number"
+                                        min="0"
+                                        step="1"
+                                        value={form.minutes_minimum || 0}
+                                        onChange={(e) => handleNumericChange('minutes_minimum', e.target.value)}
+                                        onKeyDown={(e) => {
+                                            if (e.key === '-' || e.key === 'e' || e.key === 'E') {
+                                                e.preventDefault();
+                                            }
+                                        }}
+                                        disabled={submitting}
                                         required
-                                        disabled={submitting}
                                     />
+                                    {validationErrors.minutes_minimum && (
+                                        <p className="mt-1 text-sm text-red-400">{validationErrors.minutes_minimum}</p>
+                                    )}
                                 </div>
-                            </div>
-
-                            {/* Descripción */}
-                            <div>
-                                <label className="block text-white text-sm font-medium mb-2">
-                                    Description
-                                </label>
-                                <textarea
-                                    value={form.service_description}
-                                    onChange={(e) =>
-                                        setForm({ ...form, service_description: e.target.value })
-                                    }
-                                    className="w-full px-4 py-3 rounded-lg bg-white text-[#002057] border border-[#cccccc] focus:border-[#0033A0] focus:ring-2 focus:ring-[#0033A0] focus:outline-none transition-all"
-                                    rows={4}
-                                    required
-                                    disabled={submitting}
-                                />
-                            </div>
-
-                            {/* Checkboxes */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div className="flex items-center">
-                                    <input
-                                        type="checkbox"
-                                        id="aircraft_type"
-                                        checked={form.service_aircraft_type}
-                                        onChange={(e) =>
-                                            setForm({ ...form, service_aircraft_type: e.target.checked })
-                                        }
-                                        className="w-4 h-4 text-[#0033A0] border-gray-300 rounded focus:ring-[#0033A0]"
-                                        disabled={submitting}
-                                    />
-                                    <label htmlFor="aircraft_type" className="ml-2 text-white">
-                                        Aircraft Type
+                                <div>
+                                    <label className="block text-white text-sm font-medium mb-2">
+                                        Technicians Included <span className="text-red-400">*</span>
                                     </label>
+                                    <input
+                                        className={`w-full px-4 py-3 rounded-lg bg-white text-[#002057] border ${validationErrors.technicians_included
+                                                ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
+                                                : 'border-[#cccccc] focus:border-[#00B140] focus:ring-[#00B140]'
+                                            } focus:ring-2 focus:outline-none transition-all`}
+                                        placeholder="Technicians Included"
+                                        type="number"
+                                        min="0"
+                                        step="1"
+                                        value={form.technicians_included || 0}
+                                        onChange={(e) => handleNumericChange('technicians_included', e.target.value)}
+                                        onKeyDown={(e) => {
+                                            if (e.key === '-' || e.key === 'e' || e.key === 'E') {
+                                                e.preventDefault();
+                                            }
+                                        }}
+                                        disabled={submitting}
+                                        required
+                                    />
+                                    {validationErrors.technicians_included && (
+                                        <p className="mt-1 text-sm text-red-400">{validationErrors.technicians_included}</p>
+                                    )}
                                 </div>
-
-                                <div className="flex items-center">
+                                <div>
+                                    <label className="block text-white text-sm font-medium mb-2">Fuselage Type</label>
                                     <input
-                                        type="checkbox"
-                                        id="by_time"
-                                        checked={form.service_by_time}
-                                        onChange={(e) =>
-                                            setForm({ ...form, service_by_time: e.target.checked })
-                                        }
-                                        className="w-4 h-4 text-[#0033A0] border-gray-300 rounded focus:ring-[#0033A0]"
+                                        className="w-full px-4 py-3 rounded-lg bg-white text-[#002057] border border-[#cccccc] focus:border-[#00B140] focus:ring-2 focus:ring-[#00B140] focus:outline-none transition-all"
+                                        placeholder="Fuselage Type"
+                                        value={form.fuselage_type}
+                                        onChange={(e) => setForm(prevForm => ({ ...prevForm, fuselage_type: e.target.value }))}
                                         disabled={submitting}
                                     />
-                                    <label htmlFor="by_time" className="ml-2 text-white">
-                                        By Time
-                                    </label>
-                                </div>
-
-                                <div className="flex items-center">
-                                    <input
-                                        type="checkbox"
-                                        id="min_time"
-                                        checked={form.min_time_configured}
-                                        onChange={(e) =>
-                                            setForm({ ...form, min_time_configured: e.target.checked })
-                                        }
-                                        className="w-4 h-4 text-[#0033A0] border-gray-300 rounded focus:ring-[#0033A0]"
-                                        disabled={submitting}
-                                    />
-                                    <label htmlFor="min_time" className="ml-2 text-white">
-                                        Min Time Configured
-                                    </label>
-                                </div>
-
-                                <div className="flex items-center">
-                                    <input
-                                        type="checkbox"
-                                        id="technicians"
-                                        checked={form.service_technicians_included}
-                                        onChange={(e) =>
-                                            setForm({ ...form, service_technicians_included: e.target.checked })
-                                        }
-                                        className="w-4 h-4 text-[#0033A0] border-gray-300 rounded focus:ring-[#0033A0]"
-                                        disabled={submitting}
-                                    />
-                                    <label htmlFor="technicians" className="ml-2 text-white">
-                                        Technicians Included
-                                    </label>
                                 </div>
                             </div>
 
                             <div className="flex space-x-4 pt-4">
                                 <button
                                     type="button"
-                                    onClick={() => navigate("/services")}
                                     className="w-1/2 bg-[#4D70B8] hover:bg-[#3A5A9F] text-white font-medium py-3 px-4 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg"
+                                    onClick={handleCancel}
                                     disabled={submitting}
                                 >
                                     Cancel
                                 </button>
                                 <button
                                     type="submit"
-                                    className={`w-1/2 ${submitting ? "bg-gray-500" : "bg-gradient-to-r from-[#0033A0] to-[#00B140] hover:from-[#002D8A] hover:to-[#009935]"} text-white font-medium py-3 px-4 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg flex items-center justify-center`}
-                                    disabled={submitting}
+                                    className={`w-1/2 ${submitting || !isFormValid() ? "bg-gray-500" : "bg-[#00B140] hover:bg-[#009935]"
+                                        } text-white font-medium py-3 px-4 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg flex items-center justify-center`}
+                                    disabled={submitting || !isFormValid()}
                                 >
                                     {submitting ? (
                                         <>
                                             <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white mr-2"></div>
-                                            Saving...
+                                            Updating...
                                         </>
                                     ) : (
-                                        "Save Changes"
+                                        "Update"
                                     )}
                                 </button>
                             </div>
@@ -603,15 +791,12 @@ const EditService: React.FC = () => {
             {showSuccessPopup && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
                     <div className="overflow-hidden max-w-md w-full mx-4 rounded-lg shadow-xl">
-                        {/* Encabezado blanco con texto azul */}
                         <div className="bg-white rounded-t-lg px-6 py-4 shadow-lg">
                             <h2 className="text-2xl font-bold text-center text-[#002057]">
                                 Success
                             </h2>
                             <div className="mt-2 w-20 h-1 bg-[#e6001f] mx-auto rounded"></div>
                         </div>
-
-                        {/* Cuerpo con fondo azul oscuro */}
                         <div className="bg-[#1E2A45] rounded-b-lg shadow-lg px-8 py-8">
                             <div className="flex items-center mb-4 justify-center">
                                 <div className="bg-[#00B140] rounded-full p-2 mr-4">
@@ -619,16 +804,16 @@ const EditService: React.FC = () => {
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                                     </svg>
                                 </div>
-                                <p className="text-white text-lg">Service has been successfully updated!</p>
+                                <p className="text-white text-lg">Service per customer has been successfully updated!</p>
                             </div>
                             <div className="mt-6 flex justify-center space-x-4">
                                 <button
                                     ref={successOkButtonRef}
-                                    onClick={handleCloseSuccessPopup}
+                                    onClick={handleClosePopup}
                                     onKeyDown={(e) => {
                                         if (e.key === 'Enter') {
                                             e.preventDefault();
-                                            handleCloseSuccessPopup();
+                                            handleClosePopup();
                                         }
                                     }}
                                     className="w-full bg-[#00B140] hover:bg-[#009935] text-white font-medium py-3 px-4 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg"
@@ -641,61 +826,16 @@ const EditService: React.FC = () => {
                 </div>
             )}
 
-            {/* Popup de error */}
-            {showErrorPopup && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                    <div className="overflow-hidden max-w-md w-full mx-4 rounded-lg shadow-xl">
-                        {/* Encabezado blanco con texto azul */}
-                        <div className="bg-white rounded-t-lg px-6 py-4 shadow-lg">
-                            <h2 className="text-2xl font-bold text-center text-[#002057]">
-                                Error
-                            </h2>
-                            <div className="mt-2 w-20 h-1 bg-[#e6001f] mx-auto rounded"></div>
-                        </div>
-
-                        {/* Cuerpo con fondo azul oscuro */}
-                        <div className="bg-[#1E2A45] rounded-b-lg shadow-lg px-8 py-8">
-                            <div className="flex items-center mb-4 justify-center">
-                                <div className="bg-[#dc2626] rounded-full p-2 mr-4">
-                                    <svg className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                    </svg>
-                                </div>
-                                <p className="text-white text-lg">{error}</p>
-                            </div>
-                            <div className="mt-6 flex justify-center space-x-4">
-                                <button
-                                    ref={errorOkButtonRef}
-                                    onClick={closeErrorPopup}
-                                    onKeyDown={(e) => {
-                                        if (e.key === 'Enter') {
-                                            e.preventDefault();
-                                            closeErrorPopup();
-                                        }
-                                    }}
-                                    className="w-full bg-[#dc2626] hover:bg-[#b91c1c] text-white font-medium py-3 px-4 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg"
-                                >
-                                    OK
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* Popup de advertencia de servicio duplicado */}
+            {/* Popup de advertencia de registro duplicado */}
             {showDuplicateWarningPopup && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
                     <div className="overflow-hidden max-w-md w-full mx-4 rounded-lg shadow-xl">
-                        {/* Encabezado blanco con texto azul */}
                         <div className="bg-white rounded-t-lg px-6 py-4 shadow-lg">
                             <h2 className="text-2xl font-bold text-center text-[#002057]">
                                 Warning
                             </h2>
                             <div className="mt-2 w-20 h-1 bg-[#e6001f] mx-auto rounded"></div>
                         </div>
-
-                        {/* Cuerpo con fondo azul oscuro */}
                         <div className="bg-[#1E2A45] rounded-b-lg shadow-lg px-8 py-8">
                             <div className="flex items-center mb-4 justify-center">
                                 <div className="bg-[#f59e0b] rounded-full p-2 mr-4">
@@ -703,9 +843,7 @@ const EditService: React.FC = () => {
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                                     </svg>
                                 </div>
-                                <p className="text-white text-lg">
-                                    A service with the same {duplicateField === "code" ? "code" : "name"} "{duplicateField === "code" ? form.service_code : form.service_name}" already exists!
-                                </p>
+                                <p className="text-white text-lg">A service per customer with this combination already exists!</p>
                             </div>
                             <div className="mt-6 flex justify-center space-x-4">
                                 <button
@@ -726,8 +864,47 @@ const EditService: React.FC = () => {
                     </div>
                 </div>
             )}
+
+            {/* Popup de advertencia de registro en uso */}
+            {showInUseWarningPopup && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                    <div className="overflow-hidden max-w-md w-full mx-4 rounded-lg shadow-xl">
+                        <div className="bg-white rounded-t-lg px-6 py-4 shadow-lg">
+                            <h2 className="text-2xl font-bold text-center text-[#002057]">
+                                Warning
+                            </h2>
+                            <div className="mt-2 w-20 h-1 bg-[#e6001f] mx-auto rounded"></div>
+                        </div>
+                        <div className="bg-[#1E2A45] rounded-b-lg shadow-lg px-8 py-8">
+                            <div className="flex items-center mb-4 justify-center">
+                                <div className="bg-[#f59e0b] rounded-full p-2 mr-4">
+                                    <svg className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                    </svg>
+                                </div>
+                                <p className="text-white text-lg">This service per customer configuration is currently in use and cannot be modified!</p>
+                            </div>
+                            <div className="mt-6 flex justify-center space-x-4">
+                                <button
+                                    ref={inUseOkButtonRef}
+                                    onClick={closeInUseWarningPopup}
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter') {
+                                            e.preventDefault();
+                                            closeInUseWarningPopup();
+                                        }
+                                    }}
+                                    className="w-full bg-[#f59e0b] hover:bg-[#d97706] text-white font-medium py-3 px-4 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg"
+                                >
+                                    OK
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </AISGBackground>
     );
 };
 
-export default EditService;
+export default EditSPConsumer;

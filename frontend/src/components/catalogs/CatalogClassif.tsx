@@ -14,6 +14,7 @@ const CatalogClassif: React.FC = () => {
   const [showDeletePopup, setShowDeletePopup] = useState(false);
   const [deleteItemId, setDeleteItemId] = useState<number | null>(null);
   const [deleteItemName, setDeleteItemName] = useState<string>("");
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Estado para el popup de éxito de eliminación
   const [showDeleteSuccessPopup, setShowDeleteSuccessPopup] = useState(false);
@@ -22,7 +23,7 @@ const CatalogClassif: React.FC = () => {
   // Estado para el popup de error de eliminación (registro en uso)
   const [showDeleteErrorPopup, setShowDeleteErrorPopup] = useState(false);
   const [deleteErrorMessage, setDeleteErrorMessage] = useState<string>("");
-  const [servicesUsingClassification, setServicesUsingClassification] = useState<any[]>([]);
+  const [dependentRecords, setDependentRecords] = useState<any[]>([]);
 
   // Referencias para manejar el foco
   const deleteSuccessOkButtonRef = useRef<HTMLButtonElement>(null);
@@ -63,7 +64,7 @@ const CatalogClassif: React.FC = () => {
         if (showDeleteSuccessPopup) {
           e.preventDefault();
           closeDeleteSuccessPopup();
-        } else if (showDeletePopup) {
+        } else if (showDeletePopup && !isDeleting) {
           e.preventDefault();
           confirmDelete();
         } else if (showDeleteErrorPopup) {
@@ -71,7 +72,7 @@ const CatalogClassif: React.FC = () => {
           closeDeleteErrorPopup();
         }
       } else if (e.key === 'Escape') {
-        if (showDeletePopup) {
+        if (showDeletePopup && !isDeleting) {
           e.preventDefault();
           cancelDelete();
         } else if (showDeleteSuccessPopup) {
@@ -90,7 +91,7 @@ const CatalogClassif: React.FC = () => {
         document.removeEventListener('keydown', handleKeyDown);
       };
     }
-  }, [showDeletePopup, showDeleteSuccessPopup, showDeleteErrorPopup]);
+  }, [showDeletePopup, showDeleteSuccessPopup, showDeleteErrorPopup, isDeleting]);
 
   const fetchClassifications = async () => {
     setLoading(true);
@@ -106,34 +107,173 @@ const CatalogClassif: React.FC = () => {
     }
   };
 
-  // Verificar si una clasificación está siendo utilizada por servicios
-  const checkClassificationUsage = async (classificationId: number): Promise<{ inUse: boolean; services: any[] }> => {
+  // Verificar si una clasificación está siendo utilizada por diferentes módulos
+  const checkClassificationUsage = async (classificationId: number): Promise<{ inUse: boolean; records: any[] }> => {
     try {
-      const res = await axiosInstance.get('/catalog/services');
-      const servicesUsingClassification = res.data.filter((service: any) =>
-        service.id_service_classification === classificationId
-      );
+      const allDependentRecords: any[] = [];
+
+      // Verificar en servicios
+      try {
+        const servicesRes = await axiosInstance.get('/catalog/services');
+        const servicesUsingClassification = servicesRes.data.filter((service: any) =>
+          service.id_service_classification === classificationId
+        );
+        allDependentRecords.push(
+          ...servicesUsingClassification.map((service: any) => ({
+            type: 'Service',
+            name: `${service.service_code} - ${service.service_name}`,
+            id: service.id_service
+          }))
+        );
+      } catch (err) {
+        console.warn("Error checking services:", err);
+      }
+
+      // Verificar en componentes (módulo principal que utiliza clasificaciones)
+      try {
+        const componentsRes = await axiosInstance.get('/components');
+        const componentsUsingClassification = componentsRes.data.filter((comp: any) => 
+          comp.id_service_classification === classificationId ||
+          comp.classification_id === classificationId
+        );
+        allDependentRecords.push(
+          ...componentsUsingClassification.map((comp: any) => ({
+            type: 'Component',
+            name: `Component: ${comp.component_name || comp.component_number || comp.id}`,
+            id: comp.id
+          }))
+        );
+      } catch (err) {
+        console.warn("Error checking components:", err);
+      }
+
+      // Verificar en customer services
+      try {
+        const customerServicesRes = await axiosInstance.get('/catalog/service-per-customer');
+        const customerServicesUsingClassification = customerServicesRes.data.filter((cs: any) => {
+          // Verificar si el servicio del customer service usa esta clasificación
+          return cs.service_classification_id === classificationId;
+        });
+        allDependentRecords.push(
+          ...customerServicesUsingClassification.map((cs: any) => ({
+            type: 'Customer Service',
+            name: `Customer ID: ${cs.id_customer} - Service: ${cs.service_name || cs.id_service}`,
+            id: cs.id_service_per_customer
+          }))
+        );
+      } catch (err) {
+        console.warn("Error checking customer services:", err);
+      }
+
+      // Verificar en work orders
+      try {
+        const workOrdersRes = await axiosInstance.get('/work-orders');
+        const workOrdersUsingClassification = workOrdersRes.data.filter((wo: any) => 
+          wo.service_classification_id === classificationId
+        );
+        allDependentRecords.push(
+          ...workOrdersUsingClassification.map((wo: any) => ({
+            type: 'Work Order',
+            name: `Work Order: ${wo.work_order_number || wo.id}`,
+            id: wo.id
+          }))
+        );
+      } catch (err) {
+        console.warn("Error checking work orders:", err);
+      }
+
+      // Verificar en cotizaciones/quotes
+      try {
+        const quotesRes = await axiosInstance.get('/quotes');
+        const quotesUsingClassification = quotesRes.data.filter((quote: any) => 
+          quote.service_classification_id === classificationId
+        );
+        allDependentRecords.push(
+          ...quotesUsingClassification.map((quote: any) => ({
+            type: 'Quote',
+            name: `Quote: ${quote.quote_number || quote.id}`,
+            id: quote.id
+          }))
+        );
+      } catch (err) {
+        console.warn("Error checking quotes:", err);
+      }
+
+      // Verificar en reportes operacionales
+      try {
+        const operationReportsRes = await axiosInstance.get('/reports/operation-report');
+        const reportsUsingClassification = operationReportsRes.data.filter((report: any) => 
+          report.classification_id === classificationId
+        );
+        allDependentRecords.push(
+          ...reportsUsingClassification.map((report: any) => ({
+            type: 'Operation Report',
+            name: `Report: ${report.cliente} - ${report.servicio_principal}`,
+            id: report.id
+          }))
+        );
+      } catch (err) {
+        console.warn("Error checking operation reports:", err);
+      }
+
+      // Verificar en ejecuciones de servicio
+      try {
+        const serviceExecutionsRes = await axiosInstance.get('/reports/service-executions');
+        const executionsUsingClassification = serviceExecutionsRes.data.filter((exec: any) => 
+          exec.classification_id === classificationId
+        );
+        allDependentRecords.push(
+          ...executionsUsingClassification.map((exec: any) => ({
+            type: 'Service Execution',
+            name: `Execution: Work Order ${exec.work_order}`,
+            id: exec.id
+          }))
+        );
+      } catch (err) {
+        console.warn("Error checking service executions:", err);
+      }
+
+      // Verificar en facturas/invoices
+      try {
+        const invoicesRes = await axiosInstance.get('/billing/invoices');
+        const invoicesUsingClassification = invoicesRes.data.filter((invoice: any) => 
+          invoice.classification_id === classificationId
+        );
+        allDependentRecords.push(
+          ...invoicesUsingClassification.map((invoice: any) => ({
+            type: 'Invoice',
+            name: `Invoice: ${invoice.invoice_number || invoice.id}`,
+            id: invoice.id
+          }))
+        );
+      } catch (err) {
+        console.warn("Error checking invoices:", err);
+      }
 
       return {
-        inUse: servicesUsingClassification.length > 0,
-        services: servicesUsingClassification
+        inUse: allDependentRecords.length > 0,
+        records: allDependentRecords
       };
     } catch (err) {
       console.error("Error checking classification usage:", err);
-      return { inUse: false, services: [] };
+      return { inUse: false, records: [] };
     }
   };
 
   // Inicia el proceso de eliminación mostrando el popup
   const handleDelete = async (id: number, name: string) => {
+    setIsDeleting(true);
+    
     // Verificar si la clasificación está siendo utilizada
-    const { inUse, services } = await checkClassificationUsage(id);
+    const { inUse, records } = await checkClassificationUsage(id);
+    
+    setIsDeleting(false);
 
     if (inUse) {
-      // Mostrar popup de error con la lista de servicios que la utilizan
-      setServicesUsingClassification(services);
+      // Mostrar popup de error con la lista de registros que la utilizan
+      setDependentRecords(records);
       setDeleteErrorMessage(
-        `Cannot delete classification "${name}" because it is being used by ${services.length} service(s).`
+        `Cannot delete classification "${name}" because it is being used by ${records.length} record(s) in the system.`
       );
       setShowDeleteErrorPopup(true);
       return;
@@ -149,18 +289,21 @@ const CatalogClassif: React.FC = () => {
   const confirmDelete = async () => {
     if (deleteItemId === null) return;
 
+    setIsDeleting(true);
     try {
       // Verificar una vez más antes de eliminar
-      const { inUse, services } = await checkClassificationUsage(deleteItemId);
+      const { inUse, records } = await checkClassificationUsage(deleteItemId);
 
       if (inUse) {
         // Si ahora está en uso, mostrar error
-        setServicesUsingClassification(services);
+        setDependentRecords(records);
         setDeleteErrorMessage(
-          `Cannot delete classification "${deleteItemName}" because it is being used by ${services.length} service(s).`
+          `Cannot delete classification "${deleteItemName}" because it is being used by ${records.length} record(s) in the system.`
         );
         setShowDeletePopup(false);
         setShowDeleteErrorPopup(true);
+        setDeleteItemId(null);
+        setDeleteItemName("");
         return;
       }
 
@@ -198,6 +341,8 @@ const CatalogClassif: React.FC = () => {
 
       setDeleteItemId(null);
       setDeleteItemName("");
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -211,7 +356,7 @@ const CatalogClassif: React.FC = () => {
   const closeDeleteErrorPopup = () => {
     setShowDeleteErrorPopup(false);
     setDeleteErrorMessage("");
-    setServicesUsingClassification([]);
+    setDependentRecords([]);
   };
 
   // Cancela la eliminación
@@ -319,12 +464,17 @@ const CatalogClassif: React.FC = () => {
                           </Link>
                           <button
                             onClick={() => handleDelete(c.id_service_classification, c.service_classification_name)}
-                            className="p-1.5 bg-[#e6001f] text-white rounded hover:bg-red-700 transition-colors"
+                            disabled={isDeleting}
+                            className="p-1.5 bg-[#e6001f] text-white rounded hover:bg-red-700 transition-colors disabled:opacity-50"
                             title="Delete"
                           >
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                            </svg>
+                            {isDeleting ? (
+                              <div className="w-5 h-5 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+                            ) : (
+                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                              </svg>
+                            )}
                           </button>
                         </div>
                       </td>
@@ -362,31 +512,39 @@ const CatalogClassif: React.FC = () => {
                 </p>
               </div>
               <div className="mt-8 flex justify-between space-x-4">
-                <button
-                  onClick={cancelDelete}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      cancelDelete();
-                    }
-                  }}
-                  className="w-1/2 bg-[#4D70B8] hover:bg-[#3A5A9F] text-white font-medium py-3 px-4 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg"
-                >
-                  Cancel
-                </button>
-                <button
-                  ref={deleteConfirmButtonRef}
-                  onClick={confirmDelete}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      confirmDelete();
-                    }
-                  }}
-                  className="w-1/2 bg-[#e6001f] hover:bg-red-700 text-white font-medium py-3 px-4 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg"
-                >
-                  Delete
-                </button>
+                {isDeleting ? (
+                  <div className="w-full flex justify-center">
+                    <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-white"></div>
+                  </div>
+                ) : (
+                  <>
+                    <button
+                      onClick={cancelDelete}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          cancelDelete();
+                        }
+                      }}
+                      className="w-1/2 bg-[#4D70B8] hover:bg-[#3A5A9F] text-white font-medium py-3 px-4 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      ref={deleteConfirmButtonRef}
+                      onClick={confirmDelete}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          confirmDelete();
+                        }
+                      }}
+                      className="w-1/2 bg-[#e6001f] hover:bg-red-700 text-white font-medium py-3 px-4 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg"
+                    >
+                      Delete
+                    </button>
+                  </>
+                )}
               </div>
             </div>
           </div>
@@ -444,7 +602,7 @@ const CatalogClassif: React.FC = () => {
             {/* Encabezado blanco con texto azul */}
             <div className="bg-white rounded-t-lg px-6 py-4 shadow-lg">
               <h2 className="text-2xl font-bold text-center text-[#002057]">
-                Cannot Delete
+                Cannot Delete Classification
               </h2>
               <div className="mt-2 w-20 h-1 bg-[#e6001f] mx-auto rounded"></div>
             </div>
@@ -461,18 +619,25 @@ const CatalogClassif: React.FC = () => {
                   <p className="text-white text-lg mb-4">
                     {deleteErrorMessage}
                   </p>
-                  {servicesUsingClassification.length > 0 && (
+                  {dependentRecords.length > 0 && (
                     <div className="mt-4">
-                      <p className="text-white text-sm font-medium mb-2">Services using this classification:</p>
-                      <div className="bg-[#0D1423] rounded-lg p-3 max-h-32 overflow-y-auto">
-                        {servicesUsingClassification.map((service, index) => (
-                          <div key={service.id_service} className="text-gray-300 text-sm py-1">
-                            • {service.service_code} - {service.service_name}
+                      <p className="text-white text-sm font-medium mb-2">
+                        Records using this classification ({dependentRecords.length} found):
+                      </p>
+                      <div className="bg-[#0D1423] rounded-lg p-3 max-h-40 overflow-y-auto border border-gray-700">
+                        {dependentRecords.map((record, index) => (
+                          <div key={index} className="text-gray-300 text-sm py-1 border-b border-gray-700 last:border-b-0">
+                            <span className="text-yellow-400 font-medium">{record.type}:</span> {record.name}
                           </div>
                         ))}
                       </div>
                     </div>
                   )}
+                  <div className="mt-4 p-3 bg-blue-900 rounded-lg border border-blue-700">
+                    <p className="text-blue-200 text-sm">
+                      <strong>Tip:</strong> To delete this classification, you must first remove or update all records that reference it.
+                    </p>
+                  </div>
                 </div>
               </div>
               <div className="mt-6 flex justify-center space-x-4">
@@ -487,7 +652,7 @@ const CatalogClassif: React.FC = () => {
                   }}
                   className="w-full bg-[#f59e0b] hover:bg-[#d97706] text-white font-medium py-3 px-4 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg"
                 >
-                  OK
+                  Understood
                 </button>
               </div>
             </div>

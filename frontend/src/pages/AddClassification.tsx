@@ -35,16 +35,42 @@ const AddClassification: React.FC = () => {
   // Efecto para enfocar el botón OK del popup de éxito
   useEffect(() => {
     if (showSuccessPopup && successOkButtonRef.current) {
-      successOkButtonRef.current.focus();
+      setTimeout(() => {
+        successOkButtonRef.current?.focus();
+      }, 100);
     }
   }, [showSuccessPopup]);
 
   // Efecto para enfocar el botón OK del popup de advertencia
   useEffect(() => {
     if (showDuplicateWarningPopup && duplicateOkButtonRef.current) {
-      duplicateOkButtonRef.current.focus();
+      setTimeout(() => {
+        duplicateOkButtonRef.current?.focus();
+      }, 100);
     }
   }, [showDuplicateWarningPopup]);
+
+  // Efecto para manejar Enter en los popups
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Enter') {
+        if (showSuccessPopup) {
+          e.preventDefault();
+          handleClosePopup();
+        } else if (showDuplicateWarningPopup) {
+          e.preventDefault();
+          closeDuplicateWarningPopup();
+        }
+      }
+    };
+
+    if (showSuccessPopup || showDuplicateWarningPopup) {
+      document.addEventListener('keydown', handleKeyDown);
+      return () => {
+        document.removeEventListener('keydown', handleKeyDown);
+      };
+    }
+  }, [showSuccessPopup, showDuplicateWarningPopup]);
 
   /**
    * Verifica si una clasificación con el mismo nombre ya existe
@@ -104,10 +130,18 @@ const AddClassification: React.FC = () => {
   };
 
   /**
-   * Cierra el popup de advertencia
+   * Cierra el popup de advertencia, limpia errores y devuelve el foco al campo nombre
    */
   const closeDuplicateWarningPopup = () => {
     setShowDuplicateWarningPopup(false);
+    setError(null); // Limpiar cualquier error previo
+    // Usar setTimeout para asegurar que el popup se cierre antes de enfocar
+    setTimeout(() => {
+      if (nameInputRef.current) {
+        nameInputRef.current.focus();
+        nameInputRef.current.select(); // Seleccionar todo el texto para facilitar la edición
+      }
+    }, 100);
   };
 
   return (
@@ -188,6 +222,12 @@ const AddClassification: React.FC = () => {
                 <button
                   ref={successOkButtonRef}
                   onClick={handleClosePopup}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleClosePopup();
+                    }
+                  }}
                   className="w-full bg-[#00B140] hover:bg-[#009935] text-white font-medium py-3 px-4 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg"
                 >
                   OK
@@ -224,6 +264,12 @@ const AddClassification: React.FC = () => {
                 <button
                   ref={duplicateOkButtonRef}
                   onClick={closeDuplicateWarningPopup}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      closeDuplicateWarningPopup();
+                    }
+                  }}
                   className="w-full bg-[#f59e0b] hover:bg-[#d97706] text-white font-medium py-3 px-4 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg"
                 >
                   OK

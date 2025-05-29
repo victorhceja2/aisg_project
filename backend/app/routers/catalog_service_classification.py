@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from app.models import CatalogServiceClassification
 from app.database import get_db
 from typing import Optional
+from datetime import datetime
 
 router = APIRouter(
     prefix="/catalog/service-classification",
@@ -15,9 +16,9 @@ class ClassificationIn(BaseModel):
     whonew: str = "system"
 
 class ClassificationUpdate(BaseModel):
-    service_classification_name: str
+    service_classification_name: Optional[str] = None
     status: Optional[bool] = None
-    whoedit: str = "system"
+    whonew: Optional[str] = None  # Cambiar de whoedit a whonew para coincidir con el frontend
 
 @router.get("/")
 def get_classifications(search: str = Query(None), db: Session = Depends(get_db)):
@@ -28,7 +29,9 @@ def get_classifications(search: str = Query(None), db: Session = Depends(get_db)
 
 @router.get("/{classification_id}")
 def get_classification(classification_id: int, db: Session = Depends(get_db)):
-    classification = db.query(CatalogServiceClassification).filter(CatalogServiceClassification.id_service_classification == classification_id).first()
+    classification = db.query(CatalogServiceClassification).filter(
+        CatalogServiceClassification.id_service_classification == classification_id
+    ).first()
     if not classification:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -38,7 +41,11 @@ def get_classification(classification_id: int, db: Session = Depends(get_db)):
 
 @router.post("/")
 def create_classification(item: ClassificationIn, db: Session = Depends(get_db)):
-    obj = CatalogServiceClassification(**item.dict())
+    # Crear objeto con datos del request y timestamps
+    classification_data = item.dict()
+    classification_data['create_at'] = datetime.utcnow()
+    
+    obj = CatalogServiceClassification(**classification_data)
     db.add(obj)
     db.commit()
     db.refresh(obj)
@@ -46,16 +53,32 @@ def create_classification(item: ClassificationIn, db: Session = Depends(get_db))
 
 @router.put("/{classification_id}")
 def update_classification(classification_id: int, item: ClassificationUpdate, db: Session = Depends(get_db)):
-    classification = db.query(CatalogServiceClassification).filter(CatalogServiceClassification.id_service_classification == classification_id).first()
+    classification = db.query(CatalogServiceClassification).filter(
+        CatalogServiceClassification.id_service_classification == classification_id
+    ).first()
     if not classification:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Clasificación con ID {classification_id} no encontrada"
         )
     
-    # Actualizar campos
-    for key, value in item.dict(exclude_unset=True).items():
-        setattr(classification, key, value)
+    # Obtener solo los campos que no son None del request
+    update_data = item.dict(exclude_unset=True, exclude_none=True)
+    
+    # Agregar timestamp de actualización
+    update_data['updated_at'] = datetime.utcnow()
+    
+    # Debug: imprimir los datos recibidos
+    print(f"Datos recibidos del frontend: {item.dict()}")
+    print(f"Datos a actualizar: {update_data}")
+    
+    # Actualizar solo los campos presentes en el request
+    for key, value in update_data.items():
+        if hasattr(classification, key):
+            print(f"Actualizando {key} = {value}")
+            setattr(classification, key, value)
+        else:
+            print(f"Campo {key} no existe en el modelo")
     
     db.commit()
     db.refresh(classification)
@@ -63,7 +86,9 @@ def update_classification(classification_id: int, item: ClassificationUpdate, db
 
 @router.delete("/{classification_id}")
 def delete_classification(classification_id: int, db: Session = Depends(get_db)):
-    classification = db.query(CatalogServiceClassification).filter(CatalogServiceClassification.id_service_classification == classification_id).first()
+    classification = db.query(CatalogServiceClassification).filter(
+        CatalogServiceClassification.id_service_classification == classification_id
+    ).first()
     if not classification:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

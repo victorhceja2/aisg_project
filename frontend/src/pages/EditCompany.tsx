@@ -106,10 +106,14 @@ const EditCompany: React.FC = () => {
             setIsSubmitting(true);
             setError("");
             
+            // Obtener el usuario que está actualizando
+            const whoupdate = sessionStorage.getItem("userName") || "admin";
+            
             const data = {
                 id_company: parseInt(form.id_company),
                 applies_detail: form.applies_detail,
                 status: form.status,
+                whoupdate, // Agregar quién está actualizando
             };
             
             await axiosInstance.put(`/catalog/extra-company-configuration/${id}`, data);

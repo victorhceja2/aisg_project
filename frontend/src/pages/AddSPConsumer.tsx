@@ -1,23 +1,34 @@
+/**
+ * Componente AddSPConsumer
+ * 
+ * Esta página permite a los usuarios agregar una nueva configuración de Servicio por Cliente.
+ * Implementa un sistema de dropdowns en cascada donde:
+ * 1. El selector de Compañía tiene un valor por defecto (primera compañía)
+ * 2. El selector de Aerolínea muestra solo aerolíneas (tipoCliente = 1) filtradas por la compañía seleccionada
+ * 3. El selector de Servicio muestra servicios disponibles para la aerolínea seleccionada
+ * 
+ * El formulario valida todos los campos requeridos y previene entradas duplicadas.
+ * Al crear exitosamente, muestra un popup de éxito y navega de vuelta a la lista de catálogos.
+ */
+
 import React, { useState, useEffect, useRef } from "react";
 import axiosInstance from '../api/axiosInstance';
 import { useNavigate } from "react-router-dom";
 import AISGBackground from "../components/catalogs/fondo";
 
-// Interface para los clientes
 interface Client {
   llave: number;
   nombre: string;
+  comercial: string;
   razonSocial: string;
 }
 
-// Interface para los servicios
 interface Service {
   id_service: number;
   service_name: string;
   service_code: string;
 }
 
-// Interface para las compañías
 interface Company {
   companyCode: string;
   companyName: string;
@@ -26,19 +37,18 @@ interface Company {
 const AddSPConsumer: React.FC = () => {
   const navigate = useNavigate();
   
-  // Estado para almacenar la lista de clientes
   const [clients, setClients] = useState<Client[]>([]);
-  const [clientsLoading, setClientsLoading] = useState(true);
-  
-  // Estado para almacenar la lista de servicios
   const [services, setServices] = useState<Service[]>([]);
-  const [servicesLoading, setServicesLoading] = useState(true);
-
-  // Estado para almacenar la lista de compañías
   const [companies, setCompanies] = useState<Company[]>([]);
+  
   const [companiesLoading, setCompaniesLoading] = useState(true);
+  const [clientsLoading, setClientsLoading] = useState(false);
+  const [servicesLoading, setServicesLoading] = useState(false);
 
-  // Estados para errores de validación específicos
+  const [selectedCompany, setSelectedCompany] = useState<string>("");
+  const [selectedClient, setSelectedClient] = useState<string>("");
+  const [selectedService, setSelectedService] = useState<string>("");
+
   const [validationErrors, setValidationErrors] = useState<{ [key: string]: string }>({});
 
   const [form, setForm] = useState({
@@ -54,18 +64,13 @@ const AddSPConsumer: React.FC = () => {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   
-  // Estados para los popups
   const [showSuccessPopup, setShowSuccessPopup] = useState(false);
   const [showDuplicateWarningPopup, setShowDuplicateWarningPopup] = useState(false);
 
-  // Referencias para manejar el foco
   const successOkButtonRef = useRef<HTMLButtonElement>(null);
   const duplicateOkButtonRef = useRef<HTMLButtonElement>(null);
+  const companySelectRef = useRef<HTMLSelectElement>(null);
 
-  // Referencia para el primer campo del formulario (Service select)
-  const serviceSelectRef = useRef<HTMLSelectElement>(null);
-
-  // Validación para habilitar el botón de envío
   const isFormValid = () => {
     return form.id_service !== "" &&
       form.id_client !== "" &&
@@ -75,48 +80,50 @@ const AddSPConsumer: React.FC = () => {
       form.technicians_included >= 0;
   };
 
-  // Función para validar campos individuales
   const validateField = (fieldName: string, value: any) => {
     const errors = { ...validationErrors };
 
     switch (fieldName) {
-      case 'id_service':
-        if (!value || value === "") {
-          errors[fieldName] = 'Service is required';
-        } else {
-          delete errors[fieldName];
-        }
-        break;
-      case 'id_client':
-        if (!value || value === "") {
-          errors[fieldName] = 'Client is required';
-        } else {
-          delete errors[fieldName];
-        }
-        break;
       case 'company':
-        if (!value || value === "") {
+        if (!value || value === "" || value.trim() === "") {
           errors[fieldName] = 'Company is required';
         } else {
           delete errors[fieldName];
         }
         break;
+      case 'id_client':
+        if (!value || value === "" || value.toString().trim() === "") {
+          errors[fieldName] = 'Client is required';
+        } else {
+          delete errors[fieldName];
+        }
+        break;
+      case 'id_service':
+        if (!value || value === "" || value.toString().trim() === "") {
+          errors[fieldName] = 'Service is required';
+        } else {
+          delete errors[fieldName];
+        }
+        break;
       case 'minutes_included':
-        if (value < 0) {
+        const minutesIncluded = typeof value === 'string' ? parseFloat(value) : value;
+        if (isNaN(minutesIncluded) || minutesIncluded < 0) {
           errors[fieldName] = 'Minutes included must be 0 or greater';
         } else {
           delete errors[fieldName];
         }
         break;
       case 'minutes_minimum':
-        if (value < 0) {
+        const minutesMinimum = typeof value === 'string' ? parseFloat(value) : value;
+        if (isNaN(minutesMinimum) || minutesMinimum < 0) {
           errors[fieldName] = 'Minimum minutes must be 0 or greater';
         } else {
           delete errors[fieldName];
         }
         break;
       case 'technicians_included':
-        if (value < 0) {
+        const techniciansIncluded = typeof value === 'string' ? parseFloat(value) : value;
+        if (isNaN(techniciansIncluded) || techniciansIncluded < 0) {
           errors[fieldName] = 'Technicians included must be 0 or greater';
         } else {
           delete errors[fieldName];
@@ -127,26 +134,30 @@ const AddSPConsumer: React.FC = () => {
     setValidationErrors(errors);
   };
 
-  // Función para validar todos los campos
   const validateAllFields = () => {
     const errors: { [key: string]: string } = {};
 
-    if (!form.id_service || form.id_service === "") {
-      errors.id_service = 'Service is required';
-    }
-    if (!form.id_client || form.id_client === "") {
-      errors.id_client = 'Client is required';
-    }
-    if (!form.company || form.company === "") {
+    if (!form.company || form.company.trim() === "") {
       errors.company = 'Company is required';
     }
-    if (form.minutes_included < 0) {
+
+    if (!form.id_client || form.id_client.toString().trim() === "") {
+      errors.id_client = 'Client is required';
+    }
+
+    if (!form.id_service || form.id_service.toString().trim() === "") {
+      errors.id_service = 'Service is required';
+    }
+
+    if (isNaN(form.minutes_included) || form.minutes_included < 0) {
       errors.minutes_included = 'Minutes included must be 0 or greater';
     }
-    if (form.minutes_minimum < 0) {
+
+    if (isNaN(form.minutes_minimum) || form.minutes_minimum < 0) {
       errors.minutes_minimum = 'Minimum minutes must be 0 or greater';
     }
-    if (form.technicians_included < 0) {
+
+    if (isNaN(form.technicians_included) || form.technicians_included < 0) {
       errors.technicians_included = 'Technicians included must be 0 or greater';
     }
 
@@ -154,16 +165,114 @@ const AddSPConsumer: React.FC = () => {
     return Object.keys(errors).length === 0;
   };
 
-  // Efecto para enfocar el primer campo al cargar el formulario
+  const extractCompanyCode = (companyValue: string) => {
+    if (!companyValue) return "";
+    return companyValue.split(" - ")[0];
+  };
+
+  const fetchClientsByCompany = async (companyValue: string) => {
+    try {
+      setClientsLoading(true);
+      setClients([]);
+      setServices([]);
+      setSelectedClient("");
+      setSelectedService("");
+      
+      setForm(prevForm => ({ 
+        ...prevForm, 
+        id_client: "", 
+        id_service: "" 
+      }));
+      
+      if (!companyValue) {
+        setClientsLoading(false);
+        return;
+      }
+
+      const companyCode = extractCompanyCode(companyValue);
+      
+      const res = await axiosInstance.get(`/catalog/clients?companyCode=${encodeURIComponent(companyCode)}&tipoCliente=1`);
+      setClients(res.data || []);
+    } catch (err) {
+      console.error("Error loading clients:", err);
+      setError("Error loading client data.");
+    } finally {
+      setClientsLoading(false);
+    }
+  };
+
+  const fetchServicesByClient = async (clientId: string) => {
+    try {
+      setServicesLoading(true);
+      setServices([]);
+      setSelectedService("");
+      
+      setForm(prevForm => ({ 
+        ...prevForm, 
+        id_service: "" 
+      }));
+      
+      if (!clientId) {
+        setServicesLoading(false);
+        return;
+      }
+      
+      const res = await axiosInstance.get(`/catalog/services?client_id=${encodeURIComponent(clientId)}`);
+      setServices(res.data || []);
+    } catch (err) {
+      console.error("Error loading services:", err);
+      setError("Error loading service data.");
+    } finally {
+      setServicesLoading(false);
+    }
+  };
+
+  const handleCompanyChange = (companyValue: string) => {
+    setSelectedCompany(companyValue);
+    
+    setForm(prevForm => ({ 
+      ...prevForm, 
+      company: companyValue, 
+      id_client: "", 
+      id_service: "" 
+    }));
+    
+    validateField('company', companyValue);
+    fetchClientsByCompany(companyValue);
+  };
+
+  const handleClientChange = (clientId: string) => {
+    setSelectedClient(clientId);
+    
+    setForm(prevForm => ({ 
+      ...prevForm, 
+      id_client: clientId, 
+      id_service: "" 
+    }));
+    
+    validateField('id_client', clientId);
+    fetchServicesByClient(clientId);
+  };
+
+  const handleServiceChange = (serviceId: string) => {
+    setSelectedService(serviceId);
+    
+    setForm(prevForm => ({ 
+      ...prevForm, 
+      id_service: serviceId 
+    }));
+    
+    validateField('id_service', serviceId);
+  };
+
   useEffect(() => {
-    if (!servicesLoading && serviceSelectRef.current) {
+    if (!companiesLoading && companySelectRef.current) {
       setTimeout(() => {
-        serviceSelectRef.current?.focus();
+        companySelectRef.current?.focus();
       }, 100);
     }
-  }, [servicesLoading]);
+  }, [companiesLoading]);
 
-  // Efecto para enfocar el botón OK del popup de éxito
   useEffect(() => {
     if (showSuccessPopup && successOkButtonRef.current) {
       setTimeout(() => {
@@ -172,7 +281,6 @@ const AddSPConsumer: React.FC = () => {
     }
   }, [showSuccessPopup]);
 
-  // Efecto para enfocar el botón OK del popup de advertencia
   useEffect(() => {
     if (showDuplicateWarningPopup && duplicateOkButtonRef.current) {
       setTimeout(() => {
@@ -181,7 +289,6 @@ const AddSPConsumer: React.FC = () => {
     }
   }, [showDuplicateWarningPopup]);
 
-  // Efecto para manejar Enter en los popups
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Enter') {
@@ -203,53 +310,51 @@ const AddSPConsumer: React.FC = () => {
     }
   }, [showSuccessPopup, showDuplicateWarningPopup]);
 
-  // Función para manejar cambios en campos numéricos
   const handleNumericChange = (field: string, value: string) => {
-    const numericValue = parseFloat(value);
-    // Solo actualizar si el valor es mayor o igual a 0, o si está vacío
-    if (value === "" || numericValue >= 0) {
-      const finalValue = value === "" ? 0 : numericValue;
-      setForm({ ...form, [field]: finalValue });
-      validateField(field, finalValue);
+    let numericValue: number;
+    
+    if (value === "" || value === "0") {
+      numericValue = 0;
+    } else {
+      numericValue = parseFloat(value);
+      if (isNaN(numericValue) || numericValue < 0) {
+        return;
+      }
     }
+    
+    setForm(prevForm => ({ ...prevForm, [field]: numericValue }));
+    validateField(field, numericValue);
   };
 
-  // Obtener la lista de clientes, servicios y compañías cuando el componente se monta
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchCompanies = async () => {
       try {
-        // Cargar clientes
-        const clientsResponse = await axiosInstance.get('/catalog/clients');
-        console.log("Clientes recibidos:", clientsResponse.data);
-        setClients(clientsResponse.data);
-        setClientsLoading(false);
-        
-        // Cargar servicios
-        const servicesResponse = await axiosInstance.get('/catalog/services');
-        console.log("Servicios recibidos:", servicesResponse.data);
-        setServices(servicesResponse.data);
-        setServicesLoading(false);
-
-        // Cargar compañías
+        setCompaniesLoading(true);
         const companiesResponse = await axiosInstance.get('/companies/');
-        console.log("Compañías recibidas:", companiesResponse.data);
-        setCompanies(companiesResponse.data);
-        setCompaniesLoading(false);
+        const companiesData = companiesResponse.data;
+        setCompanies(companiesData);
+        
+        if (companiesData && companiesData.length > 0) {
+          const defaultCompany = `${companiesData[0].companyCode} - ${companiesData[0].companyName}`;
+          setSelectedCompany(defaultCompany);
+          setForm(prevForm => ({ 
+            ...prevForm, 
+            company: defaultCompany 
+          }));
+          validateField('company', defaultCompany);
+          fetchClientsByCompany(defaultCompany);
+        }
       } catch (err: any) {
-        console.error("Error fetching data:", err);
-        setError("Error loading data. Please refresh the page.");
-        setClientsLoading(false);
-        setServicesLoading(false);
+        console.error("Error fetching companies:", err);
+        setError("Error loading company data. Please refresh the page.");
+      } finally {
         setCompaniesLoading(false);
       }
     };
 
-    fetchData();
+    fetchCompanies();
   }, []);
 
-  /**
-   * Verifica si un service per customer duplicado ya existe
-   */
   const checkDuplicateServicePerCustomer = async () => {
     try {
       const res = await axiosInstance.get(`/catalog/service-per-customer`);
@@ -267,17 +372,18 @@ const AddSPConsumer: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Validar todos los campos antes de continuar
-    if (!validateAllFields()) {
+    setError("");
+
+    const isValid = validateAllFields();
+    
+    if (!isValid) {
       setError("Please fill in all required fields correctly.");
       return;
     }
 
     setLoading(true);
-    setError("");
 
     try {
-      // Verificar si la combinación ya existe
       const isDuplicate = await checkDuplicateServicePerCustomer();
       if (isDuplicate) {
         setShowDuplicateWarningPopup(true);
@@ -287,39 +393,25 @@ const AddSPConsumer: React.FC = () => {
 
       const whonew = sessionStorage.getItem("userName") || "admin";
       
-      // Intentemos con diferentes formatos para ver cuál funciona
       const data = {
         id_service: parseInt(form.id_service),
         id_client: parseInt(form.id_client),
-        company: form.company,
-        minutes_included: Math.floor(form.minutes_included), // Asegurar que sea entero
-        minutes_minimum: Math.floor(form.minutes_minimum),   // Asegurar que sea entero
-        fuselage_type: form.fuselage_type || "",
-        technicians_included: Math.floor(form.technicians_included), // Asegurar que sea entero
+        company: form.company.trim(),
+        minutes_included: Math.max(0, Math.floor(form.minutes_included)),
+        minutes_minimum: Math.max(0, Math.floor(form.minutes_minimum)),
+        fuselage_type: form.fuselage_type.trim() || "",
+        technicians_included: Math.max(0, Math.floor(form.technicians_included)),
         whonew,
       };
 
-      console.log("Datos a enviar (formato completo):", JSON.stringify(data, null, 2));
-
-      const response = await axiosInstance.post(`/catalog/service-per-customer`, data);
-      console.log("Respuesta exitosa:", response.data);
-      
-      // Mostrar popup de éxito en lugar de navegar inmediatamente
+      await axiosInstance.post(`/catalog/service-per-customer`, data);
       setShowSuccessPopup(true);
     } catch (err: any) {
-      console.error("Error completo:", err);
-      console.error("Status:", err.response?.status);
-      console.error("Data:", err.response?.data);
-      console.error("Headers:", err.response?.headers);
+      console.error("Error:", err);
       
       if (err.response && err.response.data) {
-        console.error("Detalles específicos del error:", JSON.stringify(err.response.data, null, 2));
-        
-        // Mostrar detalles de validación si están disponibles
         if (err.response.data.detail) {
-          // Si detail es un array, mostrar cada error
           if (Array.isArray(err.response.data.detail)) {
-            console.error("Errores de validación detallados:", err.response.data.detail);
             const errorMessages = err.response.data.detail.map((error: any) => {
               const field = error.loc ? error.loc.join('.') : 'Unknown field';
               const message = error.msg || 'Validation error';
@@ -349,17 +441,11 @@ const AddSPConsumer: React.FC = () => {
     navigate("/catalogs/customer");
   };
 
-  /**
-   * Cierra el popup y navega al listado de service per customer
-   */
   const handleClosePopup = () => {
     setShowSuccessPopup(false);
     navigate("/catalogs/customer");
   };
 
-  /**
-   * Cierra el popup de advertencia
-   */
   const closeDuplicateWarningPopup = () => {
     setShowDuplicateWarningPopup(false);
   };
@@ -380,44 +466,41 @@ const AddSPConsumer: React.FC = () => {
                 <p className="font-medium whitespace-pre-wrap">{error}</p>
               </div>
             )}
+
             <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4">
                 <div>
                   <label className="block text-white text-sm font-medium mb-2">
-                    Service <span className="text-red-400">*</span>
+                    Company <span className="text-red-400">*</span>
                   </label>
-                  {servicesLoading ? (
+                  {companiesLoading ? (
                     <div className="w-full px-4 py-3 rounded-lg bg-gray-200 animate-pulse text-center">
-                      Loading services...
+                      Loading companies...
                     </div>
                   ) : (
                     <select
+                      ref={companySelectRef}
                       className={`w-full px-4 py-3 rounded-lg bg-white text-[#002057] border ${
-                        validationErrors.id_service 
+                        validationErrors.company 
                           ? 'border-red-500 focus:border-red-500 focus:ring-red-500' 
                           : 'border-[#cccccc] focus:border-[#00B140] focus:ring-[#00B140]'
                       } focus:ring-2 focus:outline-none transition-all`}
-                      value={form.id_service}
-                      onChange={(e) => {
-                        const value = e.target.value;
-                        setForm({ ...form, id_service: value });
-                        validateField('id_service', value);
-                      }}
+                      value={selectedCompany}
+                      onChange={(e) => handleCompanyChange(e.target.value)}
                       required
-                      ref={serviceSelectRef}
                     >
-                      <option value="">Select a service</option>
-                      {services.map((service) => (
-                        <option key={service.id_service} value={service.id_service}>
-                          {service.service_code} - {service.service_name}
+                      {companies.map((company) => (
+                        <option key={company.companyCode} value={`${company.companyCode} - ${company.companyName}`}>
+                          {company.companyCode} - {company.companyName}
                         </option>
                       ))}
                     </select>
                   )}
-                  {validationErrors.id_service && (
-                    <p className="mt-1 text-sm text-red-400">{validationErrors.id_service}</p>
+                  {validationErrors.company && (
+                    <p className="mt-1 text-sm text-red-400">{validationErrors.company}</p>
                   )}
                 </div>
+
                 <div>
                   <label className="block text-white text-sm font-medium mb-2">
                     Client <span className="text-red-400">*</span>
@@ -432,19 +515,18 @@ const AddSPConsumer: React.FC = () => {
                         validationErrors.id_client 
                           ? 'border-red-500 focus:border-red-500 focus:ring-red-500' 
                           : 'border-[#cccccc] focus:border-[#00B140] focus:ring-[#00B140]'
-                      } focus:ring-2 focus:outline-none transition-all`}
-                      value={form.id_client}
-                      onChange={(e) => {
-                        const value = e.target.value;
-                        setForm({ ...form, id_client: value });
-                        validateField('id_client', value);
-                      }}
+                      } focus:ring-2 focus:outline-none transition-all ${!selectedCompany ? 'opacity-50 cursor-not-allowed' : ''}`}
+                      value={selectedClient}
+                      onChange={(e) => handleClientChange(e.target.value)}
+                      disabled={!selectedCompany || clientsLoading}
                       required
                     >
-                      <option value="">Select a client</option>
+                      <option value="">
+                        {!selectedCompany ? "Select a company first" : "Select an Client"}
+                      </option>
                       {clients.map((client) => (
                         <option key={client.llave} value={client.llave}>
-                          {client.razonSocial || client.nombre || `Client #${client.llave}`}
+                          {client.comercial ? `${client.comercial}` : (client.nombre ? `${client.nombre}` : `Airline #${client.llave}`)}
                         </option>
                       ))}
                     </select>
@@ -453,41 +535,44 @@ const AddSPConsumer: React.FC = () => {
                     <p className="mt-1 text-sm text-red-400">{validationErrors.id_client}</p>
                   )}
                 </div>
+
                 <div>
                   <label className="block text-white text-sm font-medium mb-2">
-                    Company <span className="text-red-400">*</span>
+                    Service <span className="text-red-400">*</span>
                   </label>
-                  {companiesLoading ? (
+                  {servicesLoading ? (
                     <div className="w-full px-4 py-3 rounded-lg bg-gray-200 animate-pulse text-center">
-                      Loading companies...
+                      Loading services...
                     </div>
                   ) : (
                     <select
                       className={`w-full px-4 py-3 rounded-lg bg-white text-[#002057] border ${
-                        validationErrors.company 
+                        validationErrors.id_service 
                           ? 'border-red-500 focus:border-red-500 focus:ring-red-500' 
                           : 'border-[#cccccc] focus:border-[#00B140] focus:ring-[#00B140]'
-                      } focus:ring-2 focus:outline-none transition-all`}
-                      value={form.company}
-                      onChange={(e) => {
-                        const value = e.target.value;
-                        setForm({ ...form, company: value });
-                        validateField('company', value);
-                      }}
+                      } focus:ring-2 focus:outline-none transition-all ${!selectedClient ? 'opacity-50 cursor-not-allowed' : ''}`}
+                      value={selectedService}
+                      onChange={(e) => handleServiceChange(e.target.value)}
+                      disabled={!selectedClient || servicesLoading}
                       required
                     >
-                      <option value="">Select a company</option>
-                      {companies.map((company) => (
-                        <option key={company.companyCode} value={`${company.companyCode} - ${company.companyName}`}>
-                          {company.companyCode} - {company.companyName}
+                      <option value="">
+                        {!selectedClient ? "Select an client first" : "Select a service"}
+                      </option>
+                      {services.map((service) => (
+                        <option key={service.id_service} value={service.id_service}>
+                          {service.service_code} - {service.service_name}
                         </option>
                       ))}
                     </select>
                   )}
-                  {validationErrors.company && (
-                    <p className="mt-1 text-sm text-red-400">{validationErrors.company}</p>
+                  {validationErrors.id_service && (
+                    <p className="mt-1 text-sm text-red-400">{validationErrors.id_service}</p>
                   )}
                 </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-white text-sm font-medium mb-2">
                     Included Minutes <span className="text-red-400">*</span>
@@ -502,10 +587,9 @@ const AddSPConsumer: React.FC = () => {
                     type="number"
                     min="0"
                     step="1"
-                    value={form.minutes_included}
+                    value={form.minutes_included || 0}
                     onChange={(e) => handleNumericChange('minutes_included', e.target.value)}
                     onKeyDown={(e) => {
-                      // Prevenir que se escriban números negativos con el teclado
                       if (e.key === '-' || e.key === 'e' || e.key === 'E') {
                         e.preventDefault();
                       }
@@ -530,10 +614,9 @@ const AddSPConsumer: React.FC = () => {
                     type="number"
                     min="0"
                     step="1"
-                    value={form.minutes_minimum}
+                    value={form.minutes_minimum || 0}
                     onChange={(e) => handleNumericChange('minutes_minimum', e.target.value)}
                     onKeyDown={(e) => {
-                      // Prevenir que se escriban números negativos con el teclado
                       if (e.key === '-' || e.key === 'e' || e.key === 'E') {
                         e.preventDefault();
                       }
@@ -558,10 +641,9 @@ const AddSPConsumer: React.FC = () => {
                     type="number"
                     min="0"
                     step="1"
-                    value={form.technicians_included}
+                    value={form.technicians_included || 0}
                     onChange={(e) => handleNumericChange('technicians_included', e.target.value)}
                     onKeyDown={(e) => {
-                      // Prevenir que se escriban números negativos con el teclado
                       if (e.key === '-' || e.key === 'e' || e.key === 'E') {
                         e.preventDefault();
                       }
@@ -578,10 +660,11 @@ const AddSPConsumer: React.FC = () => {
                     className="w-full px-4 py-3 rounded-lg bg-white text-[#002057] border border-[#cccccc] focus:border-[#00B140] focus:ring-2 focus:ring-[#00B140] focus:outline-none transition-all"
                     placeholder="Fuselage Type"
                     value={form.fuselage_type}
-                    onChange={(e) => setForm({ ...form, fuselage_type: e.target.value })}
+                    onChange={(e) => setForm(prevForm => ({ ...prevForm, fuselage_type: e.target.value }))}
                   />
                 </div>
               </div>
+              
               <div className="flex space-x-4 pt-4">
                 <button
                   type="button"
@@ -594,9 +677,9 @@ const AddSPConsumer: React.FC = () => {
                 <button
                   type="submit"
                   className={`w-1/2 ${
-                    loading ? "bg-gray-500" : "bg-[#00B140] hover:bg-[#009935]"
+                    loading || !isFormValid() ? "bg-gray-500" : "bg-[#00B140] hover:bg-[#009935]"
                   } text-white font-medium py-3 px-4 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg flex items-center justify-center`}
-                  disabled={loading}
+                  disabled={loading || !isFormValid()}
                 >
                   {loading ? (
                     <>
@@ -613,19 +696,15 @@ const AddSPConsumer: React.FC = () => {
         </div>
       </div>
 
-      {/* Popup de éxito */}
       {showSuccessPopup && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="overflow-hidden max-w-md w-full mx-4 rounded-lg shadow-xl">
-            {/* Encabezado blanco con texto azul */}
             <div className="bg-white rounded-t-lg px-6 py-4 shadow-lg">
               <h2 className="text-2xl font-bold text-center text-[#002057]">
                 Success
               </h2>
               <div className="mt-2 w-20 h-1 bg-[#e6001f] mx-auto rounded"></div>
             </div>
-            
-            {/* Cuerpo con fondo azul oscuro */}
             <div className="bg-[#1E2A45] rounded-b-lg shadow-lg px-8 py-8">
               <div className="flex items-center mb-4 justify-center">
                 <div className="bg-[#00B140] rounded-full p-2 mr-4">
@@ -655,19 +734,15 @@ const AddSPConsumer: React.FC = () => {
         </div>
       )}
 
-      {/* Popup de advertencia de registro duplicado */}
       {showDuplicateWarningPopup && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="overflow-hidden max-w-md w-full mx-4 rounded-lg shadow-xl">
-            {/* Encabezado blanco con texto azul */}
             <div className="bg-white rounded-t-lg px-6 py-4 shadow-lg">
               <h2 className="text-2xl font-bold text-center text-[#002057]">
                 Warning
               </h2>
               <div className="mt-2 w-20 h-1 bg-[#e6001f] mx-auto rounded"></div>
             </div>
-            
-            {/* Cuerpo con fondo azul oscuro */}
             <div className="bg-[#1E2A45] rounded-b-lg shadow-lg px-8 py-8">
               <div className="flex items-center mb-4 justify-center">
                 <div className="bg-[#f59e0b] rounded-full p-2 mr-4">

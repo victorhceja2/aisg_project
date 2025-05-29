@@ -17,7 +17,7 @@ const CatalogServiceInclude: React.FC = () => {
   const [itemToDelete, setItemToDelete] = useState<{id: number, name: string} | null>(null);
   const [deletedItemName, setDeletedItemName] = useState("");
   const [deleteErrorMessage, setDeleteErrorMessage] = useState("");
-  const [servicesUsingInclude, setServicesUsingInclude] = useState<any[]>([]);
+  const [dependentRecords, setDependentRecords] = useState<any[]>([]);
   const [isDeleting, setIsDeleting] = useState(false);
   
   const navigate = useNavigate();
@@ -105,34 +105,173 @@ const CatalogServiceInclude: React.FC = () => {
     }
   };
 
-  // Verificar si un service include está siendo utilizado por servicios
-  const checkServiceIncludeUsage = async (includeId: number): Promise<{ inUse: boolean; services: any[] }> => {
+  // Verificar si un service include está siendo utilizado por diferentes módulos
+  const checkServiceIncludeUsage = async (includeId: number): Promise<{ inUse: boolean; records: any[] }> => {
     try {
-      const res = await axiosInstance.get('/catalog/services');
-      const servicesUsingInclude = res.data.filter((service: any) => 
-        service.id_service_include === includeId
-      );
-      
+      const allDependentRecords: any[] = [];
+
+      // Verificar en servicios
+      try {
+        const servicesRes = await axiosInstance.get('/catalog/services');
+        const servicesUsingInclude = servicesRes.data.filter((service: any) => 
+          service.id_service_include === includeId
+        );
+        allDependentRecords.push(
+          ...servicesUsingInclude.map((service: any) => ({
+            type: 'Service',
+            name: `${service.service_code} - ${service.service_name}`,
+            id: service.id_service
+          }))
+        );
+      } catch (err) {
+        console.warn("Error checking services:", err);
+      }
+
+      // Verificar en componentes (módulo principal que utiliza includes)
+      try {
+        const componentsRes = await axiosInstance.get('/components');
+        const componentsUsingInclude = componentsRes.data.filter((comp: any) => 
+          comp.id_service_include === includeId ||
+          comp.include_id === includeId
+        );
+        allDependentRecords.push(
+          ...componentsUsingInclude.map((comp: any) => ({
+            type: 'Component',
+            name: `Component: ${comp.component_name || comp.component_number || comp.id}`,
+            id: comp.id
+          }))
+        );
+      } catch (err) {
+        console.warn("Error checking components:", err);
+      }
+
+      // Verificar en customer services
+      try {
+        const customerServicesRes = await axiosInstance.get('/catalog/service-per-customer');
+        const customerServicesUsingInclude = customerServicesRes.data.filter((cs: any) => {
+          // Verificar si el servicio del customer service usa este include
+          return cs.service_include_id === includeId;
+        });
+        allDependentRecords.push(
+          ...customerServicesUsingInclude.map((cs: any) => ({
+            type: 'Customer Service',
+            name: `Customer ID: ${cs.id_customer} - Service: ${cs.service_name || cs.id_service}`,
+            id: cs.id_service_per_customer
+          }))
+        );
+      } catch (err) {
+        console.warn("Error checking customer services:", err);
+      }
+
+      // Verificar en work orders
+      try {
+        const workOrdersRes = await axiosInstance.get('/work-orders');
+        const workOrdersUsingInclude = workOrdersRes.data.filter((wo: any) => 
+          wo.service_include_id === includeId
+        );
+        allDependentRecords.push(
+          ...workOrdersUsingInclude.map((wo: any) => ({
+            type: 'Work Order',
+            name: `Work Order: ${wo.work_order_number || wo.id}`,
+            id: wo.id
+          }))
+        );
+      } catch (err) {
+        console.warn("Error checking work orders:", err);
+      }
+
+      // Verificar en cotizaciones/quotes
+      try {
+        const quotesRes = await axiosInstance.get('/quotes');
+        const quotesUsingInclude = quotesRes.data.filter((quote: any) => 
+          quote.service_include_id === includeId
+        );
+        allDependentRecords.push(
+          ...quotesUsingInclude.map((quote: any) => ({
+            type: 'Quote',
+            name: `Quote: ${quote.quote_number || quote.id}`,
+            id: quote.id
+          }))
+        );
+      } catch (err) {
+        console.warn("Error checking quotes:", err);
+      }
+
+      // Verificar en reportes operacionales
+      try {
+        const operationReportsRes = await axiosInstance.get('/reports/operation-report');
+        const reportsUsingInclude = operationReportsRes.data.filter((report: any) => 
+          report.include_id === includeId
+        );
+        allDependentRecords.push(
+          ...reportsUsingInclude.map((report: any) => ({
+            type: 'Operation Report',
+            name: `Report: ${report.cliente} - ${report.servicio_principal}`,
+            id: report.id
+          }))
+        );
+      } catch (err) {
+        console.warn("Error checking operation reports:", err);
+      }
+
+      // Verificar en ejecuciones de servicio
+      try {
+        const serviceExecutionsRes = await axiosInstance.get('/reports/service-executions');
+        const executionsUsingInclude = serviceExecutionsRes.data.filter((exec: any) => 
+          exec.include_id === includeId
+        );
+        allDependentRecords.push(
+          ...executionsUsingInclude.map((exec: any) => ({
+            type: 'Service Execution',
+            name: `Execution: Work Order ${exec.work_order}`,
+            id: exec.id
+          }))
+        );
+      } catch (err) {
+        console.warn("Error checking service executions:", err);
+      }
+
+      // Verificar en facturas/invoices
+      try {
+        const invoicesRes = await axiosInstance.get('/billing/invoices');
+        const invoicesUsingInclude = invoicesRes.data.filter((invoice: any) => 
+          invoice.include_id === includeId
+        );
+        allDependentRecords.push(
+          ...invoicesUsingInclude.map((invoice: any) => ({
+            type: 'Invoice',
+            name: `Invoice: ${invoice.invoice_number || invoice.id}`,
+            id: invoice.id
+          }))
+        );
+      } catch (err) {
+        console.warn("Error checking invoices:", err);
+      }
+
       return {
-        inUse: servicesUsingInclude.length > 0,
-        services: servicesUsingInclude
+        inUse: allDependentRecords.length > 0,
+        records: allDependentRecords
       };
     } catch (err) {
       console.error("Error checking service include usage:", err);
-      return { inUse: false, services: [] };
+      return { inUse: false, records: [] };
     }
   };
 
   // Preparar eliminación - verifica dependencias primero
   const prepareDelete = async (id: number, name: string) => {
+    setIsDeleting(true);
+    
     // Verificar si el service include está siendo utilizado
-    const { inUse, services } = await checkServiceIncludeUsage(id);
+    const { inUse, records } = await checkServiceIncludeUsage(id);
+    
+    setIsDeleting(false);
     
     if (inUse) {
-      // Mostrar popup de error con la lista de servicios que lo utilizan
-      setServicesUsingInclude(services);
+      // Mostrar popup de error con la lista de registros que lo utilizan
+      setDependentRecords(records);
       setDeleteErrorMessage(
-        `Cannot delete service include "${name}" because it is being used by ${services.length} service(s).`
+        `Cannot delete service include "${name}" because it is being used by ${records.length} record(s) in the system.`
       );
       setShowDeleteError(true);
       return;
@@ -156,13 +295,13 @@ const CatalogServiceInclude: React.FC = () => {
     setIsDeleting(true);
     try {
       // Verificar una vez más antes de eliminar
-      const { inUse, services } = await checkServiceIncludeUsage(itemToDelete.id);
+      const { inUse, records } = await checkServiceIncludeUsage(itemToDelete.id);
       
       if (inUse) {
         // Si ahora está en uso, mostrar error
-        setServicesUsingInclude(services);
+        setDependentRecords(records);
         setDeleteErrorMessage(
-          `Cannot delete service include "${itemToDelete.name}" because it is being used by ${services.length} service(s).`
+          `Cannot delete service include "${itemToDelete.name}" because it is being used by ${records.length} record(s) in the system.`
         );
         setShowDeleteConfirmation(false);
         setShowDeleteError(true);
@@ -208,7 +347,7 @@ const CatalogServiceInclude: React.FC = () => {
   const closeDeleteErrorModal = () => {
     setShowDeleteError(false);
     setDeleteErrorMessage("");
-    setServicesUsingInclude([]);
+    setDependentRecords([]);
   };
 
   useEffect(() => {
@@ -302,12 +441,17 @@ const CatalogServiceInclude: React.FC = () => {
                           </Link>
                           <button
                             onClick={() => prepareDelete(inc.id_service_include, inc.service_include)}
-                            className="p-1.5 bg-[#e6001f] text-white rounded hover:bg-red-700 transition-colors"
+                            disabled={isDeleting}
+                            className="p-1.5 bg-[#e6001f] text-white rounded hover:bg-red-700 transition-colors disabled:opacity-50"
                             title="Delete"
                           >
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                            </svg>
+                            {isDeleting ? (
+                              <div className="w-5 h-5 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+                            ) : (
+                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                              </svg>
+                            )}
                           </button>
                         </div>
                       </td>
@@ -323,29 +467,32 @@ const CatalogServiceInclude: React.FC = () => {
       {/* Diálogo de confirmación para eliminar */}
       {showDeleteConfirmation && itemToDelete && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="max-w-md w-full mx-4 overflow-hidden rounded-lg shadow-xl bg-white">
-            {/* Encabezado blanco con texto azul oscuro y línea roja abajo */}
-            <div className="px-6 py-4 text-center relative">
-              <h2 className="text-xl font-bold text-[#1a2e5a]">Confirm Deletion</h2>
-              <div className="mt-1 w-60 h-1 bg-[#e6001f] mx-auto"></div>
+          <div className="overflow-hidden max-w-md w-full mx-4 rounded-lg shadow-xl">
+            {/* Encabezado blanco con texto azul */}
+            <div className="bg-white rounded-t-lg px-6 py-4 shadow-lg">
+              <h2 className="text-2xl font-bold text-center text-[#002057]">
+                Confirm Deletion
+              </h2>
+              <div className="mt-2 w-20 h-1 bg-[#e6001f] mx-auto rounded"></div>
             </div>
             
             {/* Cuerpo con fondo azul oscuro */}
-            <div className="bg-[#1a2e5a] px-6 py-8">
-              <div className="flex items-start">
-                <div className="flex-shrink-0 mr-4">
-                  <div className="bg-red-600 rounded-full p-2">
-                    <svg className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                    </svg>
-                  </div>
+            <div className="bg-[#1E2A45] rounded-b-lg shadow-lg px-8 py-8">
+              <div className="flex items-center mb-4">
+                <div className="bg-[#e6001f] rounded-full p-2 mr-4">
+                  <svg className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
                 </div>
-                <p className="text-white">
-                  Are you sure you want to delete the service include "{itemToDelete.name}"? This action cannot be undone.
-                </p>
+                <div>
+                  <p className="text-white text-lg font-medium">Are you sure you want to delete?</p>
+                  <p className="text-gray-300 mt-1">
+                    The service include "{itemToDelete.name}" will be permanently deleted.
+                  </p>
+                </div>
               </div>
               
-              <div className="mt-8 flex justify-between space-x-4">
+              <div className="mt-6 flex justify-center space-x-4">
                 {isDeleting ? (
                   <div className="w-full flex justify-center">
                     <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-white"></div>
@@ -360,7 +507,7 @@ const CatalogServiceInclude: React.FC = () => {
                           cancelDelete();
                         }
                       }}
-                      className="w-full bg-[#4c6cb7] hover:bg-[#3a5a9f] text-white font-medium py-3 px-4 rounded transition-colors"
+                      className="w-1/2 bg-[#4D70B8] hover:bg-[#3A5A9F] text-white font-medium py-3 px-4 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg"
                     >
                       Cancel
                     </button>
@@ -373,7 +520,7 @@ const CatalogServiceInclude: React.FC = () => {
                           confirmDelete();
                         }
                       }}
-                      className="w-full bg-[#e6001f] hover:bg-red-700 text-white font-medium py-3 px-4 rounded transition-colors"
+                      className="w-1/2 bg-[#e6001f] hover:bg-red-700 text-white font-medium py-3 px-4 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg"
                     >
                       Delete
                     </button>
@@ -388,17 +535,19 @@ const CatalogServiceInclude: React.FC = () => {
       {/* Modal de éxito después de eliminar */}
       {showDeleteSuccess && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="w-full max-w-md overflow-hidden rounded-lg shadow-xl">
-            <div className="bg-white py-4 px-6">
+          <div className="overflow-hidden max-w-md w-full mx-4 rounded-lg shadow-xl">
+            {/* Encabezado blanco con texto azul */}
+            <div className="bg-white rounded-t-lg px-6 py-4 shadow-lg">
               <h2 className="text-2xl font-bold text-center text-[#002057]">
                 Success
               </h2>
-              <div className="mt-1 w-24 h-1 bg-[#e6001f] mx-auto"></div>
+              <div className="mt-2 w-20 h-1 bg-[#e6001f] mx-auto rounded"></div>
             </div>
-
-            <div className="bg-[#1E2A45] py-8 px-6">
-              <div className="flex items-center gap-3">
-                <div className="bg-green-500 rounded-full p-2 flex-shrink-0">
+            
+            {/* Cuerpo con fondo azul oscuro */}
+            <div className="bg-[#1E2A45] rounded-b-lg shadow-lg px-8 py-8">
+              <div className="flex items-center mb-4 justify-center">
+                <div className="bg-[#00B140] rounded-full p-2 mr-4">
                   <svg className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
@@ -407,8 +556,7 @@ const CatalogServiceInclude: React.FC = () => {
                   Service include "{deletedItemName}" has been successfully deleted!
                 </p>
               </div>
-
-              <div className="mt-8">
+              <div className="mt-6 flex justify-center space-x-4">
                 <button
                   ref={deleteSuccessOkButtonRef}
                   onClick={closeSuccessModal}
@@ -418,7 +566,7 @@ const CatalogServiceInclude: React.FC = () => {
                       closeSuccessModal();
                     }
                   }}
-                  className="w-full bg-green-500 hover:bg-green-600 text-white font-medium py-3 px-4 rounded transition-all"
+                  className="w-full bg-[#00B140] hover:bg-[#009935] text-white font-medium py-3 px-4 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg"
                 >
                   OK
                 </button>
@@ -432,13 +580,15 @@ const CatalogServiceInclude: React.FC = () => {
       {showDeleteError && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="overflow-hidden max-w-lg w-full mx-4 rounded-lg shadow-xl">
+            {/* Encabezado blanco con texto azul */}
             <div className="bg-white rounded-t-lg px-6 py-4 shadow-lg">
               <h2 className="text-2xl font-bold text-center text-[#002057]">
-                Cannot Delete
+                Cannot Delete Service Include
               </h2>
               <div className="mt-2 w-20 h-1 bg-[#e6001f] mx-auto rounded"></div>
             </div>
             
+            {/* Cuerpo con fondo azul oscuro */}
             <div className="bg-[#1E2A45] rounded-b-lg shadow-lg px-8 py-8">
               <div className="flex items-start mb-4">
                 <div className="bg-[#f59e0b] rounded-full p-2 mr-4 flex-shrink-0 mt-1">
@@ -450,18 +600,25 @@ const CatalogServiceInclude: React.FC = () => {
                   <p className="text-white text-lg mb-4">
                     {deleteErrorMessage}
                   </p>
-                  {servicesUsingInclude.length > 0 && (
+                  {dependentRecords.length > 0 && (
                     <div className="mt-4">
-                      <p className="text-white text-sm font-medium mb-2">Services using this include:</p>
-                      <div className="bg-[#0D1423] rounded-lg p-3 max-h-32 overflow-y-auto">
-                        {servicesUsingInclude.map((service, index) => (
-                          <div key={service.id_service} className="text-gray-300 text-sm py-1">
-                            • {service.service_code} - {service.service_name}
+                      <p className="text-white text-sm font-medium mb-2">
+                        Records using this service include ({dependentRecords.length} found):
+                      </p>
+                      <div className="bg-[#0D1423] rounded-lg p-3 max-h-40 overflow-y-auto border border-gray-700">
+                        {dependentRecords.map((record, index) => (
+                          <div key={index} className="text-gray-300 text-sm py-1 border-b border-gray-700 last:border-b-0">
+                            <span className="text-yellow-400 font-medium">{record.type}:</span> {record.name}
                           </div>
                         ))}
                       </div>
                     </div>
                   )}
+                  <div className="mt-4 p-3 bg-blue-900 rounded-lg border border-blue-700">
+                    <p className="text-blue-200 text-sm">
+                      <strong>Tip:</strong> To delete this service include, you must first remove or update all records that reference it.
+                    </p>
+                  </div>
                 </div>
               </div>
               <div className="mt-6 flex justify-center space-x-4">
@@ -470,7 +627,7 @@ const CatalogServiceInclude: React.FC = () => {
                   onClick={closeDeleteErrorModal}
                   className="w-full bg-[#f59e0b] hover:bg-[#d97706] text-white font-medium py-3 px-4 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg"
                 >
-                  OK
+                  Understood
                 </button>
               </div>
             </div>

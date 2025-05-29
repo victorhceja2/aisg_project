@@ -17,7 +17,8 @@ const CatalogServiceCategory: React.FC = () => {
     const [categoryToDelete, setCategoryToDelete] = useState<{id: number, name: string} | null>(null);
     const [deletedCategoryName, setDeletedCategoryName] = useState<string>("");
     const [deleteErrorMessage, setDeleteErrorMessage] = useState<string>("");
-    const [servicesUsingCategory, setServicesUsingCategory] = useState<any[]>([]);
+    const [dependentRecords, setDependentRecords] = useState<any[]>([]);
+    const [isDeleting, setIsDeleting] = useState(false);
     
     // Referencias para manejar el foco
     const deleteSuccessOkButtonRef = useRef<HTMLButtonElement>(null);
@@ -58,7 +59,7 @@ const CatalogServiceCategory: React.FC = () => {
                 if (showDeleteSuccessPopup) {
                     e.preventDefault();
                     handleCloseSuccessPopup();
-                } else if (showDeleteConfirmPopup) {
+                } else if (showDeleteConfirmPopup && !isDeleting) {
                     e.preventDefault();
                     handleDelete();
                 } else if (showDeleteErrorPopup) {
@@ -66,7 +67,7 @@ const CatalogServiceCategory: React.FC = () => {
                     closeDeleteErrorPopup();
                 }
             } else if (e.key === 'Escape') {
-                if (showDeleteConfirmPopup) {
+                if (showDeleteConfirmPopup && !isDeleting) {
                     e.preventDefault();
                     cancelDelete();
                 } else if (showDeleteSuccessPopup) {
@@ -85,7 +86,7 @@ const CatalogServiceCategory: React.FC = () => {
                 document.removeEventListener('keydown', handleKeyDown);
             };
         }
-    }, [showDeleteConfirmPopup, showDeleteSuccessPopup, showDeleteErrorPopup]);
+    }, [showDeleteConfirmPopup, showDeleteSuccessPopup, showDeleteErrorPopup, isDeleting]);
 
     const fetchCategories = async () => {
         setLoading(true);
@@ -101,34 +102,173 @@ const CatalogServiceCategory: React.FC = () => {
         }
     };
 
-    // Verificar si una categoría está siendo utilizada por servicios
-    const checkCategoryUsage = async (categoryId: number): Promise<{ inUse: boolean; services: any[] }> => {
+    // Verificar si una categoría está siendo utilizada por diferentes módulos
+    const checkCategoryUsage = async (categoryId: number): Promise<{ inUse: boolean; records: any[] }> => {
         try {
-            const res = await axiosInstance.get('/catalog/services');
-            const servicesUsingCategory = res.data.filter((service: any) => 
-                service.id_service_category === categoryId
-            );
-            
+            const allDependentRecords: any[] = [];
+
+            // Verificar en servicios
+            try {
+                const servicesRes = await axiosInstance.get('/catalog/services');
+                const servicesUsingCategory = servicesRes.data.filter((service: any) => 
+                    service.id_service_category === categoryId
+                );
+                allDependentRecords.push(
+                    ...servicesUsingCategory.map((service: any) => ({
+                        type: 'Service',
+                        name: `${service.service_code} - ${service.service_name}`,
+                        id: service.id_service
+                    }))
+                );
+            } catch (err) {
+                console.warn("Error checking services:", err);
+            }
+
+            // Verificar en componentes (módulo principal que utiliza categorías)
+            try {
+                const componentsRes = await axiosInstance.get('/components');
+                const componentsUsingCategory = componentsRes.data.filter((comp: any) => 
+                    comp.id_service_category === categoryId ||
+                    comp.category_id === categoryId
+                );
+                allDependentRecords.push(
+                    ...componentsUsingCategory.map((comp: any) => ({
+                        type: 'Component',
+                        name: `Component: ${comp.component_name || comp.component_number || comp.id}`,
+                        id: comp.id
+                    }))
+                );
+            } catch (err) {
+                console.warn("Error checking components:", err);
+            }
+
+            // Verificar en customer services
+            try {
+                const customerServicesRes = await axiosInstance.get('/catalog/service-per-customer');
+                const customerServicesUsingCategory = customerServicesRes.data.filter((cs: any) => {
+                    // Verificar si el servicio del customer service usa esta categoría
+                    return cs.service_category_id === categoryId;
+                });
+                allDependentRecords.push(
+                    ...customerServicesUsingCategory.map((cs: any) => ({
+                        type: 'Customer Service',
+                        name: `Customer ID: ${cs.id_customer} - Service: ${cs.service_name || cs.id_service}`,
+                        id: cs.id_service_per_customer
+                    }))
+                );
+            } catch (err) {
+                console.warn("Error checking customer services:", err);
+            }
+
+            // Verificar en work orders
+            try {
+                const workOrdersRes = await axiosInstance.get('/work-orders');
+                const workOrdersUsingCategory = workOrdersRes.data.filter((wo: any) => 
+                    wo.service_category_id === categoryId
+                );
+                allDependentRecords.push(
+                    ...workOrdersUsingCategory.map((wo: any) => ({
+                        type: 'Work Order',
+                        name: `Work Order: ${wo.work_order_number || wo.id}`,
+                        id: wo.id
+                    }))
+                );
+            } catch (err) {
+                console.warn("Error checking work orders:", err);
+            }
+
+            // Verificar en cotizaciones/quotes
+            try {
+                const quotesRes = await axiosInstance.get('/quotes');
+                const quotesUsingCategory = quotesRes.data.filter((quote: any) => 
+                    quote.service_category_id === categoryId
+                );
+                allDependentRecords.push(
+                    ...quotesUsingCategory.map((quote: any) => ({
+                        type: 'Quote',
+                        name: `Quote: ${quote.quote_number || quote.id}`,
+                        id: quote.id
+                    }))
+                );
+            } catch (err) {
+                console.warn("Error checking quotes:", err);
+            }
+
+            // Verificar en reportes operacionales
+            try {
+                const operationReportsRes = await axiosInstance.get('/reports/operation-report');
+                const reportsUsingCategory = operationReportsRes.data.filter((report: any) => 
+                    report.category_id === categoryId
+                );
+                allDependentRecords.push(
+                    ...reportsUsingCategory.map((report: any) => ({
+                        type: 'Operation Report',
+                        name: `Report: ${report.cliente} - ${report.servicio_principal}`,
+                        id: report.id
+                    }))
+                );
+            } catch (err) {
+                console.warn("Error checking operation reports:", err);
+            }
+
+            // Verificar en ejecuciones de servicio
+            try {
+                const serviceExecutionsRes = await axiosInstance.get('/reports/service-executions');
+                const executionsUsingCategory = serviceExecutionsRes.data.filter((exec: any) => 
+                    exec.category_id === categoryId
+                );
+                allDependentRecords.push(
+                    ...executionsUsingCategory.map((exec: any) => ({
+                        type: 'Service Execution',
+                        name: `Execution: Work Order ${exec.work_order}`,
+                        id: exec.id
+                    }))
+                );
+            } catch (err) {
+                console.warn("Error checking service executions:", err);
+            }
+
+            // Verificar en facturas/invoices
+            try {
+                const invoicesRes = await axiosInstance.get('/billing/invoices');
+                const invoicesUsingCategory = invoicesRes.data.filter((invoice: any) => 
+                    invoice.category_id === categoryId
+                );
+                allDependentRecords.push(
+                    ...invoicesUsingCategory.map((invoice: any) => ({
+                        type: 'Invoice',
+                        name: `Invoice: ${invoice.invoice_number || invoice.id}`,
+                        id: invoice.id
+                    }))
+                );
+            } catch (err) {
+                console.warn("Error checking invoices:", err);
+            }
+
             return {
-                inUse: servicesUsingCategory.length > 0,
-                services: servicesUsingCategory
+                inUse: allDependentRecords.length > 0,
+                records: allDependentRecords
             };
         } catch (err) {
             console.error("Error checking category usage:", err);
-            return { inUse: false, services: [] };
+            return { inUse: false, records: [] };
         }
     };
 
     // Mostrar el popup de confirmación de eliminación
     const confirmDelete = async (id: number, name: string) => {
+        setIsDeleting(true);
+        
         // Verificar si la categoría está siendo utilizada
-        const { inUse, services } = await checkCategoryUsage(id);
+        const { inUse, records } = await checkCategoryUsage(id);
+        
+        setIsDeleting(false);
         
         if (inUse) {
-            // Mostrar popup de error con la lista de servicios que la utilizan
-            setServicesUsingCategory(services);
+            // Mostrar popup de error con la lista de registros que la utilizan
+            setDependentRecords(records);
             setDeleteErrorMessage(
-                `Cannot delete category "${name}" because it is being used by ${services.length} service(s).`
+                `Cannot delete category "${name}" because it is being used by ${records.length} record(s) in the system.`
             );
             setShowDeleteErrorPopup(true);
             return;
@@ -143,22 +283,23 @@ const CatalogServiceCategory: React.FC = () => {
     const handleDelete = async () => {
         if (!categoryToDelete) return;
         
+        setIsDeleting(true);
         try {
             // Verificar una vez más antes de eliminar
-            const { inUse, services } = await checkCategoryUsage(categoryToDelete.id);
+            const { inUse, records } = await checkCategoryUsage(categoryToDelete.id);
             
             if (inUse) {
                 // Si ahora está en uso, mostrar error
-                setServicesUsingCategory(services);
+                setDependentRecords(records);
                 setDeleteErrorMessage(
-                    `Cannot delete category "${categoryToDelete.name}" because it is being used by ${services.length} service(s).`
+                    `Cannot delete category "${categoryToDelete.name}" because it is being used by ${records.length} record(s) in the system.`
                 );
                 setShowDeleteConfirmPopup(false);
                 setShowDeleteErrorPopup(true);
+                setCategoryToDelete(null);
                 return;
             }
 
-            setLoading(true);
             await axiosInstance.delete(`/catalog/service-categories/${categoryToDelete.id}`);
             
             // Guardar el nombre para mostrar en el popup de éxito
@@ -176,20 +317,22 @@ const CatalogServiceCategory: React.FC = () => {
             setError(null);
         } catch (err: any) {
             console.error("Error deleting category:", err);
-            setShowDeleteConfirmPopup(false);
             
             // Verificar si el error es por dependencias
             if (err.response?.status === 409 || err.response?.data?.detail?.includes("constraint")) {
                 setDeleteErrorMessage(
                     `Cannot delete category "${categoryToDelete.name}" because it is being used by other records in the system.`
                 );
+                setShowDeleteConfirmPopup(false);
                 setShowDeleteErrorPopup(true);
             } else {
                 setError("Could not delete the service category. Please try again.");
+                setShowDeleteConfirmPopup(false);
             }
             
             setCategoryToDelete(null);
-            setLoading(false);
+        } finally {
+            setIsDeleting(false);
         }
     };
 
@@ -203,7 +346,7 @@ const CatalogServiceCategory: React.FC = () => {
     const closeDeleteErrorPopup = () => {
         setShowDeleteErrorPopup(false);
         setDeleteErrorMessage("");
-        setServicesUsingCategory([]);
+        setDependentRecords([]);
     };
 
     // Cancelar la eliminación
@@ -303,12 +446,17 @@ const CatalogServiceCategory: React.FC = () => {
                                                     </Link>
                                                     <button
                                                         onClick={() => confirmDelete(cat.id_service_category, cat.service_category_name)}
-                                                        className="p-1.5 bg-[#e6001f] text-white rounded hover:bg-red-700 transition-colors"
+                                                        disabled={isDeleting}
+                                                        className="p-1.5 bg-[#e6001f] text-white rounded hover:bg-red-700 transition-colors disabled:opacity-50"
                                                         title="Delete"
                                                     >
-                                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                                        </svg>
+                                                        {isDeleting ? (
+                                                            <div className="w-5 h-5 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+                                                        ) : (
+                                                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                            </svg>
+                                                        )}
                                                     </button>
                                                 </div>
                                             </td>
@@ -349,19 +497,27 @@ const CatalogServiceCategory: React.FC = () => {
                                 </div>
                             </div>
                             <div className="mt-6 flex justify-center space-x-4">
-                                <button
-                                    onClick={cancelDelete}
-                                    className="w-1/2 bg-[#4D70B8] hover:bg-[#3A5A9F] text-white font-medium py-3 px-4 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg"
-                                >
-                                    Cancel
-                                </button>
-                                <button
-                                    ref={deleteConfirmButtonRef}
-                                    onClick={handleDelete}
-                                    className="w-1/2 bg-[#e6001f] hover:bg-red-700 text-white font-medium py-3 px-4 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg"
-                                >
-                                    Delete
-                                </button>
+                                {isDeleting ? (
+                                    <div className="w-full flex justify-center">
+                                        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-white"></div>
+                                    </div>
+                                ) : (
+                                    <>
+                                        <button
+                                            onClick={cancelDelete}
+                                            className="w-1/2 bg-[#4D70B8] hover:bg-[#3A5A9F] text-white font-medium py-3 px-4 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg"
+                                        >
+                                            Cancel
+                                        </button>
+                                        <button
+                                            ref={deleteConfirmButtonRef}
+                                            onClick={handleDelete}
+                                            className="w-1/2 bg-[#e6001f] hover:bg-red-700 text-white font-medium py-3 px-4 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg"
+                                        >
+                                            Delete
+                                        </button>
+                                    </>
+                                )}
                             </div>
                         </div>
                     </div>
@@ -413,7 +569,7 @@ const CatalogServiceCategory: React.FC = () => {
                         {/* Encabezado blanco con texto azul */}
                         <div className="bg-white rounded-t-lg px-6 py-4 shadow-lg">
                             <h2 className="text-2xl font-bold text-center text-[#002057]">
-                                Cannot Delete
+                                Cannot Delete Category
                             </h2>
                             <div className="mt-2 w-20 h-1 bg-[#e6001f] mx-auto rounded"></div>
                         </div>
@@ -430,18 +586,25 @@ const CatalogServiceCategory: React.FC = () => {
                                     <p className="text-white text-lg mb-4">
                                         {deleteErrorMessage}
                                     </p>
-                                    {servicesUsingCategory.length > 0 && (
+                                    {dependentRecords.length > 0 && (
                                         <div className="mt-4">
-                                            <p className="text-white text-sm font-medium mb-2">Services using this category:</p>
-                                            <div className="bg-[#0D1423] rounded-lg p-3 max-h-32 overflow-y-auto">
-                                                {servicesUsingCategory.map((service, index) => (
-                                                    <div key={service.id_service} className="text-gray-300 text-sm py-1">
-                                                        • {service.service_code} - {service.service_name}
+                                            <p className="text-white text-sm font-medium mb-2">
+                                                Records using this category ({dependentRecords.length} found):
+                                            </p>
+                                            <div className="bg-[#0D1423] rounded-lg p-3 max-h-40 overflow-y-auto border border-gray-700">
+                                                {dependentRecords.map((record, index) => (
+                                                    <div key={index} className="text-gray-300 text-sm py-1 border-b border-gray-700 last:border-b-0">
+                                                        <span className="text-yellow-400 font-medium">{record.type}:</span> {record.name}
                                                     </div>
                                                 ))}
                                             </div>
                                         </div>
                                     )}
+                                    <div className="mt-4 p-3 bg-blue-900 rounded-lg border border-blue-700">
+                                        <p className="text-blue-200 text-sm">
+                                            <strong>Tip:</strong> To delete this category, you must first remove or update all records that reference it.
+                                        </p>
+                                    </div>
                                 </div>
                             </div>
                             <div className="mt-6 flex justify-center space-x-4">
@@ -450,7 +613,7 @@ const CatalogServiceCategory: React.FC = () => {
                                     onClick={closeDeleteErrorPopup}
                                     className="w-full bg-[#f59e0b] hover:bg-[#d97706] text-white font-medium py-3 px-4 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg"
                                 >
-                                    OK
+                                    Understood
                                 </button>
                             </div>
                         </div>

@@ -8,6 +8,7 @@ const EditClassification: React.FC = () => {
   const [name, setName] = useState("");
   const [originalName, setOriginalName] = useState(""); // Guardamos el nombre original
   const [loading, setLoading] = useState(true);
+  const [submitLoading, setSubmitLoading] = useState(false); // Estado separado para el envío
   const [error, setError] = useState<string | null>(null);
   
   // Estado para mostrar el popup de éxito
@@ -118,32 +119,52 @@ const EditClassification: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name) {
+    setSubmitLoading(true);
+    setError(null);
+
+    if (!name.trim()) {
       setError("Classification name is required.");
+      setSubmitLoading(false);
       return;
     }
 
-    // Solo realizar la verificación si el nombre ha cambiado
-    if (name.toLowerCase() !== originalName.toLowerCase()) {
-      // Verificar si el nombre ya existe
-      const isDuplicate = await checkDuplicateClassification(name);
-      if (isDuplicate) {
-        // Mostrar el popup de advertencia
-        setShowDuplicateWarningPopup(true);
-        return;
-      }
-    }
-
     try {
-      const whonew = sessionStorage.getItem("userName") || "system";
-      await axiosInstance.put(`/catalog/service-classification/${id}`, {
+      // Solo realizar la verificación de duplicados si el nombre ha cambiado
+      if (name.toLowerCase() !== originalName.toLowerCase()) {
+        // Verificar si el nombre ya existe
+        const isDuplicate = await checkDuplicateClassification(name);
+        if (isDuplicate) {
+          // Mostrar el popup de advertencia
+          setShowDuplicateWarningPopup(true);
+          setSubmitLoading(false);
+          return;
+        }
+      }
+
+      // Obtener el usuario que está actualizando
+      const currentUser = sessionStorage.getItem("userName") || "admin";
+
+      console.log("Current user updating record:", currentUser);
+
+      // SIEMPRE enviar la actualización para registrar quién modificó
+      const payload = {
         service_classification_name: name,
-        whonew: whonew
-      });
+        whonew: currentUser  // Usuario actual que realiza la actualización
+      };
+
+      console.log("Sending update payload:", payload);
+
+      const response = await axiosInstance.put(`/catalog/service-classification/${id}`, payload);
+
+      console.log("Update response:", response.data);
+
       // Mostrar popup de éxito en lugar de redirigir inmediatamente
       setShowSuccessPopup(true);
     } catch (err) {
-      setError("Could not update the classification.");
+      console.error("Error updating classification:", err);
+      setError("Could not update the classification. Please try again.");
+    } finally {
+      setSubmitLoading(false);
     }
   };
 
@@ -210,14 +231,24 @@ const EditClassification: React.FC = () => {
                   type="button"
                   onClick={() => navigate("/catalogs/classif")}
                   className="w-1/2 bg-[#4D70B8] hover:bg-[#3A5A9F] text-white font-medium py-3 px-4 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg"
+                  disabled={submitLoading}
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="w-1/2 bg-[#00B140] hover:bg-[#009935] text-white font-medium py-3 px-4 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg"
+                  disabled={submitLoading}
+                  className={`w-1/2 ${submitLoading ? "bg-gray-500" : "bg-[#00B140] hover:bg-[#009935]"
+                    } text-white font-medium py-3 px-4 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg flex items-center justify-center`}
                 >
-                  Save Changes
+                  {submitLoading ? (
+                    <>
+                      <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white mr-2"></div>
+                      Saving...
+                    </>
+                  ) : (
+                    "Save Changes"
+                  )}
                 </button>
               </div>
             </form>

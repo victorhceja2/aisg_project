@@ -238,11 +238,36 @@ const AddService: React.FC = () => {
    */
   const checkDuplicateService = async () => {
     try {
-      const res = await axiosInstance.get(`/catalog/services/?search=${encodeURIComponent(form.service_code)}`);
-      return res.data.some((service: any) =>
-        service.service_code === form.service_code ||
-        service.service_name.toLowerCase() === form.service_name.toLowerCase()
-      );
+      // Solo verificar si hay datos en los campos
+      if (!form.service_code.trim() && !form.service_name.trim()) {
+        return false;
+      }
+
+      const res = await axiosInstance.get(`/catalog/services/`);
+      
+      // Verificar que res.data sea un array y tenga elementos
+      if (!Array.isArray(res.data) || res.data.length === 0) {
+        return false;
+      }
+
+      return res.data.some((service: any) => {
+        // Verificar que el objeto service tenga las propiedades necesarias
+        if (!service || typeof service !== 'object') {
+          return false;
+        }
+
+        // Verificar código de servicio
+        const codeMatch = service.service_code && 
+          form.service_code.trim() && 
+          service.service_code === form.service_code.trim();
+
+        // Verificar nombre de servicio
+        const nameMatch = service.service_name && 
+          form.service_name.trim() && 
+          service.service_name.toLowerCase() === form.service_name.trim().toLowerCase();
+
+        return codeMatch || nameMatch;
+      });
     } catch (err) {
       console.error("Error checking for duplicate service", err);
       return false;

@@ -12,3 +12,10 @@ router = APIRouter(
 @router.get("/")
 def get_clients(db: Session = Depends(get_db)):
     return db.query(Cliente).all()
+
+@router.get("/{client_id}")
+def get_client(client_id: int, db: Session = Depends(get_db)):
+    client = db.query(Cliente).filter(Cliente.id_cliente == client_id).first()
+    if not client:
+        return {"error": "Client not found"}
+    return client

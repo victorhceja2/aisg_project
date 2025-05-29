@@ -104,26 +104,130 @@ const CatalogServices: React.FC = () => {
     }
   };
 
-  // Verificar si un servicio está siendo utilizado por customer services u otros módulos
+  // Verificar si un servicio está siendo utilizado por diferentes módulos
   const checkServiceUsage = async (serviceId: number): Promise<{ inUse: boolean; records: any[] }> => {
     try {
-      // Verificar en customer services
-      const customerServicesRes = await axiosInstance.get('/catalog/customer-services');
-      const customerServicesUsingService = customerServicesRes.data.filter((cs: any) => 
-        cs.id_service === serviceId
-      );
+      const allDependentRecords: any[] = [];
 
-      // Aquí puedes agregar más verificaciones para otros módulos que usen servicios
-      // Por ejemplo: work orders, quotes, etc.
-      
-      const allDependentRecords = [
-        ...customerServicesUsingService.map((cs: any) => ({
-          type: 'Customer Service',
-          name: `Customer: ${cs.customer_name || cs.id_customer} - Service: ${cs.service_name || cs.id_service}`,
-          id: cs.id_customer_service
-        }))
-      ];
-      
+      // Verificar en customer services
+      try {
+        const customerServicesRes = await axiosInstance.get('/catalog/service-per-customer');
+        const customerServicesUsingService = customerServicesRes.data.filter((cs: any) => 
+          cs.id_service === serviceId
+        );
+        allDependentRecords.push(
+          ...customerServicesUsingService.map((cs: any) => ({
+            type: 'Customer Service',
+            name: `Customer ID: ${cs.id_customer} - Service: ${cs.service_name || serviceId}`,
+            id: cs.id_service_per_customer
+          }))
+        );
+      } catch (err) {
+        console.warn("Error checking customer services:", err);
+      }
+
+      // Verificar en work orders / órdenes de trabajo
+      try {
+        const workOrdersRes = await axiosInstance.get('/work-orders');
+        const workOrdersUsingService = workOrdersRes.data.filter((wo: any) => 
+          wo.id_service === serviceId
+        );
+        allDependentRecords.push(
+          ...workOrdersUsingService.map((wo: any) => ({
+            type: 'Work Order',
+            name: `Work Order: ${wo.work_order_number || wo.id}`,
+            id: wo.id
+          }))
+        );
+      } catch (err) {
+        console.warn("Error checking work orders:", err);
+      }
+
+      // Verificar en cotizaciones/quotes
+      try {
+        const quotesRes = await axiosInstance.get('/quotes');
+        const quotesUsingService = quotesRes.data.filter((quote: any) => 
+          quote.id_service === serviceId
+        );
+        allDependentRecords.push(
+          ...quotesUsingService.map((quote: any) => ({
+            type: 'Quote',
+            name: `Quote: ${quote.quote_number || quote.id}`,
+            id: quote.id
+          }))
+        );
+      } catch (err) {
+        console.warn("Error checking quotes:", err);
+      }
+
+      // Verificar en componentes (módulo principal que utiliza servicios)
+      try {
+        const componentsRes = await axiosInstance.get('/components');
+        const componentsUsingService = componentsRes.data.filter((comp: any) => 
+          comp.id_service === serviceId
+        );
+        allDependentRecords.push(
+          ...componentsUsingService.map((comp: any) => ({
+            type: 'Component',
+            name: `Component: ${comp.component_name || comp.component_number || comp.id}`,
+            id: comp.id
+          }))
+        );
+      } catch (err) {
+        console.warn("Error checking components:", err);
+      }
+
+      // Verificar en reportes operacionales
+      try {
+        const operationReportsRes = await axiosInstance.get('/reports/operation-report');
+        const reportsUsingService = operationReportsRes.data.filter((report: any) => 
+          report.servicio_principal && report.servicio_principal.includes(serviceId.toString())
+        );
+        allDependentRecords.push(
+          ...reportsUsingService.map((report: any) => ({
+            type: 'Operation Report',
+            name: `Report: ${report.cliente} - ${report.servicio_principal}`,
+            id: report.id
+          }))
+        );
+      } catch (err) {
+        console.warn("Error checking operation reports:", err);
+      }
+
+      // Verificar en ejecuciones de servicio
+      try {
+        const serviceExecutionsRes = await axiosInstance.get('/reports/service-executions');
+        const executionsUsingService = serviceExecutionsRes.data.filter((exec: any) => 
+          exec.id_service === serviceId
+        );
+        allDependentRecords.push(
+          ...executionsUsingService.map((exec: any) => ({
+            type: 'Service Execution',
+            name: `Execution: Work Order ${exec.work_order}`,
+            id: exec.id
+          }))
+        );
+      } catch (err) {
+        console.warn("Error checking service executions:", err);
+      }
+
+      // Verificar en facturas/invoices
+      try {
+        const invoicesRes = await axiosInstance.get('/billing/invoices');
+        const invoicesUsingService = invoicesRes.data.filter((invoice: any) => 
+          invoice.id_service === serviceId
+        );
+        allDependentRecords.push(
+          ...invoicesUsingService.map((invoice: any) => ({
+            type: 'Invoice',
+            name: `Invoice: ${invoice.invoice_number || invoice.id}`,
+            id: invoice.id
+          }))
+        );
+      } catch (err) {
+        console.warn("Error checking invoices:", err);
+      }
+
       return {
         inUse: allDependentRecords.length > 0,
         records: allDependentRecords
@@ -135,8 +239,12 @@ const CatalogServices: React.FC = () => {
   };
 
   const handleDeleteClick = async (id: number, name: string) => {
+    setIsDeleting(true);
+    
     // Verificar si el servicio está siendo utilizado
     const { inUse, records } = await checkServiceUsage(id);
+    
+    setIsDeleting(false);
     
     if (inUse) {
       // Mostrar popup de error con la lista de registros que lo utilizan
@@ -320,12 +428,17 @@ const CatalogServices: React.FC = () => {
                           </Link>
                           <button
                             onClick={() => handleDeleteClick(s.id_service, s.service_name)}
-                            className="p-1.5 bg-[#e6001f] text-white rounded hover:bg-red-700 transition-colors"
+                            disabled={isDeleting}
+                            className="p-1.5 bg-[#e6001f] text-white rounded hover:bg-red-700 transition-colors disabled:opacity-50"
                             title="Delete"
                           >
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                            </svg>
+                            {isDeleting ? (
+                              <div className="w-5 h-5 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+                            ) : (
+                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                              </svg>
+                            )}
                           </button>
                         </div>
                       </td>
@@ -444,7 +557,7 @@ const CatalogServices: React.FC = () => {
               {/* Encabezado blanco con texto azul */}
               <div className="bg-white rounded-t-lg px-6 py-4 shadow-lg">
                 <h2 className="text-2xl font-bold text-center text-[#002057]">
-                  Cannot Delete
+                  Cannot Delete Service
                 </h2>
                 <div className="mt-2 w-20 h-1 bg-[#e6001f] mx-auto rounded"></div>
               </div>
@@ -463,16 +576,23 @@ const CatalogServices: React.FC = () => {
                     </p>
                     {dependentRecords.length > 0 && (
                       <div className="mt-4">
-                        <p className="text-white text-sm font-medium mb-2">Records using this service:</p>
-                        <div className="bg-[#0D1423] rounded-lg p-3 max-h-32 overflow-y-auto">
+                        <p className="text-white text-sm font-medium mb-2">
+                          Records using this service ({dependentRecords.length} found):
+                        </p>
+                        <div className="bg-[#0D1423] rounded-lg p-3 max-h-40 overflow-y-auto border border-gray-700">
                           {dependentRecords.map((record, index) => (
-                            <div key={index} className="text-gray-300 text-sm py-1">
-                              • {record.type}: {record.name}
+                            <div key={index} className="text-gray-300 text-sm py-1 border-b border-gray-700 last:border-b-0">
+                              <span className="text-yellow-400 font-medium">{record.type}:</span> {record.name}
                             </div>
                           ))}
                         </div>
                       </div>
                     )}
+                    <div className="mt-4 p-3 bg-blue-900 rounded-lg border border-blue-700">
+                      <p className="text-blue-200 text-sm">
+                        <strong>Tip:</strong> To delete this service, you must first remove or update all records that reference it.
+                      </p>
+                    </div>
                   </div>
                 </div>
                 <div className="mt-6 flex justify-center space-x-4">
@@ -481,7 +601,7 @@ const CatalogServices: React.FC = () => {
                     onClick={closeDeleteErrorModal}
                     className="w-full bg-[#f59e0b] hover:bg-[#d97706] text-white font-medium py-3 px-4 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg"
                   >
-                    OK
+                    Understood
                   </button>
                 </div>
               </div>

@@ -119,36 +119,6 @@ const EditCSC: React.FC = () => {
     }
   };
 
-  /**
-   * Obtiene el nombre del usuario actual con sesión activa
-   */
-  const getCurrentUser = (): string => {
-    // Primero intentamos obtener el nombre de la sesión local
-    let currentUser = localStorage.getItem("userName");
-
-    // Si no existe en localStorage, intentamos con sessionStorage
-    if (!currentUser) {
-      currentUser = sessionStorage.getItem("userName");
-    }
-
-    // Si aún no hay nombre, buscamos en otros posibles lugares
-    if (!currentUser) {
-      // Intentamos otros posibles nombres de variables
-      currentUser = localStorage.getItem("username") ||
-        localStorage.getItem("user") ||
-        sessionStorage.getItem("username") ||
-        sessionStorage.getItem("user");
-    }
-
-    if (!currentUser) {
-      currentUser = "system";
-      console.warn("No se encontró usuario en sesión. Usando 'system' como valor predeterminado.");
-    }
-
-    console.log("Usuario actual con sesión activa:", currentUser);
-    return currentUser;
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -161,7 +131,7 @@ const EditCSC: React.FC = () => {
     }
 
     try {
-      // Solo realizar la verificación si el nombre ha cambiado
+      // Solo realizar la verificación de duplicados si el nombre ha cambiado
       if (categoryName.toLowerCase() !== originalName.toLowerCase()) {
         // Verificar si el nombre ya existe
         const isDuplicate = await checkDuplicateCategory(categoryName);
@@ -173,17 +143,17 @@ const EditCSC: React.FC = () => {
         }
       }
 
-      // Obtenemos el nombre de usuario actual con sesión activa
-      const currentUser = getCurrentUser();
+      // Obtener el usuario que está actualizando
+      const currentUser = sessionStorage.getItem("userName") || "admin";
 
       console.log("Current user updating record:", currentUser);
       console.log("Original creator:", originalCreator);
 
-      // Información completa para la actualización
+      // Payload simplificado - solo enviamos lo que el backend espera
+      // SIEMPRE incluimos whonew para forzar la actualización y registrar quién modificó
       const payload = {
         service_category_name: categoryName,
-        whonew: originalCreator,  // Preservamos el creador original
-        whoedit: currentUser      // Usuario actual con sesión activa que modifica
+        whonew: currentUser  // Enviar el usuario actual en whonew (el backend lo guardará)
       };
 
       console.log("Sending update payload:", payload);

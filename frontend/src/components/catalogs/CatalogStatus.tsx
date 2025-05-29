@@ -19,7 +19,7 @@ const CatalogStatus: React.FC = () => {
   const [deletedStatusName, setDeletedStatusName] = useState("");
   const [deletingStatus, setDeletingStatus] = useState(false);
   const [deleteErrorMessage, setDeleteErrorMessage] = useState("");
-  const [servicesUsingStatus, setServicesUsingStatus] = useState<any[]>([]);
+  const [dependentRecords, setDependentRecords] = useState<any[]>([]);
 
   // Referencias para manejar el foco
   const deleteSuccessOkButtonRef = useRef<HTMLButtonElement>(null);
@@ -103,33 +103,173 @@ const CatalogStatus: React.FC = () => {
     }
   };
 
-  // Verificar si un status está siendo utilizado por servicios
-  const checkStatusUsage = async (statusId: number): Promise<{ inUse: boolean; services: any[] }> => {
+  // Verificar si un status está siendo utilizado por diferentes módulos
+  const checkStatusUsage = async (statusId: number): Promise<{ inUse: boolean; records: any[] }> => {
     try {
-      const res = await axiosInstance.get('/catalog/services');
-      const servicesUsingStatus = res.data.filter((service: any) => 
-        service.id_service_status === statusId
-      );
-      
+      const allDependentRecords: any[] = [];
+
+      // Verificar en servicios
+      try {
+        const servicesRes = await axiosInstance.get('/catalog/services');
+        const servicesUsingStatus = servicesRes.data.filter((service: any) => 
+          service.id_service_status === statusId
+        );
+        allDependentRecords.push(
+          ...servicesUsingStatus.map((service: any) => ({
+            type: 'Service',
+            name: `${service.service_code} - ${service.service_name}`,
+            id: service.id_service
+          }))
+        );
+      } catch (err) {
+        console.warn("Error checking services:", err);
+      }
+
+      // Verificar en componentes (módulo principal que utiliza statuses)
+      try {
+        const componentsRes = await axiosInstance.get('/components');
+        const componentsUsingStatus = componentsRes.data.filter((comp: any) => 
+          comp.id_service_status === statusId ||
+          comp.service_status_id === statusId ||
+          comp.status_id === statusId
+        );
+        allDependentRecords.push(
+          ...componentsUsingStatus.map((comp: any) => ({
+            type: 'Component',
+            name: `Component: ${comp.component_name || comp.component_number || comp.id}`,
+            id: comp.id
+          }))
+        );
+      } catch (err) {
+        console.warn("Error checking components:", err);
+      }
+
+      // Verificar en customer services
+      try {
+        const customerServicesRes = await axiosInstance.get('/catalog/service-per-customer');
+        const customerServicesUsingStatus = customerServicesRes.data.filter((cs: any) => {
+          // Verificar si el servicio del customer service usa este status
+          return cs.service_status_id === statusId || cs.status_id === statusId;
+        });
+        allDependentRecords.push(
+          ...customerServicesUsingStatus.map((cs: any) => ({
+            type: 'Customer Service',
+            name: `Customer ID: ${cs.id_customer} - Service: ${cs.service_name || cs.id_service}`,
+            id: cs.id_service_per_customer
+          }))
+        );
+      } catch (err) {
+        console.warn("Error checking customer services:", err);
+      }
+
+      // Verificar en work orders
+      try {
+        const workOrdersRes = await axiosInstance.get('/work-orders');
+        const workOrdersUsingStatus = workOrdersRes.data.filter((wo: any) => 
+          wo.service_status_id === statusId || wo.status_id === statusId
+        );
+        allDependentRecords.push(
+          ...workOrdersUsingStatus.map((wo: any) => ({
+            type: 'Work Order',
+            name: `Work Order: ${wo.work_order_number || wo.id}`,
+            id: wo.id
+          }))
+        );
+      } catch (err) {
+        console.warn("Error checking work orders:", err);
+      }
+
+      // Verificar en cotizaciones/quotes
+      try {
+        const quotesRes = await axiosInstance.get('/quotes');
+        const quotesUsingStatus = quotesRes.data.filter((quote: any) => 
+          quote.service_status_id === statusId || quote.status_id === statusId
+        );
+        allDependentRecords.push(
+          ...quotesUsingStatus.map((quote: any) => ({
+            type: 'Quote',
+            name: `Quote: ${quote.quote_number || quote.id}`,
+            id: quote.id
+          }))
+        );
+      } catch (err) {
+        console.warn("Error checking quotes:", err);
+      }
+
+      // Verificar en reportes operacionales
+      try {
+        const operationReportsRes = await axiosInstance.get('/reports/operation-report');
+        const reportsUsingStatus = operationReportsRes.data.filter((report: any) => 
+          report.status_id === statusId
+        );
+        allDependentRecords.push(
+          ...reportsUsingStatus.map((report: any) => ({
+            type: 'Operation Report',
+            name: `Report: ${report.cliente} - ${report.servicio_principal}`,
+            id: report.id
+          }))
+        );
+      } catch (err) {
+        console.warn("Error checking operation reports:", err);
+      }
+
+      // Verificar en ejecuciones de servicio
+      try {
+        const serviceExecutionsRes = await axiosInstance.get('/reports/service-executions');
+        const executionsUsingStatus = serviceExecutionsRes.data.filter((exec: any) => 
+          exec.status_id === statusId
+        );
+        allDependentRecords.push(
+          ...executionsUsingStatus.map((exec: any) => ({
+            type: 'Service Execution',
+            name: `Execution: Work Order ${exec.work_order}`,
+            id: exec.id
+          }))
+        );
+      } catch (err) {
+        console.warn("Error checking service executions:", err);
+      }
+
+      // Verificar en facturas/invoices
+      try {
+        const invoicesRes = await axiosInstance.get('/billing/invoices');
+        const invoicesUsingStatus = invoicesRes.data.filter((invoice: any) => 
+          invoice.status_id === statusId
+        );
+        allDependentRecords.push(
+          ...invoicesUsingStatus.map((invoice: any) => ({
+            type: 'Invoice',
+            name: `Invoice: ${invoice.invoice_number || invoice.id}`,
+            id: invoice.id
+          }))
+        );
+      } catch (err) {
+        console.warn("Error checking invoices:", err);
+      }
+
       return {
-        inUse: servicesUsingStatus.length > 0,
-        services: servicesUsingStatus
+        inUse: allDependentRecords.length > 0,
+        records: allDependentRecords
       };
     } catch (err) {
       console.error("Error checking status usage:", err);
-      return { inUse: false, services: [] };
+      return { inUse: false, records: [] };
     }
   };
 
   const confirmDelete = async (id: number, name: string) => {
+    setDeletingStatus(true);
+    
     // Verificar si el status está siendo utilizado
-    const { inUse, services } = await checkStatusUsage(id);
+    const { inUse, records } = await checkStatusUsage(id);
+    
+    setDeletingStatus(false);
     
     if (inUse) {
-      // Mostrar popup de error con la lista de servicios que lo utilizan
-      setServicesUsingStatus(services);
+      // Mostrar popup de error con la lista de registros que lo utilizan
+      setDependentRecords(records);
       setDeleteErrorMessage(
-        `Cannot delete service status "${name}" because it is being used by ${services.length} service(s).`
+        `Cannot delete service status "${name}" because it is being used by ${records.length} record(s) in the system.`
       );
       setShowDeleteError(true);
       return;
@@ -147,13 +287,13 @@ const CatalogStatus: React.FC = () => {
       setDeletingStatus(true);
       
       // Verificar una vez más antes de eliminar
-      const { inUse, services } = await checkStatusUsage(statusToDelete.id);
+      const { inUse, records } = await checkStatusUsage(statusToDelete.id);
       
       if (inUse) {
         // Si ahora está en uso, mostrar error
-        setServicesUsingStatus(services);
+        setDependentRecords(records);
         setDeleteErrorMessage(
-          `Cannot delete service status "${statusToDelete.name}" because it is being used by ${services.length} service(s).`
+          `Cannot delete service status "${statusToDelete.name}" because it is being used by ${records.length} record(s) in the system.`
         );
         setShowDeleteConfirmation(false);
         setShowDeleteError(true);
@@ -208,7 +348,7 @@ const CatalogStatus: React.FC = () => {
   const closeDeleteErrorModal = () => {
     setShowDeleteError(false);
     setDeleteErrorMessage("");
-    setServicesUsingStatus([]);
+    setDependentRecords([]);
   };
 
   useEffect(() => {
@@ -302,12 +442,17 @@ const CatalogStatus: React.FC = () => {
                           </Link>
                           <button
                             onClick={() => confirmDelete(s.id_service_status, s.status_name)}
-                            className="p-1.5 bg-[#e6001f] text-white rounded hover:bg-red-700 transition-colors"
+                            disabled={deletingStatus}
+                            className="p-1.5 bg-[#e6001f] text-white rounded hover:bg-red-700 transition-colors disabled:opacity-50"
                             title="Delete"
                           >
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                            </svg>
+                            {deletingStatus ? (
+                              <div className="w-5 h-5 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+                            ) : (
+                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                              </svg>
+                            )}
                           </button>
                         </div>
                       </td>
@@ -436,7 +581,7 @@ const CatalogStatus: React.FC = () => {
             {/* Encabezado blanco con texto azul */}
             <div className="bg-white rounded-t-lg px-6 py-4 shadow-lg">
               <h2 className="text-2xl font-bold text-center text-[#002057]">
-                Cannot Delete
+                Cannot Delete Service Status
               </h2>
               <div className="mt-2 w-20 h-1 bg-[#e6001f] mx-auto rounded"></div>
             </div>
@@ -453,18 +598,25 @@ const CatalogStatus: React.FC = () => {
                   <p className="text-white text-lg mb-4">
                     {deleteErrorMessage}
                   </p>
-                  {servicesUsingStatus.length > 0 && (
+                  {dependentRecords.length > 0 && (
                     <div className="mt-4">
-                      <p className="text-white text-sm font-medium mb-2">Services using this status:</p>
-                      <div className="bg-[#0D1423] rounded-lg p-3 max-h-32 overflow-y-auto">
-                        {servicesUsingStatus.map((service, index) => (
-                          <div key={service.id_service} className="text-gray-300 text-sm py-1">
-                            • {service.service_code} - {service.service_name}
+                      <p className="text-white text-sm font-medium mb-2">
+                        Records using this service status ({dependentRecords.length} found):
+                      </p>
+                      <div className="bg-[#0D1423] rounded-lg p-3 max-h-40 overflow-y-auto border border-gray-700">
+                        {dependentRecords.map((record, index) => (
+                          <div key={index} className="text-gray-300 text-sm py-1 border-b border-gray-700 last:border-b-0">
+                            <span className="text-yellow-400 font-medium">{record.type}:</span> {record.name}
                           </div>
                         ))}
                       </div>
                     </div>
                   )}
+                  <div className="mt-4 p-3 bg-blue-900 rounded-lg border border-blue-700">
+                    <p className="text-blue-200 text-sm">
+                      <strong>Tip:</strong> To delete this service status, you must first remove or update all records that reference it.
+                    </p>
+                  </div>
                 </div>
               </div>
               <div className="mt-6 flex justify-center space-x-4">
@@ -473,7 +625,7 @@ const CatalogStatus: React.FC = () => {
                   onClick={closeDeleteErrorModal}
                   className="w-full bg-[#f59e0b] hover:bg-[#d97706] text-white font-medium py-3 px-4 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg"
                 >
-                  OK
+                  Understood
                 </button>
               </div>
             </div>

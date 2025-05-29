@@ -1,8 +1,37 @@
+/**
+ * ServicePerCustomer - Componente para gestionar la relación entre servicios y aerolíneas
+ * 
+ * Este componente implementa una interfaz de usuario para administrar los servicios específicos
+ * asignados a cada cliente/aerolínea, incluyendo las siguientes funcionalidades:
+ * 
+ * - Visualización de servicios por cliente en una tabla con múltiples columnas
+ * - Obtención y presentación de nombres de clientes desde el endpoint /catalog/clients
+ * - Búsqueda de servicios por tipo de fuselaje
+ * - Adición de nuevos servicios por cliente
+ * - Edición de servicios existentes
+ * - Eliminación de servicios con validación de dependencias
+ * - Gestión de errores y feedback visual
+ * 
+ * El componente hace uso de múltiples endpoints:
+ * - /catalog/service-per-customer: para obtener y gestionar los registros de servicios
+ * - /catalog/clients: para obtener los nombres de los clientes
+ * - /catalog/extra-service-sale-assignment, /work-orders, /quotes, /billing/invoices:
+ *   para verificar si un servicio puede ser eliminado (dependencias)
+ * 
+ * Incluye modales para confirmación de eliminación, notificación de éxito y errores
+ * con accesibilidad mediante teclado integrada.
+ */
 import React, { useEffect, useState, useRef } from "react";
 import axiosInstance from '../../api/axiosInstance';
 
 import { useNavigate } from "react-router-dom";
 import AISGBackground from "../catalogs/fondo";
+
+interface ClientData {
+  llave: string;
+  nombre: string;
+  comercial?: string;
+}
 
 interface ServicePerCustomerRecord {
   id_service_per_customer: number;
@@ -18,9 +47,15 @@ interface ServicePerCustomerRecord {
   updated_at: string;
 }
 
+interface DisplayableServiceRecord extends ServicePerCustomerRecord {
+  client_name_from_endpoint: string;
+}
+
 const ServicePerCustomer: React.FC = () => {
   const navigate = useNavigate();
   const [records, setRecords] = useState<ServicePerCustomerRecord[]>([]);
+  const [clients, setClients] = useState<ClientData[]>([]);
+  const [displayedRecords, setDisplayedRecords] = useState<DisplayableServiceRecord[]>([]);
   const [search, setSearch] = useState("");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -29,18 +64,15 @@ const ServicePerCustomer: React.FC = () => {
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [deletingRecord, setDeletingRecord] = useState(false);
 
-  // Estados para modales de eliminación
   const [showDeleteError, setShowDeleteError] = useState(false);
   const [deletedRecordId, setDeletedRecordId] = useState<number | null>(null);
   const [deleteErrorMessage, setDeleteErrorMessage] = useState("");
   const [dependentRecords, setDependentRecords] = useState<any[]>([]);
 
-  // Referencias para manejar el foco
   const deleteSuccessOkButtonRef = useRef<HTMLButtonElement>(null);
   const deleteConfirmButtonRef = useRef<HTMLButtonElement>(null);
   const deleteErrorOkButtonRef = useRef<HTMLButtonElement>(null);
 
-  // Efecto para enfocar el botón OK del popup de éxito de eliminación
   useEffect(() => {
     if (showSuccessModal && deleteSuccessOkButtonRef.current) {
       setTimeout(() => {
@@ -49,7 +81,6 @@ const ServicePerCustomer: React.FC = () => {
     }
   }, [showSuccessModal]);
 
-  // Efecto para enfocar el botón Delete del popup de confirmación
   useEffect(() => {
     if (deleteConfirm && deleteConfirmButtonRef.current) {
       setTimeout(() => {
@@ -58,7 +89,6 @@ const ServicePerCustomer: React.FC = () => {
     }
   }, [deleteConfirm]);
 
-  // Efecto para enfocar el botón OK del popup de error
   useEffect(() => {
     if (showDeleteError && deleteErrorOkButtonRef.current) {
       setTimeout(() => {
@@ -67,7 +97,6 @@ const ServicePerCustomer: React.FC = () => {
     }
   }, [showDeleteError]);
 
-  // Efecto para manejar Enter en los popups
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Enter') {
@@ -103,14 +132,26 @@ const ServicePerCustomer: React.FC = () => {
     }
   }, [deleteConfirm, showSuccessModal, showDeleteError, deletingRecord]);
 
+  const fetchClients = async () => {
+    try {
+      const res = await axiosInstance.get<ClientData[]>('/catalog/clients');
+      console.log("Clients fetched:", res.data);
+      setClients(res.data || []);
+    } catch (err) {
+      console.error("Error fetching clients:", err);
+      setError(prevError => prevError ? `${prevError} Could not load client names.` : "Could not load client names.");
+    }
+  };
+
   const fetchRecords = async () => {
     try {
       setIsLoading(true);
       setError("");
-      const res = await axiosInstance.get(
+      const res = await axiosInstance.get<ServicePerCustomerRecord[]>(
         `/catalog/service-per-customer${search ? `?fuselage_type=${encodeURIComponent(search)}` : ""}`,
         { timeout: 30000 }
       );
+      console.log("Service records fetched:", res.data);
       setRecords(res.data || []);
       setIsLoading(false);
     } catch (err: any) {
@@ -129,31 +170,71 @@ const ServicePerCustomer: React.FC = () => {
       setIsLoading(false);
     }
   };
+  
+  useEffect(() => {
+    fetchClients();
+  }, []);
 
-  /**
-   * Verificar si un servicio por cliente está siendo utilizado por otros módulos
-   */
+  useEffect(() => {
+    fetchRecords();
+  }, [search]);
+
+  useEffect(() => {
+    if (records.length > 0 && clients.length > 0) {
+      console.log("Processing records with clients:");
+      console.log("Records:", records);
+      console.log("Clients:", clients);
+      
+      const newDisplayedRecords = records.map(record => {
+        console.log(`Looking for client with llave=${record.id_client} in clients:`, clients);
+        
+        // Intentar múltiples formas de hacer match
+        const client = clients.find(c => {
+          const matches = (
+            c.llave === record.id_client.toString() ||
+            c.llave === record.id_client ||
+            parseInt(c.llave) === record.id_client
+          );
+          if (matches) {
+            console.log(`Match found for id_client ${record.id_client}:`, c);
+          }
+          return matches;
+        });
+        
+        const clientName = client ? 
+          (client.nombre || client.comercial || `Client ID: ${record.id_client}`) : 
+          `Client ID: ${record.id_client}`;
+          
+        console.log(`Client name for id_client ${record.id_client}: ${clientName}`);
+        
+        return {
+          ...record,
+          client_name_from_endpoint: clientName
+        };
+      });
+      setDisplayedRecords(newDisplayedRecords);
+    } else {
+      setDisplayedRecords([]);
+    }
+  }, [records, clients]);
+
   const checkServiceUsage = async (serviceId: number): Promise<{ inUse: boolean; records: any[] }> => {
     try {
-      // Verificar en extra service sale assignments
       const extraServiceRes = await axiosInstance.get('/catalog/extra-service-sale-assignment');
       const extraServiceUsingService = extraServiceRes.data.filter((esa: any) => 
         esa.id_service_per_customer === serviceId
       );
 
-      // Verificar en work orders
       const workOrdersRes = await axiosInstance.get('/work-orders');
       const workOrdersUsingService = workOrdersRes.data.filter((wo: any) => 
         wo.id_service_per_customer === serviceId
       );
 
-      // Verificar en quotes/proposals
       const quotesRes = await axiosInstance.get('/quotes');
       const quotesUsingService = quotesRes.data.filter((quote: any) => 
         quote.id_service_per_customer === serviceId
       );
 
-      // Verificar en billing/invoices
       const billingRes = await axiosInstance.get('/billing/invoices');
       const billingUsingService = billingRes.data.filter((invoice: any) => 
         invoice.id_service_per_customer === serviceId
@@ -193,20 +274,16 @@ const ServicePerCustomer: React.FC = () => {
   };
 
   const handleDeleteConfirm = async (id: number) => {
-    // Verificar si el servicio está siendo utilizado
-    const { inUse, records } = await checkServiceUsage(id);
+    const { inUse, records: dependentRecs } = await checkServiceUsage(id);
     
     if (inUse) {
-      // Mostrar popup de error con la lista de registros que lo utilizan
-      setDependentRecords(records);
+      setDependentRecords(dependentRecs);
       setDeleteErrorMessage(
-        `Cannot delete service record #${id} because it is being used by ${records.length} record(s) in the system.`
+        `Cannot delete service record #${id} because it is being used by ${dependentRecs.length} record(s) in the system.`
       );
       setShowDeleteError(true);
       return;
     }
-
-    // Si no está en uso, proceder con la confirmación de eliminación
     setDeleteConfirm(id);
   };
 
@@ -215,14 +292,12 @@ const ServicePerCustomer: React.FC = () => {
       setDeletingRecord(true);
       setError("");
       
-      // Verificar una vez más antes de eliminar
-      const { inUse, records } = await checkServiceUsage(id);
+      const { inUse, records: dependentRecs } = await checkServiceUsage(id);
       
       if (inUse) {
-        // Si ahora está en uso, mostrar error
-        setDependentRecords(records);
+        setDependentRecords(dependentRecs);
         setDeleteErrorMessage(
-          `Cannot delete service record #${id} because it is being used by ${records.length} record(s) in the system.`
+          `Cannot delete service record #${id} because it is being used by ${dependentRecs.length} record(s) in the system.`
         );
         setDeleteConfirm(null);
         setShowDeleteError(true);
@@ -236,9 +311,8 @@ const ServicePerCustomer: React.FC = () => {
       setShowSuccessModal(true);
       setSuccess("Record deleted successfully");
     } catch (err: any) {
-      console.error("Error al eliminar servicio", err);
+      console.error("Error deleting service", err);
       
-      // Verificar si el error es por dependencias
       if (err.response?.status === 409 || err.response?.data?.detail?.includes("constraint")) {
         setDeleteErrorMessage(
           `Cannot delete service record #${id} because it is being used by other records in the system.`
@@ -285,12 +359,6 @@ const ServicePerCustomer: React.FC = () => {
     setDependentRecords([]);
   };
 
-  useEffect(() => {
-    fetchRecords();
-    // eslint-disable-next-line
-  }, [search]);
-
-  // Modal de alerta de éxito
   const SuccessAlert = () => (
     <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
       <div className="w-full max-w-md overflow-hidden rounded-lg shadow-xl">
@@ -335,7 +403,6 @@ const ServicePerCustomer: React.FC = () => {
 
   return (
     <AISGBackground>
-      {/* Render modal de éxito si showSuccessModal es true */}
       {showSuccessModal && <SuccessAlert />}
 
       <div className="max-w-7xl mx-auto p-6 font-['Montserrat']">
@@ -389,7 +456,7 @@ const ServicePerCustomer: React.FC = () => {
             <table className="w-full border-collapse">
               <thead>
                 <tr className="bg-white text-[#002057]">
-                  <th className="px-4 py-3 text-left font-semibold">Service</th>
+                  <th className="px-4 py-3 text-left font-semibold">Service ID</th>
                   <th className="px-4 py-3 text-left font-semibold">Client</th>
                   <th className="px-4 py-3 text-left font-semibold">Company</th>
                   <th className="px-4 py-3 text-left font-semibold">Minutes Included</th>
@@ -397,24 +464,22 @@ const ServicePerCustomer: React.FC = () => {
                   <th className="px-4 py-3 text-left font-semibold">Fuselage Type</th>
                   <th className="px-4 py-3 text-left font-semibold">Technicians Included</th>
                   <th className="px-4 py-3 text-left font-semibold">Created/Modified By</th>
-                  <th className="px-4 py-3 text-left font-semibold">Created At</th>
                   <th className="px-4 py-3 text-left font-semibold">Updated At</th>
                   <th className="px-4 py-3 text-center font-semibold">Actions</th>
                 </tr>
               </thead>
               <tbody className="bg-transparent divide-y divide-[#1E2A45]">
-                {records.length > 0 ? (
-                  records.map((r) => (
+                {displayedRecords.length > 0 ? (
+                  displayedRecords.map((r) => (
                     <tr key={r.id_service_per_customer} className="hover:bg-[#1E2A45] transition-colors">
                       <td className="px-4 py-3 text-white">{r.id_service}</td>
-                      <td className="px-4 py-3 text-white">{r.id_client}</td>
+                      <td className="px-4 py-3 text-white">{r.client_name_from_endpoint}</td>
                       <td className="px-4 py-3 text-white">{r.company}</td>
                       <td className="px-4 py-3 text-white">{r.minutes_included}</td>
                       <td className="px-4 py-3 text-white">{r.minutes_minimum}</td>
                       <td className="px-4 py-3 text-white">{r.fuselage_type}</td>
                       <td className="px-4 py-3 text-white">{r.technicians_included}</td>
                       <td className="px-4 py-3 text-white">{r.whonew}</td>
-                      <td className="px-4 py-3 text-white">{r.create_at ? r.create_at.split("T")[0] : ""}</td>
                       <td className="px-4 py-3 text-white">{r.updated_at ? r.updated_at.split("T")[0] : ""}</td>
                       <td className="px-4 py-3 text-center">
                         <div className="flex justify-center gap-2">
@@ -444,7 +509,7 @@ const ServicePerCustomer: React.FC = () => {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={11} className="px-6 py-8 text-center text-white">
+                    <td colSpan={10} className="px-6 py-8 text-center text-white">
                       No records found
                     </td>
                   </tr>
@@ -454,19 +519,15 @@ const ServicePerCustomer: React.FC = () => {
           )}
         </div>
 
-        {/* Modal de confirmación de eliminación */}
         {deleteConfirm && (
           <div className="fixed inset-0 z-50 overflow-auto bg-black bg-opacity-50 flex items-center justify-center p-4">
             <div className="w-full max-w-md overflow-hidden rounded-lg shadow-xl">
-              {/* Encabezado blanco con texto azul */}
               <div className="bg-white py-4 px-6">
                 <h2 className="text-2xl font-bold text-center text-[#002057]">
                   Confirm Deletion
                 </h2>
                 <div className="mt-1 w-24 h-1 bg-[#e6001f] mx-auto"></div>
               </div>
-
-              {/* Cuerpo con fondo azul oscuro */}
               <div className="bg-[#1E2A45] py-8 px-6">
                 <div className="flex items-start gap-3">
                   <div className="bg-red-600 rounded-full p-2 flex-shrink-0">
@@ -478,7 +539,6 @@ const ServicePerCustomer: React.FC = () => {
                     Are you sure you want to delete service record #{deleteConfirm}? This action cannot be undone.
                   </p>
                 </div>
-
                 <div className="mt-8 flex gap-3">
                   {deletingRecord ? (
                     <div className="w-full flex justify-center">
@@ -500,11 +560,11 @@ const ServicePerCustomer: React.FC = () => {
                       </button>
                       <button
                         ref={deleteConfirmButtonRef}
-                        onClick={() => handleDelete(deleteConfirm)}
+                        onClick={() => handleDelete(deleteConfirm!)}
                         onKeyDown={(e) => {
                           if (e.key === 'Enter') {
                             e.preventDefault();
-                            handleDelete(deleteConfirm);
+                            handleDelete(deleteConfirm!);
                           }
                         }}
                         className="w-1/2 bg-[#e6001f] hover:bg-red-700 text-white font-medium py-3 px-4 rounded transition-all"
@@ -519,19 +579,15 @@ const ServicePerCustomer: React.FC = () => {
           </div>
         )}
 
-        {/* Popup de error de eliminación (registro en uso) */}
         {showDeleteError && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div className="overflow-hidden max-w-lg w-full mx-4 rounded-lg shadow-xl">
-              {/* Encabezado blanco con texto azul */}
               <div className="bg-white rounded-t-lg px-6 py-4 shadow-lg">
                 <h2 className="text-2xl font-bold text-center text-[#002057]">
                   Cannot Delete Record
                 </h2>
                 <div className="mt-2 w-20 h-1 bg-[#e6001f] mx-auto rounded"></div>
               </div>
-              
-              {/* Cuerpo con fondo azul oscuro */}
               <div className="bg-[#1E2A45] rounded-b-lg shadow-lg px-8 py-8">
                 <div className="flex items-start mb-4">
                   <div className="bg-[#f59e0b] rounded-full p-2 mr-4 flex-shrink-0 mt-1">
