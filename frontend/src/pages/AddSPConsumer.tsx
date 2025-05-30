@@ -6,6 +6,7 @@
  * 1. El selector de Compañía tiene un valor por defecto (primera compañía)
  * 2. El selector de Aerolínea muestra solo aerolíneas (tipoCliente = 1) filtradas por la compañía seleccionada
  * 3. El selector de Servicio muestra servicios disponibles para la aerolínea seleccionada
+ * 4. El selector de Fuselage Type obtiene datos de la tabla DBTableAvion
  * 
  * El formulario valida todos los campos requeridos y previene entradas duplicadas.
  * Al crear exitosamente, muestra un popup de éxito y navega de vuelta a la lista de catálogos.
@@ -34,16 +35,22 @@ interface Company {
   companyName: string;
 }
 
+interface FuselageType {
+  fuselage_type: string;
+}
+
 const AddSPConsumer: React.FC = () => {
   const navigate = useNavigate();
-  
+
   const [clients, setClients] = useState<Client[]>([]);
   const [services, setServices] = useState<Service[]>([]);
   const [companies, setCompanies] = useState<Company[]>([]);
-  
+  const [fuselageTypes, setFuselageTypes] = useState<FuselageType[]>([]);
+
   const [companiesLoading, setCompaniesLoading] = useState(true);
   const [clientsLoading, setClientsLoading] = useState(false);
   const [servicesLoading, setServicesLoading] = useState(false);
+  const [fuselageTypesLoading, setFuselageTypesLoading] = useState(false);
 
   const [selectedCompany, setSelectedCompany] = useState<string>("");
   const [selectedClient, setSelectedClient] = useState<string>("");
@@ -63,7 +70,7 @@ const AddSPConsumer: React.FC = () => {
 
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  
+
   const [showSuccessPopup, setShowSuccessPopup] = useState(false);
   const [showDuplicateWarningPopup, setShowDuplicateWarningPopup] = useState(false);
 
@@ -177,20 +184,20 @@ const AddSPConsumer: React.FC = () => {
       setServices([]);
       setSelectedClient("");
       setSelectedService("");
-      
-      setForm(prevForm => ({ 
-        ...prevForm, 
-        id_client: "", 
-        id_service: "" 
+
+      setForm(prevForm => ({
+        ...prevForm,
+        id_client: "",
+        id_service: ""
       }));
-      
+
       if (!companyValue) {
         setClientsLoading(false);
         return;
       }
 
       const companyCode = extractCompanyCode(companyValue);
-      
+
       const res = await axiosInstance.get(`/catalog/clients?companyCode=${encodeURIComponent(companyCode)}&tipoCliente=1`);
       setClients(res.data || []);
     } catch (err) {
@@ -206,17 +213,17 @@ const AddSPConsumer: React.FC = () => {
       setServicesLoading(true);
       setServices([]);
       setSelectedService("");
-      
-      setForm(prevForm => ({ 
-        ...prevForm, 
-        id_service: "" 
+
+      setForm(prevForm => ({
+        ...prevForm,
+        id_service: ""
       }));
-      
+
       if (!clientId) {
         setServicesLoading(false);
         return;
       }
-      
+
       const res = await axiosInstance.get(`/catalog/services?client_id=${encodeURIComponent(clientId)}`);
       setServices(res.data || []);
     } catch (err) {
@@ -227,41 +234,68 @@ const AddSPConsumer: React.FC = () => {
     }
   };
 
+  const fetchFuselageTypes = async () => {
+    try {
+      setFuselageTypesLoading(true);
+      // Usar el endpoint de aircraft-models y extraer fuselajes únicos
+      const res = await axiosInstance.get('/aircraft-models/');
+
+      // Extraer fuselajes únicos de la respuesta
+      const uniqueFuselages = [...new Set(
+        res.data
+          .map((aircraft: any) => aircraft.fuselaje)
+          .filter((fuselaje: string) => fuselaje && fuselaje.trim())
+      )];
+
+      // Convertir al formato esperado
+      const fuselageTypes = uniqueFuselages.map(fuselaje => ({
+        fuselage_type: fuselaje
+      }));
+
+      setFuselageTypes(fuselageTypes);
+    } catch (err) {
+      console.error("Error loading fuselage types:", err);
+      setError("Error loading fuselage type data.");
+    } finally {
+      setFuselageTypesLoading(false);
+    }
+  };
+
   const handleCompanyChange = (companyValue: string) => {
     setSelectedCompany(companyValue);
-    
-    setForm(prevForm => ({ 
-      ...prevForm, 
-      company: companyValue, 
-      id_client: "", 
-      id_service: "" 
+
+    setForm(prevForm => ({
+      ...prevForm,
+      company: companyValue,
+      id_client: "",
+      id_service: ""
     }));
-    
+
     validateField('company', companyValue);
     fetchClientsByCompany(companyValue);
   };
 
   const handleClientChange = (clientId: string) => {
     setSelectedClient(clientId);
-    
-    setForm(prevForm => ({ 
-      ...prevForm, 
-      id_client: clientId, 
-      id_service: "" 
+
+    setForm(prevForm => ({
+      ...prevForm,
+      id_client: clientId,
+      id_service: ""
     }));
-    
+
     validateField('id_client', clientId);
     fetchServicesByClient(clientId);
   };
 
   const handleServiceChange = (serviceId: string) => {
     setSelectedService(serviceId);
-    
-    setForm(prevForm => ({ 
-      ...prevForm, 
-      id_service: serviceId 
+
+    setForm(prevForm => ({
+      ...prevForm,
+      id_service: serviceId
     }));
-    
+
     validateField('id_service', serviceId);
   };
 
@@ -312,7 +346,7 @@ const AddSPConsumer: React.FC = () => {
 
   const handleNumericChange = (field: string, value: string) => {
     let numericValue: number;
-    
+
     if (value === "" || value === "0") {
       numericValue = 0;
     } else {
@@ -321,25 +355,29 @@ const AddSPConsumer: React.FC = () => {
         return;
       }
     }
-    
+
     setForm(prevForm => ({ ...prevForm, [field]: numericValue }));
     validateField(field, numericValue);
   };
 
   useEffect(() => {
-    const fetchCompanies = async () => {
+    const fetchInitialData = async () => {
       try {
         setCompaniesLoading(true);
+
+        // Cargar los tipos de fuselaje
+        fetchFuselageTypes();
+
         const companiesResponse = await axiosInstance.get('/companies/');
         const companiesData = companiesResponse.data;
         setCompanies(companiesData);
-        
+
         if (companiesData && companiesData.length > 0) {
           const defaultCompany = `${companiesData[0].companyCode} - ${companiesData[0].companyName}`;
           setSelectedCompany(defaultCompany);
-          setForm(prevForm => ({ 
-            ...prevForm, 
-            company: defaultCompany 
+          setForm(prevForm => ({
+            ...prevForm,
+            company: defaultCompany
           }));
           validateField('company', defaultCompany);
           fetchClientsByCompany(defaultCompany);
@@ -352,13 +390,13 @@ const AddSPConsumer: React.FC = () => {
       }
     };
 
-    fetchCompanies();
+    fetchInitialData();
   }, []);
 
   const checkDuplicateServicePerCustomer = async () => {
     try {
       const res = await axiosInstance.get(`/catalog/service-per-customer`);
-      return res.data.some((item: any) => 
+      return res.data.some((item: any) =>
         item.id_service.toString() === form.id_service &&
         item.id_client.toString() === form.id_client &&
         item.company === form.company
@@ -375,7 +413,7 @@ const AddSPConsumer: React.FC = () => {
     setError("");
 
     const isValid = validateAllFields();
-    
+
     if (!isValid) {
       setError("Please fill in all required fields correctly.");
       return;
@@ -392,7 +430,7 @@ const AddSPConsumer: React.FC = () => {
       }
 
       const whonew = sessionStorage.getItem("userName") || "admin";
-      
+
       const data = {
         id_service: parseInt(form.id_service),
         id_client: parseInt(form.id_client),
@@ -408,7 +446,7 @@ const AddSPConsumer: React.FC = () => {
       setShowSuccessPopup(true);
     } catch (err: any) {
       console.error("Error:", err);
-      
+
       if (err.response && err.response.data) {
         if (err.response.data.detail) {
           if (Array.isArray(err.response.data.detail)) {
@@ -480,11 +518,10 @@ const AddSPConsumer: React.FC = () => {
                   ) : (
                     <select
                       ref={companySelectRef}
-                      className={`w-full px-4 py-3 rounded-lg bg-white text-[#002057] border ${
-                        validationErrors.company 
-                          ? 'border-red-500 focus:border-red-500 focus:ring-red-500' 
+                      className={`w-full px-4 py-3 rounded-lg bg-white text-[#002057] border ${validationErrors.company
+                          ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
                           : 'border-[#cccccc] focus:border-[#00B140] focus:ring-[#00B140]'
-                      } focus:ring-2 focus:outline-none transition-all`}
+                        } focus:ring-2 focus:outline-none transition-all`}
                       value={selectedCompany}
                       onChange={(e) => handleCompanyChange(e.target.value)}
                       required
@@ -511,18 +548,17 @@ const AddSPConsumer: React.FC = () => {
                     </div>
                   ) : (
                     <select
-                      className={`w-full px-4 py-3 rounded-lg bg-white text-[#002057] border ${
-                        validationErrors.id_client 
-                          ? 'border-red-500 focus:border-red-500 focus:ring-red-500' 
+                      className={`w-full px-4 py-3 rounded-lg bg-white text-[#002057] border ${validationErrors.id_client
+                          ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
                           : 'border-[#cccccc] focus:border-[#00B140] focus:ring-[#00B140]'
-                      } focus:ring-2 focus:outline-none transition-all ${!selectedCompany ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        } focus:ring-2 focus:outline-none transition-all ${!selectedCompany ? 'opacity-50 cursor-not-allowed' : ''}`}
                       value={selectedClient}
                       onChange={(e) => handleClientChange(e.target.value)}
                       disabled={!selectedCompany || clientsLoading}
                       required
                     >
                       <option value="">
-                        {!selectedCompany ? "Select a company first" : "Select an Client"}
+                        {!selectedCompany ? "Select a company first" : "Select a Client"}
                       </option>
                       {clients.map((client) => (
                         <option key={client.llave} value={client.llave}>
@@ -546,18 +582,17 @@ const AddSPConsumer: React.FC = () => {
                     </div>
                   ) : (
                     <select
-                      className={`w-full px-4 py-3 rounded-lg bg-white text-[#002057] border ${
-                        validationErrors.id_service 
-                          ? 'border-red-500 focus:border-red-500 focus:ring-red-500' 
+                      className={`w-full px-4 py-3 rounded-lg bg-white text-[#002057] border ${validationErrors.id_service
+                          ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
                           : 'border-[#cccccc] focus:border-[#00B140] focus:ring-[#00B140]'
-                      } focus:ring-2 focus:outline-none transition-all ${!selectedClient ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        } focus:ring-2 focus:outline-none transition-all ${!selectedClient ? 'opacity-50 cursor-not-allowed' : ''}`}
                       value={selectedService}
                       onChange={(e) => handleServiceChange(e.target.value)}
                       disabled={!selectedClient || servicesLoading}
                       required
                     >
                       <option value="">
-                        {!selectedClient ? "Select an client first" : "Select a service"}
+                        {!selectedClient ? "Select a client first" : "Select a service"}
                       </option>
                       {services.map((service) => (
                         <option key={service.id_service} value={service.id_service}>
@@ -578,11 +613,10 @@ const AddSPConsumer: React.FC = () => {
                     Included Minutes <span className="text-red-400">*</span>
                   </label>
                   <input
-                    className={`w-full px-4 py-3 rounded-lg bg-white text-[#002057] border ${
-                      validationErrors.minutes_included 
-                        ? 'border-red-500 focus:border-red-500 focus:ring-red-500' 
+                    className={`w-full px-4 py-3 rounded-lg bg-white text-[#002057] border ${validationErrors.minutes_included
+                        ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
                         : 'border-[#cccccc] focus:border-[#00B140] focus:ring-[#00B140]'
-                    } focus:ring-2 focus:outline-none transition-all`}
+                      } focus:ring-2 focus:outline-none transition-all`}
                     placeholder="Included Minutes"
                     type="number"
                     min="0"
@@ -605,11 +639,10 @@ const AddSPConsumer: React.FC = () => {
                     Minimum Minutes <span className="text-red-400">*</span>
                   </label>
                   <input
-                    className={`w-full px-4 py-3 rounded-lg bg-white text-[#002057] border ${
-                      validationErrors.minutes_minimum 
-                        ? 'border-red-500 focus:border-red-500 focus:ring-red-500' 
+                    className={`w-full px-4 py-3 rounded-lg bg-white text-[#002057] border ${validationErrors.minutes_minimum
+                        ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
                         : 'border-[#cccccc] focus:border-[#00B140] focus:ring-[#00B140]'
-                    } focus:ring-2 focus:outline-none transition-all`}
+                      } focus:ring-2 focus:outline-none transition-all`}
                     placeholder="Minimum Minutes"
                     type="number"
                     min="0"
@@ -632,11 +665,10 @@ const AddSPConsumer: React.FC = () => {
                     Technicians Included <span className="text-red-400">*</span>
                   </label>
                   <input
-                    className={`w-full px-4 py-3 rounded-lg bg-white text-[#002057] border ${
-                      validationErrors.technicians_included 
-                        ? 'border-red-500 focus:border-red-500 focus:ring-red-500' 
+                    className={`w-full px-4 py-3 rounded-lg bg-white text-[#002057] border ${validationErrors.technicians_included
+                        ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
                         : 'border-[#cccccc] focus:border-[#00B140] focus:ring-[#00B140]'
-                    } focus:ring-2 focus:outline-none transition-all`}
+                      } focus:ring-2 focus:outline-none transition-all`}
                     placeholder="Technicians Included"
                     type="number"
                     min="0"
@@ -656,15 +688,27 @@ const AddSPConsumer: React.FC = () => {
                 </div>
                 <div>
                   <label className="block text-white text-sm font-medium mb-2">Fuselage Type</label>
-                  <input
-                    className="w-full px-4 py-3 rounded-lg bg-white text-[#002057] border border-[#cccccc] focus:border-[#00B140] focus:ring-2 focus:ring-[#00B140] focus:outline-none transition-all"
-                    placeholder="Fuselage Type"
-                    value={form.fuselage_type}
-                    onChange={(e) => setForm(prevForm => ({ ...prevForm, fuselage_type: e.target.value }))}
-                  />
+                  {fuselageTypesLoading ? (
+                    <div className="w-full px-4 py-3 rounded-lg bg-gray-200 animate-pulse text-center">
+                      Loading fuselage types...
+                    </div>
+                  ) : (
+                    <select
+                      className="w-full px-4 py-3 rounded-lg bg-white text-[#002057] border border-[#cccccc] focus:border-[#00B140] focus:ring-2 focus:ring-[#00B140] focus:outline-none transition-all"
+                      value={form.fuselage_type}
+                      onChange={(e) => setForm(prevForm => ({ ...prevForm, fuselage_type: e.target.value }))}
+                    >
+                      <option value="">Select a fuselage type</option>
+                      {fuselageTypes.map((type, index) => (
+                        <option key={index} value={type.fuselage_type}>
+                          {type.fuselage_type}
+                        </option>
+                      ))}
+                    </select>
+                  )}
                 </div>
               </div>
-              
+
               <div className="flex space-x-4 pt-4">
                 <button
                   type="button"
@@ -676,9 +720,8 @@ const AddSPConsumer: React.FC = () => {
                 </button>
                 <button
                   type="submit"
-                  className={`w-1/2 ${
-                    loading || !isFormValid() ? "bg-gray-500" : "bg-[#00B140] hover:bg-[#009935]"
-                  } text-white font-medium py-3 px-4 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg flex items-center justify-center`}
+                  className={`w-1/2 ${loading || !isFormValid() ? "bg-gray-500" : "bg-[#00B140] hover:bg-[#009935]"
+                    } text-white font-medium py-3 px-4 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg flex items-center justify-center`}
                   disabled={loading || !isFormValid()}
                 >
                   {loading ? (
@@ -696,6 +739,7 @@ const AddSPConsumer: React.FC = () => {
         </div>
       </div>
 
+      {/* Modal de éxito */}
       {showSuccessPopup && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="overflow-hidden max-w-md w-full mx-4 rounded-lg shadow-xl">
@@ -734,6 +778,7 @@ const AddSPConsumer: React.FC = () => {
         </div>
       )}
 
+      {/* Modal de advertencia de duplicado */}
       {showDuplicateWarningPopup && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="overflow-hidden max-w-md w-full mx-4 rounded-lg shadow-xl">

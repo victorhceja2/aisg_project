@@ -14,7 +14,7 @@ router = APIRouter(
 
 class CatalogServiceIn(BaseModel):
     id_service_status: int
-    id_service_classification: int  # CORREGIDO: una sola "s" para coincidir con el modelo
+    id_service_classification: int
     id_service_category: int
     id_service_type: int
     id_service_include: int

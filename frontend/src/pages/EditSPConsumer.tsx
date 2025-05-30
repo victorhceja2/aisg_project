@@ -7,6 +7,7 @@ import AISGBackground from "../components/catalogs/fondo";
 interface Client {
     llave: number;
     nombre: string;
+    comercial: string;
     razonSocial: string;
 }
 
@@ -23,6 +24,11 @@ interface Company {
     companyName: string;
 }
 
+// Interface para los tipos de fuselaje
+interface FuselageType {
+    fuselage_type: string;
+}
+
 const EditSPConsumer: React.FC = () => {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
@@ -31,12 +37,14 @@ const EditSPConsumer: React.FC = () => {
     const [clients, setClients] = useState<Client[]>([]);
     const [services, setServices] = useState<Service[]>([]);
     const [companies, setCompanies] = useState<Company[]>([]);
+    const [fuselageTypes, setFuselageTypes] = useState<FuselageType[]>([]);
 
     // Estados de carga
     const [loading, setLoading] = useState(true);
     const [companiesLoading, setCompaniesLoading] = useState(true);
     const [clientsLoading, setClientsLoading] = useState(false);
     const [servicesLoading, setServicesLoading] = useState(false);
+    const [fuselageTypesLoading, setFuselageTypesLoading] = useState(false);
 
     // Estados para controlar la selección en cascada
     const [selectedCompany, setSelectedCompany] = useState<string>("");
@@ -180,18 +188,25 @@ const EditSPConsumer: React.FC = () => {
         return Object.keys(errors).length === 0;
     };
 
+    // Función para extraer el código de compañía del valor seleccionado
+    const extractCompanyCode = (companyValue: string) => {
+        if (!companyValue) return "";
+        return companyValue.split(" - ")[0];
+    };
+
     // Función para cargar clientes por compañía
-    const fetchClientsByCompany = async (companyName: string) => {
+    const fetchClientsByCompany = async (companyValue: string) => {
         try {
             setClientsLoading(true);
             setClients([]);
             
-            if (!companyName) {
+            if (!companyValue) {
                 setClientsLoading(false);
                 return;
             }
 
-            const res = await axiosInstance.get(`/catalog/clients?company=${encodeURIComponent(companyName)}`);
+            const companyCode = extractCompanyCode(companyValue);
+            const res = await axiosInstance.get(`/catalog/clients?companyCode=${encodeURIComponent(companyCode)}&tipoCliente=1`);
             setClients(res.data || []);
         } catch (err) {
             console.error("Error loading clients:", err);
@@ -219,6 +234,34 @@ const EditSPConsumer: React.FC = () => {
             setError("Error loading service data.");
         } finally {
             setServicesLoading(false);
+        }
+    };
+
+    // Función para cargar los tipos de fuselaje
+    const fetchFuselageTypes = async () => {
+        try {
+            setFuselageTypesLoading(true);
+            // Usar el endpoint de aircraft-models y extraer fuselajes únicos
+            const res = await axiosInstance.get('/aircraft-models/');
+            
+            // Extraer fuselajes únicos de la respuesta
+            const uniqueFuselages = [...new Set(
+                res.data
+                    .map((aircraft: any) => aircraft.fuselaje)
+                    .filter((fuselaje: string) => fuselaje && fuselaje.trim())
+            )];
+            
+            // Convertir al formato esperado
+            const fuselageTypes = uniqueFuselages.map(fuselaje => ({
+                fuselage_type: fuselaje
+            }));
+            
+            setFuselageTypes(fuselageTypes);
+        } catch (err) {
+            console.error("Error loading fuselage types:", err);
+            setError("Error loading fuselage type data.");
+        } finally {
+            setFuselageTypesLoading(false);
         }
     };
 
@@ -346,6 +389,9 @@ const EditSPConsumer: React.FC = () => {
         const fetchInitialData = async () => {
             try {
                 setCompaniesLoading(true);
+
+                // Cargar los tipos de fuselaje
+                fetchFuselageTypes();
 
                 // Cargar compañías
                 const companiesResponse = await axiosInstance.get('/companies/');
@@ -609,16 +655,18 @@ const EditSPConsumer: React.FC = () => {
                                             className={`w-full px-4 py-3 rounded-lg bg-white text-[#002057] border ${validationErrors.id_client
                                                     ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
                                                     : 'border-[#cccccc] focus:border-[#00B140] focus:ring-[#00B140]'
-                                                } focus:ring-2 focus:outline-none transition-all`}
+                                                } focus:ring-2 focus:outline-none transition-all ${!selectedCompany ? 'opacity-50 cursor-not-allowed' : ''}`}
                                             value={selectedClient}
                                             onChange={(e) => handleClientChange(e.target.value)}
-                                            disabled={clientsLoading || submitting}
+                                            disabled={!selectedCompany || clientsLoading || submitting}
                                             required
                                         >
-                                            <option value="">Select a client</option>
+                                            <option value="">
+                                                {!selectedCompany ? "Select a company first" : "Select a client"}
+                                            </option>
                                             {clients.map((client) => (
                                                 <option key={client.llave} value={client.llave}>
-                                                    {client.nombre || `Client #${client.llave}`}
+                                                    {client.comercial ? `${client.comercial}` : (client.nombre ? `${client.nombre}` : `Airline #${client.llave}`)}
                                                 </option>
                                             ))}
                                         </select>
@@ -642,13 +690,15 @@ const EditSPConsumer: React.FC = () => {
                                             className={`w-full px-4 py-3 rounded-lg bg-white text-[#002057] border ${validationErrors.id_service
                                                     ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
                                                     : 'border-[#cccccc] focus:border-[#00B140] focus:ring-[#00B140]'
-                                                } focus:ring-2 focus:outline-none transition-all`}
+                                                } focus:ring-2 focus:outline-none transition-all ${!selectedClient ? 'opacity-50 cursor-not-allowed' : ''}`}
                                             value={selectedService}
                                             onChange={(e) => handleServiceChange(e.target.value)}
-                                            disabled={servicesLoading || submitting}
+                                            disabled={!selectedClient || servicesLoading || submitting}
                                             required
                                         >
-                                            <option value="">Select a service</option>
+                                            <option value="">
+                                                {!selectedClient ? "Select a client first" : "Select a service"}
+                                            </option>
                                             {services.map((service) => (
                                                 <option key={service.id_service} value={service.id_service}>
                                                     {service.service_code} - {service.service_name}
@@ -747,13 +797,25 @@ const EditSPConsumer: React.FC = () => {
                                 </div>
                                 <div>
                                     <label className="block text-white text-sm font-medium mb-2">Fuselage Type</label>
-                                    <input
-                                        className="w-full px-4 py-3 rounded-lg bg-white text-[#002057] border border-[#cccccc] focus:border-[#00B140] focus:ring-2 focus:ring-[#00B140] focus:outline-none transition-all"
-                                        placeholder="Fuselage Type"
-                                        value={form.fuselage_type}
-                                        onChange={(e) => setForm(prevForm => ({ ...prevForm, fuselage_type: e.target.value }))}
-                                        disabled={submitting}
-                                    />
+                                    {fuselageTypesLoading ? (
+                                        <div className="w-full px-4 py-3 rounded-lg bg-gray-200 animate-pulse text-center">
+                                            Loading fuselage types...
+                                        </div>
+                                    ) : (
+                                        <select
+                                            className="w-full px-4 py-3 rounded-lg bg-white text-[#002057] border border-[#cccccc] focus:border-[#00B140] focus:ring-2 focus:ring-[#00B140] focus:outline-none transition-all"
+                                            value={form.fuselage_type}
+                                            onChange={(e) => setForm(prevForm => ({ ...prevForm, fuselage_type: e.target.value }))}
+                                            disabled={submitting}
+                                        >
+                                            <option value="">Select a fuselage type</option>
+                                            {fuselageTypes.map((type, index) => (
+                                                <option key={index} value={type.fuselage_type}>
+                                                    {type.fuselage_type}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    )}
                                 </div>
                             </div>
 

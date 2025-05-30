@@ -3,7 +3,6 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app import models
 from app.schemas_service_catalogs import CatalogBase
-from app.schemas_service_catalogs import CatalogServiceCreate
 
 router = APIRouter(prefix="/catalog")
 
@@ -70,3 +69,20 @@ def create_extra_service(item: dict, db: Session = Depends(get_db)):
     db.add(nuevo)
     db.commit()
     return {"ok": True}
+
+@router.get("/aircraft-fuselages")
+def get_aircraft_fuselages(db: Session = Depends(get_db)):
+    """
+    Obtiene todos los tipos de fuselaje únicos desde DBTableAvion
+    """
+    try:
+        # Obtener fuselajes únicos y no nulos
+        fuselages = db.query(models.DBTableAvion.fuselaje).filter(
+            models.DBTableAvion.fuselaje.isnot(None)
+        ).distinct().all()
+        
+        # Convertir a formato esperado por el frontend
+        result = [{"fuselage_type": f.fuselaje} for f in fuselages if f.fuselaje and f.fuselaje.strip()]
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al obtener tipos de fuselaje: {str(e)}")
