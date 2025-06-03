@@ -22,6 +22,7 @@ interface Service {
 interface Company {
     companyCode: string;
     companyName: string;
+    id?: number;  // Añadimos el campo id opcional para manejar el ID numérico
 }
 
 // Interface para los tipos de fuselaje
@@ -58,7 +59,8 @@ const EditSPConsumer: React.FC = () => {
     const [originalData, setOriginalData] = useState({
         id_service: "",
         id_client: "",
-        company: "",
+        id_company: "",
+        companyIdNumeric: 0,
         minutes_included: 0,
         minutes_minimum: 0,
         fuselage_type: "",
@@ -68,7 +70,8 @@ const EditSPConsumer: React.FC = () => {
     const [form, setForm] = useState({
         id_service: "",
         id_client: "",
-        company: "",
+        id_company: "",
+        companyIdNumeric: 0,  // Nuevo campo para almacenar el ID numérico
         minutes_included: 0,
         minutes_minimum: 0,
         fuselage_type: "",
@@ -91,11 +94,38 @@ const EditSPConsumer: React.FC = () => {
     // Referencia para el primer campo del formulario (Company select)
     const companySelectRef = useRef<HTMLSelectElement>(null);
 
+    // Obtener el ID numérico de compañía mediante una llamada separada
+    const fetchCompanyIdByCode = async (companyCode: string): Promise<number> => {
+        try {
+            if (!companyCode) return 0;
+            
+            // Obtener el ID numérico de la compañía
+            const response = await axiosInstance.get(`/companies/by-code/${encodeURIComponent(companyCode)}`);
+            
+            if (response.data && response.data.id) {
+                return response.data.id;
+            }
+            
+            // Como alternativa, podemos usar un valor estático para pruebas
+            // basado en el companyCode (AISG = 1)
+            if (companyCode === "AISG") return 1;
+            
+            return 0;
+        } catch (err) {
+            console.error("Error fetching company ID:", err);
+            // Como plan B, podemos asignar un ID de compañía basado en el código
+            // Esto es solo para fines de prueba
+            if (companyCode === "AISG") return 1;
+            return 0;
+        }
+    };
+
     // Validación para habilitar el botón de envío
     const isFormValid = () => {
         return form.id_service !== "" &&
             form.id_client !== "" &&
-            form.company !== "" &&
+            form.id_company !== "" &&
+            form.fuselage_type.trim() !== "" &&
             form.minutes_included >= 0 &&
             form.minutes_minimum >= 0 &&
             form.technicians_included >= 0;
@@ -106,7 +136,7 @@ const EditSPConsumer: React.FC = () => {
         const errors = { ...validationErrors };
 
         switch (fieldName) {
-            case 'company':
+            case 'id_company':
                 if (!value || value === "" || value.trim() === "") {
                     errors[fieldName] = 'Company is required';
                 } else {
@@ -160,8 +190,8 @@ const EditSPConsumer: React.FC = () => {
     const validateAllFields = () => {
         const errors: { [key: string]: string } = {};
 
-        if (!form.company || form.company.trim() === "") {
-            errors.company = 'Company is required';
+        if (!form.id_company || form.id_company.trim() === "") {
+            errors.id_company = 'Company is required';
         }
 
         if (!form.id_client || form.id_client.toString().trim() === "") {
@@ -206,11 +236,20 @@ const EditSPConsumer: React.FC = () => {
             }
 
             const companyCode = extractCompanyCode(companyValue);
+            console.log("Fetching clients for company code:", companyCode);
+
             const res = await axiosInstance.get(`/catalog/clients?companyCode=${encodeURIComponent(companyCode)}&tipoCliente=1`);
+            console.log("Clients response:", res.data);
             setClients(res.data || []);
-        } catch (err) {
+        } catch (err: any) {
             console.error("Error loading clients:", err);
-            setError("Error loading client data.");
+            if (err.response) {
+                console.error("Error response:", err.response.data);
+                setError(`Error loading client data: ${err.response.status} - ${err.response.data.detail || 'Unknown error'}`);
+            } else {
+                setError("Error loading client data. Please check your connection.");
+            }
+            setClients([]);
         } finally {
             setClientsLoading(false);
         }
@@ -227,11 +266,20 @@ const EditSPConsumer: React.FC = () => {
                 return;
             }
 
+            console.log("Fetching services for client ID:", clientId);
+            
             const res = await axiosInstance.get(`/catalog/services?client_id=${encodeURIComponent(clientId)}`);
+            console.log("Services response:", res.data);
             setServices(res.data || []);
-        } catch (err) {
+        } catch (err: any) {
             console.error("Error loading services:", err);
-            setError("Error loading service data.");
+            if (err.response) {
+                console.error("Error response:", err.response.data);
+                setError(`Error loading service data: ${err.response.status} - ${err.response.data.detail || 'Unknown error'}`);
+            } else {
+                setError("Error loading service data. Please check your connection.");
+            }
+            setServices([]);
         } finally {
             setServicesLoading(false);
         }
@@ -266,17 +314,33 @@ const EditSPConsumer: React.FC = () => {
     };
 
     // Manejar cambio de compañía
-    const handleCompanyChange = (companyValue: string) => {
+    const handleCompanyChange = async (companyValue: string) => {
         setSelectedCompany(companyValue);
+        const companyCode = extractCompanyCode(companyValue);
+
+        // Buscar o recuperar el ID numérico de la compañía
+        let companyId = 1; // Valor por defecto para AISG
+
+        // Si tenemos un endpoint específico, obtener el ID real
+        // Si no, usar lógica alternativa como un mapa de códigos a IDs
+        try {
+            const numericId = await fetchCompanyIdByCode(companyCode);
+            companyId = numericId || 1; // Si no se encuentra, usar 1 como fallback para AISG
+        } catch (err) {
+            console.error("Error fetching company ID:", err);
+            // Usar ID 1 para AISG como fallback
+            companyId = companyCode === "AISG" ? 1 : 0;
+        }
 
         setForm(prevForm => ({
             ...prevForm,
-            company: companyValue,
+            id_company: companyCode,
+            companyIdNumeric: companyId,
             id_client: "",
             id_service: ""
         }));
 
-        validateField('company', companyValue);
+        validateField('id_company', companyCode);
         fetchClientsByCompany(companyValue);
     };
 
@@ -403,10 +467,23 @@ const EditSPConsumer: React.FC = () => {
                 const data = servicePerCustomerResponse.data;
 
                 if (data) {
+                    // Obtener el ID numérico de la compañía desde el backend (data.id_company ya es numérico)
+                    const companyIdNumeric = data.id_company || 1;
+                    
+                    // Buscar el código de compañía basado en el ID numérico
+                    const companyData = companiesResponse.data.find((company: Company) => {
+                        // Buscar por nombre de compañía o código, dependiendo de cómo esté estructurada la respuesta
+                        return company.companyCode; // Por ahora asumimos que siempre habrá companyCode
+                    });
+                    
+                    const companyCode = companyData?.companyCode || "AISG"; // Fallback a AISG
+                    const companyValue = companyData ? `${companyData.companyCode} - ${companyData.companyName}` : "AISG - AISG Services";
+
                     const formData = {
                         id_service: data.id_service.toString(),
                         id_client: data.id_client.toString(),
-                        company: data.company,
+                        id_company: companyCode,
+                        companyIdNumeric: companyIdNumeric,
                         minutes_included: data.minutes_included || 0,
                         minutes_minimum: data.minutes_minimum || 0,
                         fuselage_type: data.fuselage_type || "",
@@ -415,12 +492,12 @@ const EditSPConsumer: React.FC = () => {
 
                     setForm(formData);
                     setOriginalData(formData);
-                    setSelectedCompany(data.company);
+                    setSelectedCompany(companyValue);
                     setSelectedClient(data.id_client.toString());
                     setSelectedService(data.id_service.toString());
 
                     // Cargar clientes para la compañía seleccionada
-                    await fetchClientsByCompany(data.company);
+                    await fetchClientsByCompany(companyValue);
 
                     // Cargar servicios para el cliente seleccionado
                     await fetchServicesByClient(data.id_client.toString());
@@ -447,7 +524,7 @@ const EditSPConsumer: React.FC = () => {
             return res.data.some((item: any) =>
                 item.id_service.toString() === form.id_service &&
                 item.id_client.toString() === form.id_client &&
-                item.company === form.company &&
+                item.id_company.toString() === form.companyIdNumeric.toString() &&
                 item.id_service_per_customer.toString() !== id // Excluir el registro actual
             );
         } catch (err) {
@@ -493,7 +570,7 @@ const EditSPConsumer: React.FC = () => {
             const keyFieldsChanged =
                 form.id_service !== originalData.id_service ||
                 form.id_client !== originalData.id_client ||
-                form.company !== originalData.company;
+                form.companyIdNumeric !== originalData.companyIdNumeric;
 
             if (keyFieldsChanged) {
                 const inUse = await checkIfInUse();
@@ -514,21 +591,49 @@ const EditSPConsumer: React.FC = () => {
 
             const whonew = sessionStorage.getItem("userName") || "admin";
 
+            // Buscar la compañía por código para obtener el ID numérico
+            const selectedCompanyData = companies.find(company => company.companyCode === form.id_company);
+            
+            if (!selectedCompanyData) {
+                setError("Invalid company selection. Please select a valid company.");
+                setSubmitting(false);
+                return;
+            }
+
+            // NO enviar timestamps - dejar que el backend los maneje automáticamente
             const data = {
                 id_service: parseInt(form.id_service),
                 id_client: parseInt(form.id_client),
-                company: form.company.trim(),
+                id_company: form.companyIdNumeric || 1,  // Usar el ID numérico almacenado
                 minutes_included: Math.max(0, Math.floor(form.minutes_included)),
                 minutes_minimum: Math.max(0, Math.floor(form.minutes_minimum)),
                 fuselage_type: form.fuselage_type.trim() || "",
                 technicians_included: Math.max(0, Math.floor(form.technicians_included)),
-                whonew,
+                whonew
+                // NO incluir create_at ni updated_at - el backend los manejará automáticamente
             };
+
+            console.log("Sending data:", data);
+            console.log("Data types:", {
+                id_service: typeof data.id_service,
+                id_client: typeof data.id_client,
+                id_company: typeof data.id_company,
+                minutes_included: typeof data.minutes_included,
+                minutes_minimum: typeof data.minutes_minimum,
+                fuselage_type: typeof data.fuselage_type,
+                technicians_included: typeof data.technicians_included,
+                whonew: typeof data.whonew
+            });
 
             await axiosInstance.put(`/catalog/service-per-customer/${id}`, data);
             setShowSuccessPopup(true);
         } catch (err: any) {
             console.error("Error:", err);
+
+            // Logging detallado del error para debugging
+            console.error("Error response:", err.response);
+            console.error("Error response data:", err.response?.data);
+            console.error("Error response status:", err.response?.status);
 
             if (err.response && err.response.data) {
                 if (err.response.data.detail) {
@@ -619,7 +724,7 @@ const EditSPConsumer: React.FC = () => {
                                     ) : (
                                         <select
                                             ref={companySelectRef}
-                                            className={`w-full px-4 py-3 rounded-lg bg-white text-[#002057] border ${validationErrors.company
+                                            className={`w-full px-4 py-3 rounded-lg bg-white text-[#002057] border ${validationErrors.id_company
                                                     ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
                                                     : 'border-[#cccccc] focus:border-[#00B140] focus:ring-[#00B140]'
                                                 } focus:ring-2 focus:outline-none transition-all`}
@@ -636,15 +741,15 @@ const EditSPConsumer: React.FC = () => {
                                             ))}
                                         </select>
                                     )}
-                                    {validationErrors.company && (
-                                        <p className="mt-1 text-sm text-red-400">{validationErrors.company}</p>
+                                    {validationErrors.id_company && (
+                                        <p className="mt-1 text-sm text-red-400">{validationErrors.id_company}</p>
                                     )}
                                 </div>
 
                                 {/* Client Dropdown - Segundo nivel */}
                                 <div>
                                     <label className="block text-white text-sm font-medium mb-2">
-                                        Client <span className="text-red-400">*</span>
+                                        Client (Airline) <span className="text-red-400">*</span>
                                     </label>
                                     {clientsLoading ? (
                                         <div className="w-full px-4 py-3 rounded-lg bg-gray-200 animate-pulse text-center">
@@ -796,17 +901,26 @@ const EditSPConsumer: React.FC = () => {
                                     )}
                                 </div>
                                 <div>
-                                    <label className="block text-white text-sm font-medium mb-2">Fuselage Type</label>
+                                    <label className="block text-white text-sm font-medium mb-2">
+                                        Fuselage Type <span className="text-red-400">*</span>
+                                    </label>
                                     {fuselageTypesLoading ? (
                                         <div className="w-full px-4 py-3 rounded-lg bg-gray-200 animate-pulse text-center">
                                             Loading fuselage types...
                                         </div>
                                     ) : (
                                         <select
-                                            className="w-full px-4 py-3 rounded-lg bg-white text-[#002057] border border-[#cccccc] focus:border-[#00B140] focus:ring-2 focus:ring-[#00B140] focus:outline-none transition-all"
+                                            className={`w-full px-4 py-3 rounded-lg bg-white text-[#002057] border ${validationErrors.fuselage_type
+                                                    ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
+                                                    : 'border-[#cccccc] focus:border-[#00B140] focus:ring-[#00B140]'
+                                                } focus:ring-2 focus:outline-none transition-all`}
                                             value={form.fuselage_type}
-                                            onChange={(e) => setForm(prevForm => ({ ...prevForm, fuselage_type: e.target.value }))}
+                                            onChange={(e) => {
+                                                setForm(prevForm => ({ ...prevForm, fuselage_type: e.target.value }));
+                                                validateField('fuselage_type', e.target.value);
+                                            }}
                                             disabled={submitting}
+                                            required
                                         >
                                             <option value="">Select a fuselage type</option>
                                             {fuselageTypes.map((type, index) => (

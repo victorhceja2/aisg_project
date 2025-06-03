@@ -5,7 +5,7 @@ from typing import List, Optional
 from datetime import datetime, timedelta
 
 from ..database import get_db
-from ..models import ServiceExecution, CatalogService, Cliente, Company, DBTableAvion, DBtableUserHeader, ExtraServiceSaleAssignment
+from ..models import ServiceExecution, CatalogService, Cliente, DBTableCompany, DBTableAvion, DBtableUserHeader, ExtraServiceSaleAssignment
 from ..schemas_reports import ServiceExecutionResponse, OperationReportResponse
 
 router = APIRouter(prefix="/reports", tags=["reports"])
@@ -171,15 +171,11 @@ async def get_operation_reports_count(db: Session = Depends(get_db)):
     Obtiene el conteo total de reportes de operación
     """
     try:
-        # Consulta extremadamente simplificada para el conteo
-        sql_query = """
-        SELECT COUNT(id) FROM ServiceExecution
-        """
+        # Contar directamente de ServiceExecution
+        count_query = "SELECT COUNT(*) as total FROM ServiceExecution"
+        result = db.execute(count_query).fetchone()
         
-        # Ejecutar consulta SQL directa
-        result = db.execute(sql_query).scalar()
-        
-        return {"total_count": result or 0}
+        return {"total_count": result.total if result else 0}
         
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error al obtener el conteo: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error al obtener el conteo de reportes: {str(e)}")

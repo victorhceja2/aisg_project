@@ -1,28 +1,25 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+from app.models import DBTableAvion
 from app.database import get_db
-from app import models
+from sqlalchemy import text
 
-router = APIRouter(prefix="/aircraft-models")
+router = APIRouter(
+    prefix="/aircraft-models",
+    tags=["Aircraft Models"]
+)
 
 @router.get("/")
 def get_aircraft_models(db: Session = Depends(get_db)):
-    return db.query(models.DBTableAvion).all()
-
-# Nuevo endpoint para obtener solo los tipos de fuselaje únicos
-@router.get("/fuselages")
-def get_fuselage_types(db: Session = Depends(get_db)):
-    """
-    Obtiene todos los tipos de fuselaje únicos desde DBTableAvion
-    """
     try:
-        # Obtener fuselajes únicos y no nulos
-        fuselages = db.query(models.DBTableAvion.fuselaje).filter(
-            models.DBTableAvion.fuselaje.isnot(None)
-        ).distinct().all()
-        
-        # Convertir a formato esperado por el frontend
-        result = [{"fuselage_type": f.fuselaje} for f in fuselages if f.fuselaje and f.fuselaje.strip()]
-        return result
+        # Como la tabla no tiene PK real, usamos una consulta directa
+        result = db.execute(text("SELECT modelo, fuselaje FROM DBTableAvion WHERE fuselaje IS NOT NULL AND fuselaje != ''"))
+        aircraft_models = []
+        for row in result:
+            aircraft_models.append({
+                "modelo": row.modelo,
+                "fuselaje": row.fuselaje
+            })
+        return aircraft_models
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error al obtener tipos de fuselaje: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error fetching aircraft models: {str(e)}")

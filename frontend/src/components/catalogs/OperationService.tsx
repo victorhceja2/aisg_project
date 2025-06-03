@@ -58,15 +58,24 @@ const OperationService: React.FC = () => {
     
     // Estados de carga para los dropdowns
     const [companiesLoading, setCompaniesLoading] = useState(true);
-    const [airlinesLoading, setAirlinesLoading] = useState(true);
+    const [airlinesLoading, setAirlinesLoading] = useState(false);
     const [stationsLoading, setStationsLoading] = useState(true);
 
-    // Cargar todos los datos al montar el componente
+    // Cargar companies y stations al montar el componente (no airlines inicialmente)
     useEffect(() => {
         fetchCompanies();
-        fetchAllAirlines();
         fetchStations();
     }, []);
+
+    // Effect para cargar aerolíneas cuando cambia la compañía seleccionada
+    useEffect(() => {
+        if (filters.company) {
+            fetchAirlinesByCompany(filters.company);
+        } else {
+            // Si no hay compañía seleccionada, limpiar la lista de aerolíneas
+            setAirlines([]);
+        }
+    }, [filters.company]);
 
     // Función para obtener companies
     const fetchCompanies = async () => {
@@ -81,14 +90,26 @@ const OperationService: React.FC = () => {
         }
     };
 
-    // Función para obtener todas las airlines (sin filtro de company)
-    const fetchAllAirlines = async () => {
+    // Función para obtener aerolíneas filtradas por compañía y ordenadas alfabéticamente
+    const fetchAirlinesByCompany = async (companyValue: string) => {
         try {
             setAirlinesLoading(true);
-            const response = await axiosInstance.get('/catalog/clients?tipoCliente=1');
-            setAirlines(response.data || []);
+            // Extraer el código de compañía (formato esperado: "CODE - Name")
+            const companyCode = companyValue.split(' - ')[0];
+            
+            // Obtener aerolíneas filtradas por compañía
+            const response = await axiosInstance.get(`/catalog/clients?tipoCliente=1&companyCode=${companyCode}`);
+            
+            // Ordenar alfabéticamente por nombre comercial o nombre
+            const sortedAirlines = [...(response.data || [])].sort((a, b) => {
+                const nameA = (a.comercial || a.nombre || '').toUpperCase();
+                const nameB = (b.comercial || b.nombre || '').toUpperCase();
+                return nameA.localeCompare(nameB);
+            });
+            
+            setAirlines(sortedAirlines);
         } catch (err) {
-            console.error("Error loading airlines:", err);
+            console.error("Error loading airlines for company:", err);
             setAirlines([]);
         } finally {
             setAirlinesLoading(false);
@@ -99,11 +120,11 @@ const OperationService: React.FC = () => {
     const fetchStations = async () => {
         try {
             setStationsLoading(true);
-            // Stations comunes en aeropuertos
+            // Stations comunes en aeropuertos ordenadas alfabéticamente
             setStations([
                 "GDL", "MEX", "CUN", "TIJ", "PVR", "SJD", "MTY", "BJX", 
                 "LAX", "DFW", "MIA", "JFK", "ORD", "ATL", "DEN", "PHX"
-            ]);
+            ].sort());
         } catch (err) {
             console.error("Error loading stations:", err);
         } finally {
@@ -354,7 +375,10 @@ const OperationService: React.FC = () => {
                                     <select
                                         className="w-full bg-[#1E2A45] text-white px-3 py-2 rounded-md border border-gray-700 focus:border-[#00B140] focus:ring-2 focus:ring-[#00B140] focus:outline-none"
                                         value={filters.company}
-                                        onChange={(e) => setFilters({ ...filters, company: e.target.value })}
+                                        onChange={(e) => {
+                                            // Resetear el valor de aerolínea al cambiar de compañía
+                                            setFilters({ ...filters, company: e.target.value, airline: "" });
+                                        }}
                                     >
                                         <option value="">Select a company</option>
                                         {companies.map((company) => (
@@ -378,12 +402,13 @@ const OperationService: React.FC = () => {
                                         className="w-full bg-[#1E2A45] text-white px-3 py-2 rounded-md border border-gray-700 focus:border-[#00B140] focus:ring-2 focus:ring-[#00B140] focus:outline-none"
                                         value={filters.airline}
                                         onChange={(e) => setFilters({ ...filters, airline: e.target.value })}
+                                        disabled={!filters.company} // Deshabilitar si no hay compañía seleccionada
                                     >
                                         <option value="">Select an airline</option>
                                         <option value="all">All Airlines</option>
                                         {airlines.map((airline) => (
                                             <option key={airline.llave} value={airline.llave}>
-                                                {airline.comercial || airline.nombre || `Airline #${airline.llave}`}
+                                                {airline.llave} - {airline.comercial || airline.nombre || `Airline #${airline.llave}`}
                                             </option>
                                         ))}
                                     </select>
@@ -406,7 +431,7 @@ const OperationService: React.FC = () => {
                                         <option value="">Select a station</option>
                                         {stations.map((station) => (
                                             <option key={station} value={station}>
-                                                {station}
+                                                {station} - {station}
                                             </option>
                                         ))}
                                     </select>

@@ -96,11 +96,21 @@ const CatalogClassif: React.FC = () => {
   const fetchClassifications = async () => {
     setLoading(true);
     try {
-      const res = await axiosInstance.get(`/catalog/service-classification/${search ? `?search=${encodeURIComponent(search)}` : ""}`
-      );
+      // CAMBIO: Corregir la URL del endpoint - eliminar la barra extra
+      const url = search 
+        ? `/catalog/service-classification?search=${encodeURIComponent(search)}`
+        : `/catalog/service-classification`;
+      
+      console.log("Fetching classifications from:", url); // Para debugging
+      
+      const res = await axiosInstance.get(url);
+      console.log("Classifications response:", res.data); // Para debugging
+      
       setClassifications(res.data);
       setError(null);
-    } catch {
+    } catch (err: any) {
+      console.error("Error fetching classifications:", err);
+      console.error("Error response:", err.response?.data);
       setError("Could not load classifications. Please try again.");
     } finally {
       setLoading(false);

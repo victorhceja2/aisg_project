@@ -33,11 +33,22 @@ interface ClientData {
   comercial?: string;
 }
 
+interface ServiceData {
+  id_service: number;
+  service_name: string;
+  service_code: string;
+}
+
+interface CompanyData {
+  companyCode: string;
+  companyName: string;
+}
+
 interface ServicePerCustomerRecord {
   id_service_per_customer: number;
   id_service: number;
   id_client: number;
-  company: string;
+  id_company: number;
   minutes_included: number;
   minutes_minimum: number;
   fuselage_type: string;
@@ -49,12 +60,16 @@ interface ServicePerCustomerRecord {
 
 interface DisplayableServiceRecord extends ServicePerCustomerRecord {
   client_name_from_endpoint: string;
+  service_name_from_endpoint: string;
+  company_name_from_endpoint: string;
 }
 
 const ServicePerCustomer: React.FC = () => {
   const navigate = useNavigate();
   const [records, setRecords] = useState<ServicePerCustomerRecord[]>([]);
   const [clients, setClients] = useState<ClientData[]>([]);
+  const [services, setServices] = useState<ServiceData[]>([]);
+  const [companies, setCompanies] = useState<CompanyData[]>([]);
   const [displayedRecords, setDisplayedRecords] = useState<DisplayableServiceRecord[]>([]);
   const [search, setSearch] = useState("");
   const [error, setError] = useState("");
@@ -143,6 +158,28 @@ const ServicePerCustomer: React.FC = () => {
     }
   };
 
+  const fetchServices = async () => {
+    try {
+      const res = await axiosInstance.get<ServiceData[]>('/catalog/services');
+      console.log("Services fetched:", res.data);
+      setServices(res.data || []);
+    } catch (err) {
+      console.error("Error fetching services:", err);
+      setError(prevError => prevError ? `${prevError} Could not load service names.` : "Could not load service names.");
+    }
+  };
+
+  const fetchCompanies = async () => {
+    try {
+      const res = await axiosInstance.get<CompanyData[]>('/companies/');
+      console.log("Companies fetched:", res.data);
+      setCompanies(res.data || []);
+    } catch (err) {
+      console.error("Error fetching companies:", err);
+      setError(prevError => prevError ? `${prevError} Could not load company names.` : "Could not load company names.");
+    }
+  };
+
   const fetchRecords = async () => {
     try {
       setIsLoading(true);
@@ -155,24 +192,41 @@ const ServicePerCustomer: React.FC = () => {
       setRecords(res.data || []);
       setIsLoading(false);
     } catch (err: any) {
+      console.error("Error fetching service records:", err);
+
       let errorMessage = "Could not load data. Please try again.";
+
       if (err.response) {
-        errorMessage = `Server error: ${err.response.status} - ${err.response.statusText}`;
+        // Error con respuesta del servidor
+        if (err.response.status === 500) {
+          errorMessage = "Server error: The server encountered an internal error. Please contact the administrator.";
+          console.error("Server response data:", err.response.data);
+        } else {
+          errorMessage = `Server error: ${err.response.status} - ${err.response.statusText}`;
+        }
       } else if (err.request) {
+        // Error sin respuesta del servidor
         errorMessage = "No response received from server. Please check your connection.";
       } else {
+        // Error en la configuración de la solicitud
         errorMessage = `Request error: ${err.message}`;
       }
+
       if (err.code === 'ECONNABORTED') {
         errorMessage = "Request timeout. The server took too long to respond.";
       }
+
       setError(errorMessage);
+      // Establecer records como array vacío para evitar problemas con datos anteriores
+      setRecords([]);
       setIsLoading(false);
     }
   };
-  
+
   useEffect(() => {
     fetchClients();
+    fetchServices();
+    fetchCompanies();
   }, []);
 
   useEffect(() => {
@@ -180,63 +234,73 @@ const ServicePerCustomer: React.FC = () => {
   }, [search]);
 
   useEffect(() => {
-    if (records.length > 0 && clients.length > 0) {
-      console.log("Processing records with clients:");
-      console.log("Records:", records);
-      console.log("Clients:", clients);
+    if (records.length > 0 && clients.length > 0 && services.length > 0 && companies.length > 0) {
+      console.log("Processing records with clients, services and companies");
       
       const newDisplayedRecords = records.map(record => {
-        console.log(`Looking for client with llave=${record.id_client} in clients:`, clients);
-        
-        // Intentar múltiples formas de hacer match
+        // Find client name
         const client = clients.find(c => {
-          const matches = (
+          return (
             c.llave === record.id_client.toString() ||
             c.llave === record.id_client ||
             parseInt(c.llave) === record.id_client
           );
-          if (matches) {
-            console.log(`Match found for id_client ${record.id_client}:`, c);
-          }
-          return matches;
         });
+
+        // Find service name
+        const service = services.find(s => s.id_service === record.id_service);
         
-        const clientName = client ? 
-          (client.nombre || client.comercial || `Client ID: ${record.id_client}`) : 
+        // Find company name
+        const company = companies.find(c => {
+          // Match by ID if company has numeric ID or by companyCode if string
+          return c.companyCode === record.id_company.toString() || 
+                 (c as any).id === record.id_company;
+        });
+
+        const clientName = client ?
+          (client.nombre || client.comercial || `Client ID: ${record.id_client}`) :
           `Client ID: ${record.id_client}`;
-          
-        console.log(`Client name for id_client ${record.id_client}: ${clientName}`);
-        
+
+        const serviceName = service ? 
+          `${service.service_code} - ${service.service_name}` : 
+          `Service ID: ${record.id_service}`;
+
+        const companyName = company ? 
+          company.companyName : 
+          `Company ID: ${record.id_company}`;
+
         return {
           ...record,
-          client_name_from_endpoint: clientName
+          client_name_from_endpoint: clientName,
+          service_name_from_endpoint: serviceName,
+          company_name_from_endpoint: companyName
         };
       });
       setDisplayedRecords(newDisplayedRecords);
     } else {
       setDisplayedRecords([]);
     }
-  }, [records, clients]);
+  }, [records, clients, services, companies]);
 
   const checkServiceUsage = async (serviceId: number): Promise<{ inUse: boolean; records: any[] }> => {
     try {
       const extraServiceRes = await axiosInstance.get('/catalog/extra-service-sale-assignment');
-      const extraServiceUsingService = extraServiceRes.data.filter((esa: any) => 
+      const extraServiceUsingService = extraServiceRes.data.filter((esa: any) =>
         esa.id_service_per_customer === serviceId
       );
 
       const workOrdersRes = await axiosInstance.get('/work-orders');
-      const workOrdersUsingService = workOrdersRes.data.filter((wo: any) => 
+      const workOrdersUsingService = workOrdersRes.data.filter((wo: any) =>
         wo.id_service_per_customer === serviceId
       );
 
       const quotesRes = await axiosInstance.get('/quotes');
-      const quotesUsingService = quotesRes.data.filter((quote: any) => 
+      const quotesUsingService = quotesRes.data.filter((quote: any) =>
         quote.id_service_per_customer === serviceId
       );
 
       const billingRes = await axiosInstance.get('/billing/invoices');
-      const billingUsingService = billingRes.data.filter((invoice: any) => 
+      const billingUsingService = billingRes.data.filter((invoice: any) =>
         invoice.id_service_per_customer === serviceId
       );
 
@@ -262,7 +326,7 @@ const ServicePerCustomer: React.FC = () => {
           id: invoice.id
         }))
       ];
-      
+
       return {
         inUse: allDependentRecords.length > 0,
         records: allDependentRecords
@@ -275,7 +339,7 @@ const ServicePerCustomer: React.FC = () => {
 
   const handleDeleteConfirm = async (id: number) => {
     const { inUse, records: dependentRecs } = await checkServiceUsage(id);
-    
+
     if (inUse) {
       setDependentRecords(dependentRecs);
       setDeleteErrorMessage(
@@ -291,9 +355,9 @@ const ServicePerCustomer: React.FC = () => {
     try {
       setDeletingRecord(true);
       setError("");
-      
+
       const { inUse, records: dependentRecs } = await checkServiceUsage(id);
-      
+
       if (inUse) {
         setDependentRecords(dependentRecs);
         setDeleteErrorMessage(
@@ -312,7 +376,7 @@ const ServicePerCustomer: React.FC = () => {
       setSuccess("Record deleted successfully");
     } catch (err: any) {
       console.error("Error deleting service", err);
-      
+
       if (err.response?.status === 409 || err.response?.data?.detail?.includes("constraint")) {
         setDeleteErrorMessage(
           `Cannot delete service record #${id} because it is being used by other records in the system.`
@@ -456,7 +520,7 @@ const ServicePerCustomer: React.FC = () => {
             <table className="w-full border-collapse">
               <thead>
                 <tr className="bg-white text-[#002057]">
-                  <th className="px-4 py-3 text-left font-semibold">Service ID</th>
+                  <th className="px-4 py-3 text-left font-semibold">Service</th>
                   <th className="px-4 py-3 text-left font-semibold">Client</th>
                   <th className="px-4 py-3 text-left font-semibold">Company</th>
                   <th className="px-4 py-3 text-left font-semibold">Minutes Included</th>
@@ -464,6 +528,7 @@ const ServicePerCustomer: React.FC = () => {
                   <th className="px-4 py-3 text-left font-semibold">Fuselage Type</th>
                   <th className="px-4 py-3 text-left font-semibold">Technicians Included</th>
                   <th className="px-4 py-3 text-left font-semibold">Created/Modified By</th>
+                  <th className="px-4 py-3 text-left font-semibold">Created At</th>
                   <th className="px-4 py-3 text-left font-semibold">Updated At</th>
                   <th className="px-4 py-3 text-center font-semibold">Actions</th>
                 </tr>
@@ -472,14 +537,15 @@ const ServicePerCustomer: React.FC = () => {
                 {displayedRecords.length > 0 ? (
                   displayedRecords.map((r) => (
                     <tr key={r.id_service_per_customer} className="hover:bg-[#1E2A45] transition-colors">
-                      <td className="px-4 py-3 text-white">{r.id_service}</td>
+                      <td className="px-4 py-3 text-white">{r.service_name_from_endpoint}</td>
                       <td className="px-4 py-3 text-white">{r.client_name_from_endpoint}</td>
-                      <td className="px-4 py-3 text-white">{r.company}</td>
+                      <td className="px-4 py-3 text-white">{r.company_name_from_endpoint}</td>
                       <td className="px-4 py-3 text-white">{r.minutes_included}</td>
                       <td className="px-4 py-3 text-white">{r.minutes_minimum}</td>
                       <td className="px-4 py-3 text-white">{r.fuselage_type}</td>
                       <td className="px-4 py-3 text-white">{r.technicians_included}</td>
                       <td className="px-4 py-3 text-white">{r.whonew}</td>
+                      <td className="px-4 py-3 text-white">{r.create_at ? r.create_at.split("T")[0] : ""}</td>
                       <td className="px-4 py-3 text-white">{r.updated_at ? r.updated_at.split("T")[0] : ""}</td>
                       <td className="px-4 py-3 text-center">
                         <div className="flex justify-center gap-2">
@@ -509,7 +575,7 @@ const ServicePerCustomer: React.FC = () => {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={10} className="px-6 py-8 text-center text-white">
+                    <td colSpan={11} className="px-6 py-8 text-center text-white">
                       No records found
                     </td>
                   </tr>

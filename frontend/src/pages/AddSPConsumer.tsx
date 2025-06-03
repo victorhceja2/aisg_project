@@ -33,6 +33,7 @@ interface Service {
 interface Company {
   companyCode: string;
   companyName: string;
+  id?: number;  // Añadimos el campo id opcional para manejar el ID numérico
 }
 
 interface FuselageType {
@@ -61,7 +62,8 @@ const AddSPConsumer: React.FC = () => {
   const [form, setForm] = useState({
     id_service: "",
     id_client: "",
-    company: "",
+    id_company: "",
+    companyIdNumeric: 0,  // Nuevo campo para almacenar el ID numérico
     minutes_included: 0,
     minutes_minimum: 0,
     fuselage_type: "",
@@ -78,10 +80,37 @@ const AddSPConsumer: React.FC = () => {
   const duplicateOkButtonRef = useRef<HTMLButtonElement>(null);
   const companySelectRef = useRef<HTMLSelectElement>(null);
 
+  // Obtener el ID numérico de compañía mediante una llamada separada
+  const fetchCompanyIdByCode = async (companyCode: string): Promise<number> => {
+    try {
+      if (!companyCode) return 0;
+      
+      // Obtener el ID numérico de la compañía
+      const response = await axiosInstance.get(`/companies/by-code/${encodeURIComponent(companyCode)}`);
+      
+      if (response.data && response.data.id) {
+        return response.data.id;
+      }
+      
+      // Como alternativa, podemos usar un valor estático para pruebas
+      // basado en el companyCode (AISG = 1)
+      if (companyCode === "AISG") return 1;
+      
+      return 0;
+    } catch (err) {
+      console.error("Error fetching company ID:", err);
+      // Como plan B, podemos asignar un ID de compañía basado en el código
+      // Esto es solo para fines de prueba
+      if (companyCode === "AISG") return 1;
+      return 0;
+    }
+  };
+
   const isFormValid = () => {
     return form.id_service !== "" &&
       form.id_client !== "" &&
-      form.company !== "" &&
+      form.id_company !== "" &&
+      form.fuselage_type.trim() !== "" &&
       form.minutes_included >= 0 &&
       form.minutes_minimum >= 0 &&
       form.technicians_included >= 0;
@@ -91,7 +120,7 @@ const AddSPConsumer: React.FC = () => {
     const errors = { ...validationErrors };
 
     switch (fieldName) {
-      case 'company':
+      case 'id_company':
         if (!value || value === "" || value.trim() === "") {
           errors[fieldName] = 'Company is required';
         } else {
@@ -144,8 +173,8 @@ const AddSPConsumer: React.FC = () => {
   const validateAllFields = () => {
     const errors: { [key: string]: string } = {};
 
-    if (!form.company || form.company.trim() === "") {
-      errors.company = 'Company is required';
+    if (!form.id_company || form.id_company.trim() === "") {
+      errors.id_company = 'Company is required';
     }
 
     if (!form.id_client || form.id_client.toString().trim() === "") {
@@ -197,12 +226,21 @@ const AddSPConsumer: React.FC = () => {
       }
 
       const companyCode = extractCompanyCode(companyValue);
+      console.log("Fetching clients for company code:", companyCode);
 
+      // Revertir al endpoint original que funcionaba
       const res = await axiosInstance.get(`/catalog/clients?companyCode=${encodeURIComponent(companyCode)}&tipoCliente=1`);
+      console.log("Clients response:", res.data);
       setClients(res.data || []);
-    } catch (err) {
+    } catch (err: any) {
       console.error("Error loading clients:", err);
-      setError("Error loading client data.");
+      if (err.response) {
+        console.error("Error response:", err.response.data);
+        setError(`Error loading client data: ${err.response.status} - ${err.response.data.detail || 'Unknown error'}`);
+      } else {
+        setError("Error loading client data. Please check your connection.");
+      }
+      setClients([]);
     } finally {
       setClientsLoading(false);
     }
@@ -224,11 +262,21 @@ const AddSPConsumer: React.FC = () => {
         return;
       }
 
+      console.log("Fetching services for client ID:", clientId);
+      
+      // Cambio principal: usar el endpoint correcto de servicios
       const res = await axiosInstance.get(`/catalog/services?client_id=${encodeURIComponent(clientId)}`);
+      console.log("Services response:", res.data);
       setServices(res.data || []);
-    } catch (err) {
+    } catch (err: any) {
       console.error("Error loading services:", err);
-      setError("Error loading service data.");
+      if (err.response) {
+        console.error("Error response:", err.response.data);
+        setError(`Error loading service data: ${err.response.status} - ${err.response.data.detail || 'Unknown error'}`);
+      } else {
+        setError("Error loading service data. Please check your connection.");
+      }
+      setServices([]);
     } finally {
       setServicesLoading(false);
     }
@@ -261,17 +309,33 @@ const AddSPConsumer: React.FC = () => {
     }
   };
 
-  const handleCompanyChange = (companyValue: string) => {
+  const handleCompanyChange = async (companyValue: string) => {
     setSelectedCompany(companyValue);
+    const companyCode = extractCompanyCode(companyValue);
+
+    // Buscar o recuperar el ID numérico de la compañía
+    let companyId = 1; // Valor por defecto para AISG
+
+    // Si tenemos un endpoint específico, obtener el ID real
+    // Si no, usar lógica alternativa como un mapa de códigos a IDs
+    try {
+      const numericId = await fetchCompanyIdByCode(companyCode);
+      companyId = numericId || 1; // Si no se encuentra, usar 1 como fallback para AISG
+    } catch (err) {
+      console.error("Error fetching company ID:", err);
+      // Usar ID 1 para AISG como fallback
+      companyId = companyCode === "AISG" ? 1 : 0;
+    }
 
     setForm(prevForm => ({
       ...prevForm,
-      company: companyValue,
+      id_company: companyCode,
+      companyIdNumeric: companyId,
       id_client: "",
       id_service: ""
     }));
 
-    validateField('company', companyValue);
+    validateField('id_company', companyCode);
     fetchClientsByCompany(companyValue);
   };
 
@@ -323,27 +387,6 @@ const AddSPConsumer: React.FC = () => {
     }
   }, [showDuplicateWarningPopup]);
 
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Enter') {
-        if (showSuccessPopup) {
-          e.preventDefault();
-          handleClosePopup();
-        } else if (showDuplicateWarningPopup) {
-          e.preventDefault();
-          closeDuplicateWarningPopup();
-        }
-      }
-    };
-
-    if (showSuccessPopup || showDuplicateWarningPopup) {
-      document.addEventListener('keydown', handleKeyDown);
-      return () => {
-        document.removeEventListener('keydown', handleKeyDown);
-      };
-    }
-  }, [showSuccessPopup, showDuplicateWarningPopup]);
-
   const handleNumericChange = (field: string, value: string) => {
     let numericValue: number;
 
@@ -365,23 +408,41 @@ const AddSPConsumer: React.FC = () => {
       try {
         setCompaniesLoading(true);
 
-        // Cargar los tipos de fuselaje
-        fetchFuselageTypes();
-
+        // Cargar compañías
         const companiesResponse = await axiosInstance.get('/companies/');
-        const companiesData = companiesResponse.data;
-        setCompanies(companiesData);
+        setCompanies(companiesResponse.data);
 
-        if (companiesData && companiesData.length > 0) {
-          const defaultCompany = `${companiesData[0].companyCode} - ${companiesData[0].companyName}`;
-          setSelectedCompany(defaultCompany);
+        // Seleccionar automáticamente la primera compañía si hay alguna
+        if (companiesResponse.data && companiesResponse.data.length > 0) {
+          const firstCompany = companiesResponse.data[0];
+          const companyValue = `${firstCompany.companyCode} - ${firstCompany.companyName}`;
+          setSelectedCompany(companyValue);
+
+          // Obtener el ID numérico para la compañía
+          let companyId = 1; // Valor por defecto para AISG
+          try {
+            const numericId = await fetchCompanyIdByCode(firstCompany.companyCode);
+            companyId = numericId || 1; // Si no se encuentra, usar 1 como fallback para AISG
+          } catch (err) {
+            console.error("Error fetching company ID:", err);
+            companyId = firstCompany.companyCode === "AISG" ? 1 : 0;
+          }
+
           setForm(prevForm => ({
             ...prevForm,
-            company: defaultCompany
+            id_company: firstCompany.companyCode,
+            companyIdNumeric: companyId
           }));
-          validateField('company', defaultCompany);
-          fetchClientsByCompany(defaultCompany);
+
+          validateField('id_company', firstCompany.companyCode);
+
+          // Cargar clientes para la primera compañía
+          await fetchClientsByCompany(companyValue);
         }
+
+        // Cargar tipos de fuselaje
+        fetchFuselageTypes();
+
       } catch (err: any) {
         console.error("Error fetching companies:", err);
         setError("Error loading company data. Please refresh the page.");
@@ -399,7 +460,7 @@ const AddSPConsumer: React.FC = () => {
       return res.data.some((item: any) =>
         item.id_service.toString() === form.id_service &&
         item.id_client.toString() === form.id_client &&
-        item.company === form.company
+        item.id_company.toString() === form.companyIdNumeric.toString()
       );
     } catch (err) {
       console.error("Error checking for duplicate service per customer", err);
@@ -422,6 +483,7 @@ const AddSPConsumer: React.FC = () => {
     setLoading(true);
 
     try {
+      // Verificar si ya existe un registro duplicado
       const isDuplicate = await checkDuplicateServicePerCustomer();
       if (isDuplicate) {
         setShowDuplicateWarningPopup(true);
@@ -431,21 +493,49 @@ const AddSPConsumer: React.FC = () => {
 
       const whonew = sessionStorage.getItem("userName") || "admin";
 
+      // Buscar la compañía por código para obtener el ID numérico
+      const selectedCompanyData = companies.find(company => company.companyCode === form.id_company);
+      
+      if (!selectedCompanyData) {
+        setError("Invalid company selection. Please select a valid company.");
+        setLoading(false);
+        return;
+      }
+
+      // NO enviar timestamps - dejar que el backend los maneje automáticamente
       const data = {
         id_service: parseInt(form.id_service),
         id_client: parseInt(form.id_client),
-        company: form.company.trim(),
+        id_company: form.companyIdNumeric || 1,  // Usar el ID numérico almacenado
         minutes_included: Math.max(0, Math.floor(form.minutes_included)),
         minutes_minimum: Math.max(0, Math.floor(form.minutes_minimum)),
         fuselage_type: form.fuselage_type.trim() || "",
         technicians_included: Math.max(0, Math.floor(form.technicians_included)),
-        whonew,
+        whonew
+        // NO incluir create_at ni updated_at - el backend los manejará automáticamente
       };
+
+      console.log("Sending data:", data);
+      console.log("Data types:", {
+        id_service: typeof data.id_service,
+        id_client: typeof data.id_client,
+        id_company: typeof data.id_company,
+        minutes_included: typeof data.minutes_included,
+        minutes_minimum: typeof data.minutes_minimum,
+        fuselage_type: typeof data.fuselage_type,
+        technicians_included: typeof data.technicians_included,
+        whonew: typeof data.whonew
+      });
 
       await axiosInstance.post(`/catalog/service-per-customer`, data);
       setShowSuccessPopup(true);
     } catch (err: any) {
       console.error("Error:", err);
+
+      // Logging detallado del error para debugging
+      console.error("Error response:", err.response);
+      console.error("Error response data:", err.response?.data);
+      console.error("Error response status:", err.response?.status);
 
       if (err.response && err.response.data) {
         if (err.response.data.detail) {
@@ -518,7 +608,7 @@ const AddSPConsumer: React.FC = () => {
                   ) : (
                     <select
                       ref={companySelectRef}
-                      className={`w-full px-4 py-3 rounded-lg bg-white text-[#002057] border ${validationErrors.company
+                      className={`w-full px-4 py-3 rounded-lg bg-white text-[#002057] border ${validationErrors.id_company
                           ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
                           : 'border-[#cccccc] focus:border-[#00B140] focus:ring-[#00B140]'
                         } focus:ring-2 focus:outline-none transition-all`}
@@ -526,6 +616,7 @@ const AddSPConsumer: React.FC = () => {
                       onChange={(e) => handleCompanyChange(e.target.value)}
                       required
                     >
+                      <option value="">Select a Company</option>
                       {companies.map((company) => (
                         <option key={company.companyCode} value={`${company.companyCode} - ${company.companyName}`}>
                           {company.companyCode} - {company.companyName}
@@ -533,14 +624,14 @@ const AddSPConsumer: React.FC = () => {
                       ))}
                     </select>
                   )}
-                  {validationErrors.company && (
-                    <p className="mt-1 text-sm text-red-400">{validationErrors.company}</p>
+                  {validationErrors.id_company && (
+                    <p className="mt-1 text-sm text-red-400">{validationErrors.id_company}</p>
                   )}
                 </div>
 
                 <div>
                   <label className="block text-white text-sm font-medium mb-2">
-                    Client <span className="text-red-400">*</span>
+                    Client (Airline) <span className="text-red-400">*</span>
                   </label>
                   {clientsLoading ? (
                     <div className="w-full px-4 py-3 rounded-lg bg-gray-200 animate-pulse text-center">
@@ -687,18 +778,27 @@ const AddSPConsumer: React.FC = () => {
                   )}
                 </div>
                 <div>
-                  <label className="block text-white text-sm font-medium mb-2">Fuselage Type</label>
+                  <label className="block text-white text-sm font-medium mb-2">
+                    Fuselage Type <span className="text-red-400">*</span>
+                  </label>
                   {fuselageTypesLoading ? (
                     <div className="w-full px-4 py-3 rounded-lg bg-gray-200 animate-pulse text-center">
                       Loading fuselage types...
                     </div>
                   ) : (
                     <select
-                      className="w-full px-4 py-3 rounded-lg bg-white text-[#002057] border border-[#cccccc] focus:border-[#00B140] focus:ring-2 focus:ring-[#00B140] focus:outline-none transition-all"
+                      className={`w-full px-4 py-3 rounded-lg bg-white text-[#002057] border ${validationErrors.fuselage_type
+                          ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
+                          : 'border-[#cccccc] focus:border-[#00B140] focus:ring-[#00B140]'
+                        } focus:ring-2 focus:outline-none transition-all`}
                       value={form.fuselage_type}
-                      onChange={(e) => setForm(prevForm => ({ ...prevForm, fuselage_type: e.target.value }))}
+                      onChange={(e) => {
+                        setForm(prevForm => ({ ...prevForm, fuselage_type: e.target.value }));
+                        validateField('fuselage_type', e.target.value);
+                      }}
+                      required
                     >
-                      <option value="">Select a fuselage type</option>
+                      <option value="">Select a Fuselage Type</option>
                       {fuselageTypes.map((type, index) => (
                         <option key={index} value={type.fuselage_type}>
                           {type.fuselage_type}

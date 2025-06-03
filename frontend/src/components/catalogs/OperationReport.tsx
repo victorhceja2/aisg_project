@@ -54,7 +54,7 @@ const OperationReport: React.FC = () => {
         startDate: "",
         endDate: "",
     });
-    
+
     const [reports, setReports] = useState<OperationReportData[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -63,18 +63,27 @@ const OperationReport: React.FC = () => {
     const [companies, setCompanies] = useState<Company[]>([]);
     const [airlines, setAirlines] = useState<Client[]>([]);
     const [stations, setStations] = useState<string[]>([]);
-    
+
     // Estados de carga para los dropdowns
     const [companiesLoading, setCompaniesLoading] = useState(true);
-    const [airlinesLoading, setAirlinesLoading] = useState(true);
+    const [airlinesLoading, setAirlinesLoading] = useState(false);
     const [stationsLoading, setStationsLoading] = useState(true);
 
-    // Cargar todos los datos al montar el componente
+    // Cargar companies y stations al montar el componente (no airlines inicialmente)
     useEffect(() => {
         fetchCompanies();
-        fetchAllAirlines();
         fetchStations();
     }, []);
+
+    // Effect para cargar aerolíneas cuando cambia la compañía seleccionada
+    useEffect(() => {
+        if (filters.company) {
+            fetchAirlinesByCompany(filters.company);
+        } else {
+            // Si no hay compañía seleccionada, limpiar la lista de aerolíneas
+            setAirlines([]);
+        }
+    }, [filters.company]);
 
     // Función para obtener companies
     const fetchCompanies = async () => {
@@ -89,27 +98,39 @@ const OperationReport: React.FC = () => {
         }
     };
 
-    // Función para obtener todas las airlines (sin filtro de company)
-    const fetchAllAirlines = async () => {
+    // Nueva función para obtener aerolíneas filtradas por compañía y ordenadas alfabéticamente
+    const fetchAirlinesByCompany = async (companyValue: string) => {
         try {
             setAirlinesLoading(true);
-            const response = await axiosInstance.get('/catalog/clients?tipoCliente=1');
-            setAirlines(response.data || []);
+            // Extraer el código de compañía (formato esperado: "CODE - Name")
+            const companyCode = companyValue.split(' - ')[0];
+
+            // Obtener aerolíneas filtradas por compañía
+            const response = await axiosInstance.get(`/catalog/clients?tipoCliente=1&companyCode=${companyCode}`);
+
+            // Ordenar alfabéticamente por nombre comercial o nombre
+            const sortedAirlines = [...(response.data || [])].sort((a, b) => {
+                const nameA = (a.comercial || a.nombre || '').toUpperCase();
+                const nameB = (b.comercial || b.nombre || '').toUpperCase();
+                return nameA.localeCompare(nameB);
+            });
+
+            setAirlines(sortedAirlines);
         } catch (err) {
-            console.error("Error loading airlines:", err);
+            console.error("Error loading airlines for company:", err);
             setAirlines([]);
         } finally {
             setAirlinesLoading(false);
         }
     };
 
-    // Función para obtener stations
+    // Función para obtener estaciones, por ahora usando una lista predefinida debido a que en bd falta una normalización adecuada
     const fetchStations = async () => {
         try {
             setStationsLoading(true);
-            // Stations comunes en aeropuertos
+            // Stations comunes en aeropuertos (usando lista predefinida en lugar de llamada a API)
             setStations([
-                "GDL", "MEX", "CUN", "TIJ", "PVR", "SJD", "MTY", "BJX", 
+                "GDL", "MEX", "CUN", "TIJ", "PVR", "SJD", "MTY", "BJX",
                 "LAX", "DFW", "MIA", "JFK", "ORD", "ATL", "DEN", "PHX"
             ]);
         } catch (err) {
@@ -124,7 +145,7 @@ const OperationReport: React.FC = () => {
         try {
             setLoading(true);
             setError(null);
-            
+
             // Construir los parámetros de consulta
             const params = new URLSearchParams();
             if (filters.company) params.append('company', filters.company);
@@ -135,7 +156,7 @@ const OperationReport: React.FC = () => {
             if (filters.station) params.append('station', filters.station);
             if (filters.startDate) params.append('start_date', filters.startDate);
             if (filters.endDate) params.append('end_date', filters.endDate);
-            
+
             const response = await axiosInstance.get(`/api/operation-reports?${params}`);
             setReports(response.data);
         } catch (err) {
@@ -150,7 +171,7 @@ const OperationReport: React.FC = () => {
     // Función para exportar a Excel
     const exportToExcel = () => {
         const headers = [
-            'Company', 'Airline', 'Date', 'Station', 'AC REG', 'Flight', 'Dest', 
+            'Company', 'Airline', 'Date', 'Station', 'AC REG', 'Flight', 'Dest',
             'Log Book', 'A/C Type', 'Start Time', 'End Time', 'Serv PR', 'On GND',
             'Serv1', 'Serv2', 'Serv3', 'Serv4', 'Serv5', 'Serv6', 'Remarks', 'Technician'
         ];
@@ -182,7 +203,7 @@ const OperationReport: React.FC = () => {
         const ws = XLSX.utils.aoa_to_sheet([headers, ...data]);
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, 'Operations Report');
-        
+
         const fileName = `operations_report_${new Date().toISOString().split('T')[0]}.xlsx`;
         XLSX.writeFile(wb, fileName);
     };
@@ -190,7 +211,7 @@ const OperationReport: React.FC = () => {
     // Función para exportar a CSV
     const exportToCSV = () => {
         const headers = [
-            'Company', 'Airline', 'Date', 'Station', 'AC REG', 'Flight', 'Dest', 
+            'Company', 'Airline', 'Date', 'Station', 'AC REG', 'Flight', 'Dest',
             'Log Book', 'A/C Type', 'Start Time', 'End Time', 'Serv PR', 'On GND',
             'Serv1', 'Serv2', 'Serv3', 'Serv4', 'Serv5', 'Serv6', 'Remarks', 'Technician'
         ];
@@ -238,7 +259,7 @@ const OperationReport: React.FC = () => {
     const exportToPDF = () => {
         try {
             const doc = new jsPDF('l', 'mm', 'a4'); // landscape orientation
-            
+
             // Título del reporte
             doc.setFontSize(16);
             doc.text('Operations Report', 14, 15);
@@ -282,13 +303,13 @@ const OperationReport: React.FC = () => {
                 head: [columns],
                 body: tableData,
                 startY: 35,
-                styles: { 
-                    fontSize: 6, 
+                styles: {
+                    fontSize: 6,
                     cellPadding: 1,
                     overflow: 'linebreak',
                     cellWidth: 'wrap'
                 },
-                headStyles: { 
+                headStyles: {
                     fillColor: [0, 33, 87],
                     textColor: [255, 255, 255],
                     fontStyle: 'bold'
@@ -325,23 +346,23 @@ const OperationReport: React.FC = () => {
             doc.save(fileName);
         } catch (error) {
             console.error('Error generating PDF:', error);
-            
+
             // Función alternativa si falla autoTable
             const doc = new jsPDF('l', 'mm', 'a4');
             doc.setFontSize(20);
             doc.text('Operations Report', 14, 22);
             doc.setFontSize(12);
             doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 14, 35);
-            
+
             let yPosition = 50;
             doc.setFontSize(10);
-            
+
             if (reports.length === 0) {
                 doc.text('No data available', 14, yPosition);
             } else {
                 doc.text('Company | Airline | Date | Station | Flight', 14, yPosition);
                 yPosition += 10;
-                
+
                 reports.forEach((report, index) => {
                     const line = `${report.company || 'N/A'} | ${report.airline || 'N/A'} | ${report.date || 'N/A'} | ${report.station || 'N/A'} | ${report.flight || 'N/A'}`;
                     doc.text(line, 14, yPosition);
@@ -352,7 +373,7 @@ const OperationReport: React.FC = () => {
                     }
                 });
             }
-            
+
             const fileName = `operations_report_${new Date().toISOString().split('T')[0]}.pdf`;
             doc.save(fileName);
         }
@@ -369,18 +390,18 @@ const OperationReport: React.FC = () => {
                         Search and analyze operational data
                     </p>
                 </div>
-                
+
                 {/* Mensajes de error */}
                 {error && (
                     <div className="bg-red-500 text-white p-4 rounded-lg mb-6 shadow-md animate-pulse">
                         <p className="font-medium">{error}</p>
                     </div>
                 )}
-                
+
                 {/* Filtros de búsqueda */}
                 <div className="bg-[#16213E] p-6 rounded-lg shadow-lg mb-6">
                     <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-4">
-                        {/* Company Dropdown */}
+                        {/* Company Dropdown - Ya tiene el formato CODE - NAME */}
                         <div>
                             <label className="block text-sm font-medium text-gray-300 mb-1">Company</label>
                             {companiesLoading ? (
@@ -391,7 +412,10 @@ const OperationReport: React.FC = () => {
                                 <select
                                     className="w-full bg-[#1E2A45] text-white px-3 py-2 rounded-md border border-gray-700 focus:border-[#00B140] focus:ring-2 focus:ring-[#00B140] focus:outline-none"
                                     value={filters.company}
-                                    onChange={(e) => setFilters({ ...filters, company: e.target.value })}
+                                    onChange={(e) => {
+                                        // Resetear el valor de aerolínea al cambiar de compañía
+                                        setFilters({ ...filters, company: e.target.value, airline: "" });
+                                    }}
                                 >
                                     <option value="">Select a company</option>
                                     {companies.map((company) => (
@@ -403,7 +427,7 @@ const OperationReport: React.FC = () => {
                             )}
                         </div>
 
-                        {/* Airline Dropdown */}
+                        {/* Airline Dropdown - Ahora con formato llave - nombre */}
                         <div>
                             <label className="block text-sm font-medium text-gray-300 mb-1">Airline</label>
                             {airlinesLoading ? (
@@ -415,19 +439,20 @@ const OperationReport: React.FC = () => {
                                     className="w-full bg-[#1E2A45] text-white px-3 py-2 rounded-md border border-gray-700 focus:border-[#00B140] focus:ring-2 focus:ring-[#00B140] focus:outline-none"
                                     value={filters.airline}
                                     onChange={(e) => setFilters({ ...filters, airline: e.target.value })}
+                                    disabled={!filters.company} // Deshabilitar si no hay compañía seleccionada
                                 >
                                     <option value="">Select an airline</option>
                                     <option value="all">All Airlines</option>
                                     {airlines.map((airline) => (
                                         <option key={airline.llave} value={airline.llave}>
-                                            {airline.comercial || airline.nombre || `Airline #${airline.llave}`}
+                                            {airline.llave} - {airline.comercial || airline.nombre || `Airline #${airline.llave}`}
                                         </option>
                                     ))}
                                 </select>
                             )}
                         </div>
 
-                        {/* Station Dropdown */}
+                        {/* Station Dropdown - Ahora con formato CODE - CODE */}
                         <div>
                             <label className="block text-sm font-medium text-gray-300 mb-1">Station</label>
                             {stationsLoading ? (
@@ -443,7 +468,7 @@ const OperationReport: React.FC = () => {
                                     <option value="">Select a station</option>
                                     {stations.map((station) => (
                                         <option key={station} value={station}>
-                                            {station}
+                                            {station} - {station}
                                         </option>
                                     ))}
                                 </select>
@@ -472,11 +497,11 @@ const OperationReport: React.FC = () => {
                             />
                         </div>
                     </div>
-                    
+
                     {/* Botones de acción */}
                     <div className="flex flex-wrap justify-between items-center gap-4">
                         <div className="flex flex-wrap gap-2">
-                            <button 
+                            <button
                                 className="bg-[#dc2626] hover:bg-[#b91c1c] text-white font-medium py-2 px-4 rounded-md shadow-md transition-all duration-200 flex items-center gap-2"
                                 onClick={exportToPDF}
                             >
@@ -485,7 +510,7 @@ const OperationReport: React.FC = () => {
                                 </svg>
                                 Export PDF
                             </button>
-                            <button 
+                            <button
                                 className="bg-[#16a34a] hover:bg-[#15803d] text-white font-medium py-2 px-4 rounded-md shadow-md transition-all duration-200 flex items-center gap-2"
                                 onClick={exportToExcel}
                             >
@@ -494,7 +519,7 @@ const OperationReport: React.FC = () => {
                                 </svg>
                                 Export Excel
                             </button>
-                            <button 
+                            <button
                                 className="bg-[#0891b2] hover:bg-[#0e7490] text-white font-medium py-2 px-4 rounded-md shadow-md transition-all duration-200 flex items-center gap-2"
                                 onClick={exportToCSV}
                             >
@@ -504,8 +529,8 @@ const OperationReport: React.FC = () => {
                                 Export CSV
                             </button>
                         </div>
-                        
-                        <button 
+
+                        <button
                             className="bg-[#00B140] hover:bg-[#009935] text-white font-medium py-2 px-6 rounded-md shadow-md transition-all duration-200"
                             onClick={searchReports}
                             disabled={loading}
@@ -514,14 +539,14 @@ const OperationReport: React.FC = () => {
                         </button>
                     </div>
                 </div>
-                
+
                 {/* Indicador de carga */}
                 {loading && (
                     <div className="flex justify-center py-6">
                         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#00B140]"></div>
                     </div>
                 )}
-                
+
                 {/* Tabla de resultados */}
                 <div className="overflow-x-auto">
                     <table className="w-full border-collapse text-xs text-white">
