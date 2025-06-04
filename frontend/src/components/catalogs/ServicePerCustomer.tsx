@@ -259,15 +259,15 @@ const ServicePerCustomer: React.FC = () => {
 
         const clientName = client ?
           (client.nombre || client.comercial || `Client ID: ${record.id_client}`) :
-          `Client ID: ${record.id_client}`;
+          `Missing Client Data (ID: ${record.id_client})`;
 
         const serviceName = service ? 
           `${service.service_code} - ${service.service_name}` : 
-          `Service ID: ${record.id_service}`;
+          `Missing Service Data (ID: ${record.id_service})`;
 
         const companyName = company ? 
           company.companyName : 
-          `Company ID: ${record.id_company}`;
+          `Missing Company Data (ID: ${record.id_company})`;
 
         return {
           ...record,
