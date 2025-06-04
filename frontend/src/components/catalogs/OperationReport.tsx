@@ -69,6 +69,23 @@ const OperationReport: React.FC = () => {
     const [airlinesLoading, setAirlinesLoading] = useState(false);
     const [stationsLoading, setStationsLoading] = useState(true);
 
+    // Función de ordenamiento alfabético personalizado mejorada
+    const customAlphabeticalSort = (a: string, b: string) => {
+        const aUpper = a.toUpperCase();
+        const bUpper = b.toUpperCase();
+        
+        // Verificar si empiezan con número
+        const aStartsWithNumber = /^[0-9]/.test(aUpper);
+        const bStartsWithNumber = /^[0-9]/.test(bUpper);
+        
+        // Si uno empieza con número y otro no, el que empieza con número va primero
+        if (aStartsWithNumber && !bStartsWithNumber) return -1;
+        if (!aStartsWithNumber && bStartsWithNumber) return 1;
+        
+        // Si ambos empiezan con número o ambos no empiezan con número, ordenar alfabéticamente
+        return aUpper.localeCompare(bUpper, 'en', { numeric: true });
+    };
+
     // Cargar companies y stations al montar el componente (no airlines inicialmente)
     useEffect(() => {
         fetchCompanies();
@@ -90,7 +107,13 @@ const OperationReport: React.FC = () => {
         try {
             setCompaniesLoading(true);
             const response = await axiosInstance.get('/companies/');
-            setCompanies(response.data);
+            
+            // Ordenar companies alfabéticamente por nombre de compañía
+            const sortedCompanies = [...response.data].sort((a, b) => 
+                customAlphabeticalSort(a.companyName, b.companyName)
+            );
+            
+            setCompanies(sortedCompanies);
         } catch (err) {
             console.error("Error loading companies:", err);
         } finally {
@@ -108,11 +131,11 @@ const OperationReport: React.FC = () => {
             // Obtener aerolíneas filtradas por compañía
             const response = await axiosInstance.get(`/catalog/clients?tipoCliente=1&companyCode=${companyCode}`);
 
-            // Ordenar alfabéticamente por nombre comercial o nombre
+            // Ordenar alfabéticamente por nombre comercial o nombre usando ordenamiento personalizado
             const sortedAirlines = [...(response.data || [])].sort((a, b) => {
-                const nameA = (a.comercial || a.nombre || '').toUpperCase();
-                const nameB = (b.comercial || b.nombre || '').toUpperCase();
-                return nameA.localeCompare(nameB);
+                const nameA = a.comercial || a.nombre || '';
+                const nameB = b.comercial || b.nombre || '';
+                return customAlphabeticalSort(nameA, nameB);
             });
 
             setAirlines(sortedAirlines);
@@ -129,10 +152,15 @@ const OperationReport: React.FC = () => {
         try {
             setStationsLoading(true);
             // Stations comunes en aeropuertos (usando lista predefinida en lugar de llamada a API)
-            setStations([
+            const stationsList = [
                 "GDL", "MEX", "CUN", "TIJ", "PVR", "SJD", "MTY", "BJX",
                 "LAX", "DFW", "MIA", "JFK", "ORD", "ATL", "DEN", "PHX"
-            ]);
+            ];
+            
+            // Ordenar stations alfabéticamente usando ordenamiento personalizado
+            const sortedStations = [...stationsList].sort(customAlphabeticalSort);
+            
+            setStations(sortedStations);
         } catch (err) {
             console.error("Error loading stations:", err);
         } finally {

@@ -43,6 +43,15 @@ const EditService: React.FC = () => {
   // Referencia para el primer campo del formulario
   const firstFieldRef = useRef<HTMLSelectElement>(null);
 
+  // Función helper para convertir valores bit a boolean
+  const getBooleanValue = (value: any): boolean => {
+    if (value === null || value === undefined) return false;
+    if (typeof value === 'boolean') return value;
+    if (typeof value === 'number') return value === 1;
+    if (typeof value === 'string') return value === '1' || value.toLowerCase() === 'true';
+    return false;
+  };
+
   // Efecto para enfocar el primer campo DESPUÉS de que se carguen los datos
   useEffect(() => {
     if (!loading && firstFieldRef.current) {
@@ -119,14 +128,16 @@ const EditService: React.FC = () => {
     const fetchService = async () => {
       try {
         const res = await axiosInstance.get(`/catalog/services/${id}`);
+        console.log("Edit - Service data received:", res.data); // Debug para ver los datos exactos
+        
         if (res.data) {
-          // Convertir los valores enteros a booleanos
+          // Usar la función helper para convertir los valores a booleanos
           const formattedData = {
             ...res.data,
-            service_aircraft_type: res.data.service_aircraft_type === 2,
-            service_by_time: res.data.service_by_time === 2,
-            min_time_configured: res.data.min_time_configured === 2,
-            service_technicians_included: res.data.service_technicians_included === 2
+            service_aircraft_type: getBooleanValue(res.data.service_aircraft_type),
+            service_by_time: getBooleanValue(res.data.service_by_time),
+            min_time_configured: getBooleanValue(res.data.min_time_configured),
+            service_technicians_included: getBooleanValue(res.data.service_technicians_included)
           };
           setForm(formattedData);
         } else {
@@ -153,15 +164,17 @@ const EditService: React.FC = () => {
     setError(null);
     
     try {
-      // Convertir los valores booleanos a enteros antes de enviar
+      // Convertir los valores booleanos a enteros (1 para true, 0 para false)
       const dataToSend = {
         ...form,
-        service_aircraft_type: form.service_aircraft_type ? 2 : 1,
-        service_by_time: form.service_by_time ? 2 : 1,
-        min_time_configured: form.min_time_configured ? 2 : 1,
-        service_technicians_included: form.service_technicians_included ? 2 : 1,
+        service_aircraft_type: form.service_aircraft_type ? 1 : 0,
+        service_by_time: form.service_by_time ? 1 : 0,
+        min_time_configured: form.min_time_configured ? 1 : 0,
+        service_technicians_included: form.service_technicians_included ? 1 : 0,
         whonew: sessionStorage.getItem("userName") || "system"
       };
+      
+      console.log("Edit - Data to send:", dataToSend); // Debug para verificar los datos enviados
       
       await axiosInstance.put(`/catalog/services/${id}`, dataToSend);
       
@@ -425,8 +438,34 @@ const EditService: React.FC = () => {
                 />
               </div>
 
+              {/* Service By Time - Dropdown */}
+              <div>
+                <label className="block text-white text-sm font-medium mb-2">
+                  Service Type
+                </label>
+                <div className="relative">
+                  <select
+                    value={form.service_by_time ? "hour" : "event"}
+                    onChange={(e) => {
+                      const isHour = e.target.value === "hour";
+                      setForm({ ...form, service_by_time: isHour });
+                    }}
+                    className="w-full px-4 py-3 rounded-lg bg-white text-[#002057] border border-[#cccccc] focus:border-[#0033A0] focus:ring-[#0033A0] focus:ring-2 focus:outline-none transition-all appearance-none"
+                    disabled={submitting}
+                  >
+                    <option value="event">No (By Event)</option>
+                    <option value="hour">Yes (By Hour)</option>
+                  </select>
+                  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
+                    <svg className="h-5 w-5" fill="none" viewBox="0 0 20 20" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" transform="rotate(90 10 10)" />
+                    </svg>
+                  </div>
+                </div>
+              </div>
+
               {/* Checkboxes */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="flex items-center">
                   <input
                     type="checkbox"
@@ -440,22 +479,6 @@ const EditService: React.FC = () => {
                   />
                   <label htmlFor="aircraft_type" className="ml-2 text-white">
                     Aircraft Type
-                  </label>
-                </div>
-
-                <div className="flex items-center">
-                  <input
-                    type="checkbox"
-                    id="by_time"
-                    checked={form.service_by_time}
-                    onChange={(e) =>
-                      setForm({ ...form, service_by_time: e.target.checked })
-                    }
-                    className="w-4 h-4 text-[#0033A0] border-gray-300 rounded focus:ring-[#0033A0]"
-                    disabled={submitting}
-                  />
-                  <label htmlFor="by_time" className="ml-2 text-white">
-                    By Time
                   </label>
                 </div>
 

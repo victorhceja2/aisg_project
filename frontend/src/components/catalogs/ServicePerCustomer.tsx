@@ -469,120 +469,124 @@ const ServicePerCustomer: React.FC = () => {
     <AISGBackground>
       {showSuccessModal && <SuccessAlert />}
 
-      <div className="max-w-7xl mx-auto p-6 font-['Montserrat']">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-white">Services by Airline</h1>
-          <div className="mt-2 w-20 h-1 bg-[#e6001f] mx-auto"></div>
-          <p className="text-gray-200 mt-2 font-light">
-            Manage the relationship between services and airlines with specific parameters
-          </p>
-        </div>
-
-        {error && (
-          <div className="bg-red-500 text-white p-4 rounded-lg mb-6 shadow-md animate-pulse">
-            <p className="font-medium">{error}</p>
+      <div className="flex flex-col h-screen w-full font-['Montserrat']">
+        <div className="flex-shrink-0 p-6">
+          <div className="text-center mb-8">
+            <h1 className="text-3xl font-bold text-white">Services by Airline</h1>
+            <div className="mt-2 w-20 h-1 bg-[#e6001f] mx-auto"></div>
+            <p className="text-gray-200 mt-2 font-light">
+              Manage the relationship between services and airlines with specific parameters
+            </p>
           </div>
-        )}
 
-        <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
-          <div className="w-full md:w-2/3 relative">
-            <input
-              type="text"
-              className="w-full px-4 py-3 pl-10 rounded-lg border border-gray-300 bg-white text-[#002057] focus:border-[#002057] focus:ring-2 focus:ring-[#002057] focus:outline-none transition-all"
-              placeholder="Search by fuselage type..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <svg className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          {error && (
+            <div className="bg-red-500 text-white p-4 rounded-lg mb-6 shadow-md animate-pulse">
+              <p className="font-medium">{error}</p>
+            </div>
+          )}
+
+          <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+            <div className="w-full md:w-2/3 relative">
+              <input
+                type="text"
+                className="w-full px-4 py-3 pl-10 rounded-lg border border-gray-300 bg-white text-[#002057] focus:border-[#002057] focus:ring-2 focus:ring-[#002057] focus:outline-none transition-all"
+                placeholder="Search by fuselage type..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <svg className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </div>
+            </div>
+            <button
+              onClick={handleAdd}
+              className="w-full md:w-auto bg-white hover:bg-gray-100 text-[#002057] font-medium py-2 px-4 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg flex items-center justify-center"
+              disabled={isLoading}
+            >
+              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
               </svg>
-            </div>
+              Add Service by Airline
+            </button>
           </div>
-          <button
-            onClick={handleAdd}
-            className="w-full md:w-auto bg-white hover:bg-gray-100 text-[#002057] font-medium py-2 px-4 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg flex items-center justify-center"
-            disabled={isLoading}
-          >
-            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-            </svg>
-            Add Service by Airline
-          </button>
         </div>
 
-        <div className="overflow-x-auto">
-          {isLoading && !deleteConfirm ? (
-            <div className="flex justify-center py-12 bg-transparent">
-              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#00B140]"></div>
-            </div>
-          ) : (
-            <table className="w-full border-collapse">
-              <thead>
-                <tr className="bg-white text-[#002057]">
-                  <th className="px-4 py-3 text-left font-semibold">Service</th>
-                  <th className="px-4 py-3 text-left font-semibold">Client</th>
-                  <th className="px-4 py-3 text-left font-semibold">Company</th>
-                  <th className="px-4 py-3 text-left font-semibold">Minutes Included</th>
-                  <th className="px-4 py-3 text-left font-semibold">Minutes Minimum</th>
-                  <th className="px-4 py-3 text-left font-semibold">Fuselage Type</th>
-                  <th className="px-4 py-3 text-left font-semibold">Technicians Included</th>
-                  <th className="px-4 py-3 text-left font-semibold">Created/Modified By</th>
-                  <th className="px-4 py-3 text-left font-semibold">Created At</th>
-                  <th className="px-4 py-3 text-left font-semibold">Updated At</th>
-                  <th className="px-4 py-3 text-center font-semibold">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="bg-transparent divide-y divide-[#1E2A45]">
-                {displayedRecords.length > 0 ? (
-                  displayedRecords.map((r) => (
-                    <tr key={r.id_service_per_customer} className="hover:bg-[#1E2A45] transition-colors">
-                      <td className="px-4 py-3 text-white">{r.service_name_from_endpoint}</td>
-                      <td className="px-4 py-3 text-white">{r.client_name_from_endpoint}</td>
-                      <td className="px-4 py-3 text-white">{r.company_name_from_endpoint}</td>
-                      <td className="px-4 py-3 text-white">{r.minutes_included}</td>
-                      <td className="px-4 py-3 text-white">{r.minutes_minimum}</td>
-                      <td className="px-4 py-3 text-white">{r.fuselage_type}</td>
-                      <td className="px-4 py-3 text-white">{r.technicians_included}</td>
-                      <td className="px-4 py-3 text-white">{r.whonew}</td>
-                      <td className="px-4 py-3 text-white">{r.create_at ? r.create_at.split("T")[0] : ""}</td>
-                      <td className="px-4 py-3 text-white">{r.updated_at ? r.updated_at.split("T")[0] : ""}</td>
-                      <td className="px-4 py-3 text-center">
-                        <div className="flex justify-center gap-2">
-                          <button
-                            onClick={() => handleEdit(r.id_service_per_customer)}
-                            className="p-1.5 bg-white text-[#002057] rounded hover:bg-gray-100 transition-colors"
-                            title="Edit"
-                            disabled={isLoading}
-                          >
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                            </svg>
-                          </button>
-                          <button
-                            onClick={() => handleDeleteConfirm(r.id_service_per_customer)}
-                            className="p-1.5 bg-[#e6001f] text-white rounded hover:bg-red-700 transition-colors"
-                            title="Delete"
-                            disabled={isLoading}
-                          >
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                            </svg>
-                          </button>
-                        </div>
+        <div className="flex-1 overflow-hidden px-6 pb-6">
+          <div className="h-full w-full overflow-auto">
+            {isLoading && !deleteConfirm ? (
+              <div className="flex justify-center items-center h-full">
+                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#00B140]"></div>
+              </div>
+            ) : (
+              <table className="border-collapse" style={{ minWidth: 'max-content' }}>
+                <thead className="sticky top-0 z-10">
+                  <tr className="bg-white text-[#002057]">
+                    <th className="px-3 py-4 text-left font-semibold border border-[#cccccc] text-sm whitespace-nowrap">Service</th>
+                    <th className="px-3 py-4 text-left font-semibold border border-[#cccccc] text-sm whitespace-nowrap">Client</th>
+                    <th className="px-3 py-4 text-left font-semibold border border-[#cccccc] text-sm whitespace-nowrap">Company</th>
+                    <th className="px-3 py-4 text-left font-semibold border border-[#cccccc] text-sm whitespace-nowrap">Minutes Included</th>
+                    <th className="px-3 py-4 text-left font-semibold border border-[#cccccc] text-sm whitespace-nowrap">Minutes Minimum</th>
+                    <th className="px-3 py-4 text-left font-semibold border border-[#cccccc] text-sm whitespace-nowrap">Fuselage Type</th>
+                    <th className="px-3 py-4 text-left font-semibold border border-[#cccccc] text-sm whitespace-nowrap">Technicians Included</th>
+                    <th className="px-3 py-4 text-left font-semibold border border-[#cccccc] text-sm whitespace-nowrap">Created/Modified By</th>
+                    <th className="px-3 py-4 text-left font-semibold border border-[#cccccc] text-sm whitespace-nowrap">Created At</th>
+                    <th className="px-3 py-4 text-left font-semibold border border-[#cccccc] text-sm whitespace-nowrap">Updated At</th>
+                    <th className="px-3 py-4 text-center font-semibold border border-[#cccccc] text-sm whitespace-nowrap">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="bg-transparent">
+                  {displayedRecords.length > 0 ? (
+                    displayedRecords.map((r) => (
+                      <tr key={r.id_service_per_customer} className="bg-transparent hover:bg-[#1E2A45] transition-colors">
+                        <td className="px-3 py-4 border border-[#1e3462] text-white text-sm whitespace-nowrap">{r.service_name_from_endpoint}</td>
+                        <td className="px-3 py-4 border border-[#1e3462] text-white text-sm whitespace-nowrap">{r.client_name_from_endpoint}</td>
+                        <td className="px-3 py-4 border border-[#1e3462] text-white text-sm whitespace-nowrap">{r.company_name_from_endpoint}</td>
+                        <td className="px-3 py-4 border border-[#1e3462] text-white text-sm whitespace-nowrap">{r.minutes_included}</td>
+                        <td className="px-3 py-4 border border-[#1e3462] text-white text-sm whitespace-nowrap">{r.minutes_minimum}</td>
+                        <td className="px-3 py-4 border border-[#1e3462] text-white text-sm whitespace-nowrap">{r.fuselage_type}</td>
+                        <td className="px-3 py-4 border border-[#1e3462] text-white text-sm whitespace-nowrap">{r.technicians_included}</td>
+                        <td className="px-3 py-4 border border-[#1e3462] text-white text-sm whitespace-nowrap">{r.whonew}</td>
+                        <td className="px-3 py-4 border border-[#1e3462] text-white text-sm whitespace-nowrap">{r.create_at ? r.create_at.split("T")[0] : ""}</td>
+                        <td className="px-3 py-4 border border-[#1e3462] text-white text-sm whitespace-nowrap">{r.updated_at ? r.updated_at.split("T")[0] : ""}</td>
+                        <td className="px-3 py-4 border border-[#1e3462] whitespace-nowrap">
+                          <div className="flex justify-center gap-2">
+                            <button
+                              onClick={() => handleEdit(r.id_service_per_customer)}
+                              className="p-1.5 bg-white text-[#002057] rounded hover:bg-gray-100 transition-colors"
+                              title="Edit"
+                              disabled={isLoading}
+                            >
+                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                              </svg>
+                            </button>
+                            <button
+                              onClick={() => handleDeleteConfirm(r.id_service_per_customer)}
+                              className="p-1.5 bg-[#e6001f] text-white rounded hover:bg-red-700 transition-colors"
+                              title="Delete"
+                              disabled={isLoading}
+                            >
+                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                              </svg>
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={11} className="px-6 py-8 text-center text-white bg-transparent">
+                        No records found
                       </td>
                     </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan={11} className="px-6 py-8 text-center text-white">
-                      No records found
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          )}
+                  )}
+                </tbody>
+              </table>
+            )}
+          </div>
         </div>
 
         {deleteConfirm && (

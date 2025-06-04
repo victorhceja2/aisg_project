@@ -417,28 +417,28 @@ const CatalogClassif: React.FC = () => {
             <p className="font-medium">{error}</p>
           </div>
         )}
-        <div className="overflow-x-auto">
+        <div className="w-full overflow-x-auto">
           {loading ? (
             <div className="flex justify-center py-12 bg-transparent">
               <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-white"></div>
             </div>
           ) : (
-            <table className="w-full border-collapse">
+            <table className="min-w-full table-auto border-collapse">
               <thead>
                 <tr className="bg-white">
-                  <th className="px-4 py-3 text-left font-semibold text-[#002057] border border-[#cccccc]">
+                  <th className="px-4 py-3 text-left font-semibold text-[#002057] border border-[#cccccc] whitespace-nowrap">
                     Name
                   </th>
-                  <th className="px-4 py-3 text-left font-semibold text-[#002057] border border-[#cccccc]">
+                  <th className="px-4 py-3 text-left font-semibold text-[#002057] border border-[#cccccc] whitespace-nowrap">
                     Created/Modified By
                   </th>
-                  <th className="px-4 py-3 text-left font-semibold text-[#002057] border border-[#cccccc]">
+                  <th className="px-4 py-3 text-left font-semibold text-[#002057] border border-[#cccccc] whitespace-nowrap">
                     Created At
                   </th>
-                  <th className="px-4 py-3 text-left font-semibold text-[#002057] border border-[#cccccc]">
+                  <th className="px-4 py-3 text-left font-semibold text-[#002057] border border-[#cccccc] whitespace-nowrap">
                     Updated At
                   </th>
-                  <th className="px-4 py-3 text-center font-semibold text-[#002057] border border-[#cccccc]">
+                  <th className="px-4 py-3 text-center font-semibold text-[#002057] border border-[#cccccc] whitespace-nowrap">
                     Actions
                   </th>
                 </tr>
@@ -453,15 +453,15 @@ const CatalogClassif: React.FC = () => {
                 ) : (
                   classifications.map((c) => (
                     <tr key={c.id_service_classification} className="bg-transparent">
-                      <td className="px-4 py-3 border border-[#1e3462] font-medium text-white">{c.service_classification_name}</td>
-                      <td className="px-4 py-3 border border-[#1e3462] text-white">{c.whonew || "-"}</td>
-                      <td className="px-4 py-3 border border-[#1e3462] text-white">
+                      <td className="px-4 py-3 border border-[#1e3462] font-medium text-white whitespace-nowrap">{c.service_classification_name}</td>
+                      <td className="px-4 py-3 border border-[#1e3462] text-white whitespace-nowrap">{c.whonew || "-"}</td>
+                      <td className="px-4 py-3 border border-[#1e3462] text-white whitespace-nowrap">
                         {c.create_at ? new Date(c.create_at).toLocaleString() : "-"}
                       </td>
-                      <td className="px-4 py-3 border border-[#1e3462] text-white">
+                      <td className="px-4 py-3 border border-[#1e3462] text-white whitespace-nowrap">
                         {c.updated_at ? new Date(c.updated_at).toLocaleString() : "-"}
                       </td>
-                      <td className="px-4 py-3 border border-[#1e3462]">
+                      <td className="px-4 py-3 border border-[#1e3462] whitespace-nowrap">
                         <div className="flex justify-center space-x-2">
                           <Link
                             to={`/catalogs/classif/edit/${c.id_service_classification}`}

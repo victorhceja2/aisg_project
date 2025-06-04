@@ -298,14 +298,17 @@ const AddService: React.FC = () => {
       // Obtener el usuario desde sessionStorage para enviarlo en el payload
       const whonew = sessionStorage.getItem("userName") || "admin";
 
+      // CORRECCIÓN: Convertir boolean a bit (0/1) para la base de datos
       const payload = {
         ...form,
-        service_aircraft_type: form.service_aircraft_type ? 2 : 1,
-        service_by_time: form.service_by_time ? 2 : 1,
-        min_time_configured: form.min_time_configured ? 2 : 1,
-        service_technicians_included: form.service_technicians_included ? 2 : 1,
+        service_aircraft_type: form.service_aircraft_type ? 1 : 0,
+        service_by_time: form.service_by_time ? 1 : 0,
+        min_time_configured: form.min_time_configured ? 1 : 0,
+        service_technicians_included: form.service_technicians_included ? 1 : 0,
         whonew, // Se agrega aquí automáticamente
       };
+
+      console.log("Payload being sent:", payload); // Debug para verificar valores
 
       await axiosInstance.post(`/catalog/services/`, payload);
 
@@ -655,8 +658,33 @@ const AddService: React.FC = () => {
                 )}
               </div>
 
+              {/* Service By Time - Dropdown */}
+              <div>
+                <label className="block text-white text-sm font-medium mb-2">
+                  Service Type
+                </label>
+                <div className="relative">
+                  <select
+                    value={form.service_by_time ? "hour" : "event"}
+                    onChange={(e) => {
+                      const isHour = e.target.value === "hour";
+                      setForm({ ...form, service_by_time: isHour });
+                    }}
+                    className="w-full px-4 py-3 rounded-lg bg-white text-[#002057] border border-[#cccccc] focus:border-[#0033A0] focus:ring-[#0033A0] focus:ring-2 focus:outline-none transition-all appearance-none"
+                  >
+                    <option value="event">No (By Event)</option>
+                    <option value="hour">Yes (By Hour)</option>
+                  </select>
+                  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
+                    <svg className="h-5 w-5" fill="none" viewBox="0 0 20 20" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" transform="rotate(90 10 10)" />
+                    </svg>
+                  </div>
+                </div>
+              </div>
+
               {/* Checkboxes */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="flex items-center">
                   <input
                     type="checkbox"
@@ -669,21 +697,6 @@ const AddService: React.FC = () => {
                   />
                   <label htmlFor="aircraft_type" className="ml-2 text-white">
                     Aircraft Type
-                  </label>
-                </div>
-
-                <div className="flex items-center">
-                  <input
-                    type="checkbox"
-                    id="by_time"
-                    checked={form.service_by_time}
-                    onChange={(e) =>
-                      setForm({ ...form, service_by_time: e.target.checked })
-                    }
-                    className="w-4 h-4 text-[#0033A0] border-gray-300 rounded focus:ring-[#0033A0]"
-                  />
-                  <label htmlFor="by_time" className="ml-2 text-white">
-                    By Time
                   </label>
                 </div>
 
