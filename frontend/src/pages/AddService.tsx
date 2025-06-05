@@ -386,10 +386,10 @@ const AddService: React.FC = () => {
 
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {/* Status ID */}
+                {/* Status */}
                 <div>
                   <label className="block text-white text-sm font-medium mb-2">
-                    Status ID <span className="text-red-400">*</span>
+                    Status <span className="text-red-400">*</span>
                   </label>
                   <div className="relative">
                     <select
@@ -425,10 +425,10 @@ const AddService: React.FC = () => {
                   )}
                 </div>
 
-                {/* Classification ID */}
+                {/* Classification */}
                 <div>
                   <label className="block text-white text-sm font-medium mb-2">
-                    Classification ID <span className="text-red-400">*</span>
+                    Classification <span className="text-red-400">*</span>
                   </label>
                   <div className="relative">
                     <select
@@ -463,10 +463,10 @@ const AddService: React.FC = () => {
                   )}
                 </div>
 
-                {/* Category ID */}
+                {/* Category */}
                 <div>
                   <label className="block text-white text-sm font-medium mb-2">
-                    Category ID <span className="text-red-400">*</span>
+                    Category <span className="text-red-400">*</span>
                   </label>
                   <div className="relative">
                     <select
@@ -501,10 +501,10 @@ const AddService: React.FC = () => {
                   )}
                 </div>
 
-                {/* Type ID */}
+                {/* Type */}
                 <div>
                   <label className="block text-white text-sm font-medium mb-2">
-                    Type ID <span className="text-red-400">*</span>
+                    Type <span className="text-red-400">*</span>
                   </label>
                   <div className="relative">
                     <select
@@ -539,10 +539,10 @@ const AddService: React.FC = () => {
                   )}
                 </div>
 
-                {/* Include ID */}
+                {/* Include */}
                 <div>
                   <label className="block text-white text-sm font-medium mb-2">
-                    Include ID <span className="text-red-400">*</span>
+                    Include <span className="text-red-400">*</span>
                   </label>
                   <div className="relative">
                     <select

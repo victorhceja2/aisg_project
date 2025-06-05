@@ -238,10 +238,10 @@ const EditService: React.FC = () => {
 
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {/* Status ID */}
+                {/* Status */}
                 <div>
                   <label className="block text-white text-sm font-medium mb-2">
-                    Status ID
+                    Status
                   </label>
                   <div className="relative">
                     <select
@@ -268,10 +268,10 @@ const EditService: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Classification ID */}
+                {/* Classification */}
                 <div>
                   <label className="block text-white text-sm font-medium mb-2">
-                    Classification ID
+                    Classification
                   </label>
                   <div className="relative">
                     <select
@@ -297,10 +297,10 @@ const EditService: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Category ID */}
+                {/* Category */}
                 <div>
                   <label className="block text-white text-sm font-medium mb-2">
-                    Category ID
+                    Category
                   </label>
                   <div className="relative">
                     <select
@@ -326,10 +326,10 @@ const EditService: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Type ID */}
+                {/* Type */}
                 <div>
                   <label className="block text-white text-sm font-medium mb-2">
-                    Type ID
+                    Type
                   </label>
                   <div className="relative">
                     <select
@@ -355,10 +355,10 @@ const EditService: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Include ID */}
+                {/* Include */}
                 <div>
                   <label className="block text-white text-sm font-medium mb-2">
-                    Include ID
+                    Include
                   </label>
                   <div className="relative">
                     <select

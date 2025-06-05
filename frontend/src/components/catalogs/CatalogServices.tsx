@@ -38,32 +38,21 @@ const CatalogServices: React.FC = () => {
   const fetchCatalogs = async () => {
     setCatalogsLoading(true);
     try {
-      console.log("Fetching catalogs...");
-      
-      // Usar los endpoints correctos del backend, incluyendo clasificaciones
       const [statusRes, categoryRes, typeRes, includeRes, classificationRes] = await Promise.all([
         axiosInstance.get('/catalog/service-status'),
         axiosInstance.get('/catalog/service-categories'),
         axiosInstance.get('/catalog/service-types'),
         axiosInstance.get('/catalog/service-includes'),
-        axiosInstance.get('/catalog/service-classification') // Agregado endpoint de clasificaciones
+        axiosInstance.get('/catalog/service-classification')
       ]);
-
-      console.log("Service Statuses:", statusRes.data);
-      console.log("Service Categories:", categoryRes.data);
-      console.log("Service Types:", typeRes.data);
-      console.log("Service Includes:", includeRes.data);
-      console.log("Service Classifications:", classificationRes.data); // Log para verificar datos
 
       setServiceStatuses(statusRes.data);
       setServiceCategories(categoryRes.data);
       setServiceTypes(typeRes.data);
       setServiceIncludes(includeRes.data);
-      setServiceClassifications(classificationRes.data); // Guardar datos de clasificaciones
+      setServiceClassifications(classificationRes.data);
       
     } catch (err) {
-      console.error("Error loading catalogs:", err);
-      // Si fallan los catálogos, usar valores por defecto
       setServiceStatuses([]);
       setServiceClassifications([]);
       setServiceCategories([]);
@@ -127,7 +116,6 @@ const CatalogServices: React.FC = () => {
     setLoading(true);
     try {
       const res = await axiosInstance.get(`/catalog/services${search ? `?search=${encodeURIComponent(search)}` : ""}`);
-      console.log("Services data received:", res.data); // Debug para ver los datos exactos
       setServices(res.data);
       setError(null);
     } catch (err) {
@@ -141,8 +129,6 @@ const CatalogServices: React.FC = () => {
   const checkServiceUsage = async (serviceId: number): Promise<{ inUse: boolean; records: any[] }> => {
     try {
       const allDependentRecords: any[] = [];
-      
-      // Lista de posibles nombres de campo para IDs de servicio en diferentes módulos
       const serviceIdFields = [
         'id_service', 
         'service_id', 
@@ -150,10 +136,7 @@ const CatalogServices: React.FC = () => {
         'servicio_id',
         'service'
       ];
-
-      // Función auxiliar para verificar si un objeto usa el servicio indicado
       const usesService = (item: any): boolean => {
-        // Comprobamos todos los posibles nombres de campo
         for (const field of serviceIdFields) {
           if (item[field] !== undefined && 
               (Number(item[field]) === serviceId || String(item[field]) === String(serviceId))) {
@@ -163,7 +146,6 @@ const CatalogServices: React.FC = () => {
         return false;
       };
 
-      // Verificar en customer services
       try {
         const customerServicesRes = await axiosInstance.get('/catalog/service-per-customer');
         const customerServicesUsingService = customerServicesRes.data.filter(usesService);
@@ -175,12 +157,9 @@ const CatalogServices: React.FC = () => {
           }))
         );
       } catch (err) {
-        console.warn("Error checking customer services:", err);
-        // Si hay un error al verificar, asumimos que podría estar en uso para evitar eliminaciones incorrectas
         return { inUse: true, records: [{ type: 'Unknown', name: 'Error checking dependencies', id: 0 }] };
       }
 
-      // Verificar en service customers (otro posible nombre en la base de datos)
       try {
         const serviceCustomersRes = await axiosInstance.get('/catalog/customer-services');
         const serviceCustomersUsingService = serviceCustomersRes.data?.filter(usesService);
@@ -193,12 +172,8 @@ const CatalogServices: React.FC = () => {
             }))
           );
         }
-      } catch (err) {
-        // Posible que este endpoint no exista, no es crítico
-        console.warn("Error or endpoint not found for customer-services:", err);
-      }
+      } catch (err) {}
 
-      // Verificar en work orders
       try {
         const workOrdersRes = await axiosInstance.get('/work-orders');
         const workOrdersUsingService = workOrdersRes.data.filter(usesService);
@@ -210,11 +185,9 @@ const CatalogServices: React.FC = () => {
           }))
         );
       } catch (err) {
-        console.warn("Error checking work orders:", err);
         return { inUse: true, records: [{ type: 'Unknown', name: 'Error checking Work Orders', id: 0 }] };
       }
 
-      // Verificar en cotizaciones/quotes
       try {
         const quotesRes = await axiosInstance.get('/quotes');
         const quotesUsingService = quotesRes.data.filter(usesService);
@@ -226,11 +199,9 @@ const CatalogServices: React.FC = () => {
           }))
         );
       } catch (err) {
-        console.warn("Error checking quotes:", err);
         return { inUse: true, records: [{ type: 'Unknown', name: 'Error checking Quotes', id: 0 }] };
       }
 
-      // Verificar en reportes operacionales
       try {
         const operationReportsRes = await axiosInstance.get('/reports/operation-report');
         const reportsUsingService = operationReportsRes.data.filter(usesService);
@@ -241,11 +212,8 @@ const CatalogServices: React.FC = () => {
             id: report.id
           }))
         );
-      } catch (err) {
-        console.warn("Error checking operation reports:", err);
-      }
+      } catch (err) {}
 
-      // Verificar en ejecuciones de servicio
       try {
         const serviceExecutionsRes = await axiosInstance.get('/reports/service-executions');
         const executionsUsingService = serviceExecutionsRes.data.filter(usesService);
@@ -256,11 +224,8 @@ const CatalogServices: React.FC = () => {
             id: exec.id
           }))
         );
-      } catch (err) {
-        console.warn("Error checking service executions:", err);
-      }
+      } catch (err) {}
 
-      // Verificar en facturas/invoices
       try {
         const invoicesRes = await axiosInstance.get('/billing/invoices');
         const invoicesUsingService = invoicesRes.data.filter(usesService);
@@ -271,11 +236,8 @@ const CatalogServices: React.FC = () => {
             id: invoice.id
           }))
         );
-      } catch (err) {
-        console.warn("Error checking invoices:", err);
-      }
+      } catch (err) {}
       
-      // Verificar en planes de mantenimiento
       try {
         const maintenancePlansRes = await axiosInstance.get('/maintenance/plans');
         const plansUsingService = maintenancePlansRes.data.filter(usesService);
@@ -286,11 +248,8 @@ const CatalogServices: React.FC = () => {
             id: plan.id
           }))
         );
-      } catch (err) {
-        console.warn("Error checking maintenance plans:", err);
-      }
+      } catch (err) {}
       
-      // Verificar en inventario/componentes
       try {
         const componentsRes = await axiosInstance.get('/components');
         const componentsUsingService = componentsRes.data.filter(usesService);
@@ -301,11 +260,8 @@ const CatalogServices: React.FC = () => {
             id: comp.id
           }))
         );
-      } catch (err) {
-        console.warn("Error checking components:", err);
-      }
+      } catch (err) {}
       
-      // Verificación en contratos
       try {
         const contractsRes = await axiosInstance.get('/contracts');
         const contractsUsingService = contractsRes.data.filter(usesService);
@@ -316,33 +272,24 @@ const CatalogServices: React.FC = () => {
             id: contract.id
           }))
         );
-      } catch (err) {
-        console.warn("Error checking contracts:", err);
-      }
+      } catch (err) {}
 
-      console.log(`Service ${serviceId} dependencies check:`, allDependentRecords);
-      
       return {
         inUse: allDependentRecords.length > 0,
         records: allDependentRecords
       };
     } catch (err) {
-      console.error("Error checking service usage:", err);
-      // Por seguridad, si hay un error en la verificación general, consideramos que está en uso
       return { inUse: true, records: [{ type: 'Unknown', name: 'Error checking dependencies', id: 0 }] };
     }
   };
 
   const handleDeleteClick = async (id: number, name: string) => {
     setIsDeleting(true);
-    // Verificar si el servicio está siendo utilizado
-    const { inUse, records } = await checkServiceUsage(id);
+    const { inUse } = await checkServiceUsage(id);
     setIsDeleting(false);
     if (inUse) {
-      setDeleteErrorMessage(
-        `Cannot delete service "${name}" because it is currently being used in the system.`
-      );
-      setDependentRecords(records);
+      setDeleteErrorMessage("Cannot delete service because it is currently being used in the system.");
+      setDependentRecords([]);
       setShowDeleteError(true);
       setServiceToDelete(null);
       return;
@@ -353,15 +300,11 @@ const CatalogServices: React.FC = () => {
 
   const confirmDelete = async () => {
     if (!serviceToDelete) return;
-    
     setIsDeleting(true);
-    // Verificar una vez más antes de eliminar
-    const { inUse, records } = await checkServiceUsage(serviceToDelete.id);
+    const { inUse } = await checkServiceUsage(serviceToDelete.id);
     if (inUse) {
-      setDeleteErrorMessage(
-        `Cannot delete service "${serviceToDelete.name}" because it is currently being used in the system.`
-      );
-      setDependentRecords(records);
+      setDeleteErrorMessage("Cannot delete service because it is currently being used in the system.");
+      setDependentRecords([]);
       setShowConfirmation(false);
       setShowDeleteError(true);
       setIsDeleting(false);
@@ -370,32 +313,25 @@ const CatalogServices: React.FC = () => {
     }
     try {
       const deleteResponse = await axiosInstance.delete(`/catalog/services/${serviceToDelete.id}`);
-      console.log("Delete response:", deleteResponse);
-      
       setDeletedServiceName(serviceToDelete.name);
       setShowConfirmation(false);
       await fetchServices();
       setError(null);
       setShowDeleteSuccess(true);
     } catch (err: any) {
-      console.error("Error deleting service:", err);
-      
-      // Manejo específico de errores de la API
       if (err.response?.status === 409 || 
           err.response?.status === 400 || 
           (err.response?.data?.detail && 
            (err.response.data.detail.includes("constraint") || 
             err.response.data.detail.includes("used") || 
             err.response.data.detail.includes("dependency")))) {
-        
-        setDeleteErrorMessage(
-          `Cannot delete service "${serviceToDelete.name}" because it is currently being used in the system.`
-        );
+        setDeleteErrorMessage("Cannot delete service because it is currently being used in the system.");
       } else {
         setDeleteErrorMessage(
           `Error deleting service "${serviceToDelete.name}". Please try again later.`
         );
       }
+      setDependentRecords([]);
       setShowConfirmation(false);
       setShowDeleteError(true);
     } finally {
@@ -627,10 +563,10 @@ const CatalogServices: React.FC = () => {
           </div>
         )}
 
-        {/* Modal de error */}
+        {/* Modal de error (en inglés y estilo similar a CatalogServiceType) */}
         {showDeleteError && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="overflow-hidden max-w-lg w-full mx-4 rounded-lg shadow-xl">
+            <div className="overflow-hidden max-w-md w-full mx-4 rounded-lg shadow-xl">
               <div className="bg-white rounded-t-lg px-6 py-4 shadow-lg">
                 <h2 className="text-2xl font-bold text-center text-[#002057]">
                   Cannot Delete Service
@@ -648,23 +584,6 @@ const CatalogServices: React.FC = () => {
                     <p className="text-white text-lg mb-4">
                       {deleteErrorMessage}
                     </p>
-                    {dependentRecords.length > 0 && (
-                      <div className="mt-4">
-                        <p className="text-white font-medium mb-2">Used in the following records:</p>
-                        <ul className="text-gray-200 text-sm list-disc pl-5 max-h-40 overflow-y-auto">
-                          {dependentRecords.slice(0, 10).map((record, index) => (
-                            <li key={index} className="mb-1">
-                              {record.type}: {record.name}
-                            </li>
-                          ))}
-                          {dependentRecords.length > 10 && (
-                            <li className="mt-2 text-gray-300 italic">
-                              ...and {dependentRecords.length - 10} more records
-                            </li>
-                          )}
-                        </ul>
-                      </div>
-                    )}
                   </div>
                 </div>
                 <div className="mt-6 flex justify-center space-x-4">

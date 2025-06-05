@@ -20,9 +20,9 @@ interface Service {
 
 // Interface para las compañías
 interface Company {
+    Llave: number; // ID numérico de la compañía, según el backend
     companyCode: string;
     companyName: string;
-    id?: number;  // Añadimos el campo id opcional para manejar el ID numérico
 }
 
 // Interface para los tipos de fuselaje
@@ -48,7 +48,7 @@ const EditSPConsumer: React.FC = () => {
     const [fuselageTypesLoading, setFuselageTypesLoading] = useState(false);
 
     // Estados para controlar la selección en cascada
-    const [selectedCompany, setSelectedCompany] = useState<string>("");
+    const [selectedCompanyId, setSelectedCompanyId] = useState<string>("");
     const [selectedClient, setSelectedClient] = useState<string>("");
     const [selectedService, setSelectedService] = useState<string>("");
 
@@ -59,8 +59,7 @@ const EditSPConsumer: React.FC = () => {
     const [originalData, setOriginalData] = useState({
         id_service: "",
         id_client: "",
-        id_company: "",
-        companyIdNumeric: 0,
+        id_company: 0,
         minutes_included: 0,
         minutes_minimum: 0,
         fuselage_type: "",
@@ -70,8 +69,7 @@ const EditSPConsumer: React.FC = () => {
     const [form, setForm] = useState({
         id_service: "",
         id_client: "",
-        id_company: "",
-        companyIdNumeric: 0,  // Nuevo campo para almacenar el ID numérico
+        id_company: 0, // Ahora será directamente el ID numérico
         minutes_included: 0,
         minutes_minimum: 0,
         fuselage_type: "",
@@ -94,37 +92,11 @@ const EditSPConsumer: React.FC = () => {
     // Referencia para el primer campo del formulario (Company select)
     const companySelectRef = useRef<HTMLSelectElement>(null);
 
-    // Obtener el ID numérico de compañía mediante una llamada separada
-    const fetchCompanyIdByCode = async (companyCode: string): Promise<number> => {
-        try {
-            if (!companyCode) return 0;
-            
-            // Obtener el ID numérico de la compañía
-            const response = await axiosInstance.get(`/companies/by-code/${encodeURIComponent(companyCode)}`);
-            
-            if (response.data && response.data.id) {
-                return response.data.id;
-            }
-            
-            // Como alternativa, podemos usar un valor estático para pruebas
-            // basado en el companyCode (AISG = 1)
-            if (companyCode === "AISG") return 1;
-            
-            return 0;
-        } catch (err) {
-            console.error("Error fetching company ID:", err);
-            // Como plan B, podemos asignar un ID de compañía basado en el código
-            // Esto es solo para fines de prueba
-            if (companyCode === "AISG") return 1;
-            return 0;
-        }
-    };
-
     // Validación para habilitar el botón de envío
     const isFormValid = () => {
         return form.id_service !== "" &&
             form.id_client !== "" &&
-            form.id_company !== "" &&
+            form.id_company > 0 &&
             form.fuselage_type.trim() !== "" &&
             form.minutes_included >= 0 &&
             form.minutes_minimum >= 0 &&
@@ -137,7 +109,7 @@ const EditSPConsumer: React.FC = () => {
 
         switch (fieldName) {
             case 'id_company':
-                if (!value || value === "" || value.trim() === "") {
+                if (!value || Number(value) <= 0) {
                     errors[fieldName] = 'Company is required';
                 } else {
                     delete errors[fieldName];
@@ -190,7 +162,7 @@ const EditSPConsumer: React.FC = () => {
     const validateAllFields = () => {
         const errors: { [key: string]: string } = {};
 
-        if (!form.id_company || form.id_company.trim() === "") {
+        if (!form.id_company || form.id_company <= 0) {
             errors.id_company = 'Company is required';
         }
 
@@ -218,27 +190,21 @@ const EditSPConsumer: React.FC = () => {
         return Object.keys(errors).length === 0;
     };
 
-    // Función para extraer el código de compañía del valor seleccionado
-    const extractCompanyCode = (companyValue: string) => {
-        if (!companyValue) return "";
-        return companyValue.split(" - ")[0];
-    };
-
     // Función para cargar clientes por compañía
-    const fetchClientsByCompany = async (companyValue: string) => {
+    const fetchClientsByCompany = async (companyId: number) => {
         try {
             setClientsLoading(true);
             setClients([]);
             
-            if (!companyValue) {
+            if (!companyId || companyId <= 0) {
                 setClientsLoading(false);
                 return;
             }
 
-            const companyCode = extractCompanyCode(companyValue);
-            console.log("Fetching clients for company code:", companyCode);
+            console.log("Fetching clients for company ID:", companyId);
 
-            const res = await axiosInstance.get(`/catalog/clients?companyCode=${encodeURIComponent(companyCode)}&tipoCliente=1`);
+            // Usar directamente el ID de la compañía para buscar clientes
+            const res = await axiosInstance.get(`/catalog/clients?company_id=${companyId}&tipoCliente=1`);
             console.log("Clients response:", res.data);
             setClients(res.data || []);
         } catch (err: any) {
@@ -314,34 +280,22 @@ const EditSPConsumer: React.FC = () => {
     };
 
     // Manejar cambio de compañía
-    const handleCompanyChange = async (companyValue: string) => {
-        setSelectedCompany(companyValue);
-        const companyCode = extractCompanyCode(companyValue);
-
-        // Buscar o recuperar el ID numérico de la compañía
-        let companyId = 1; // Valor por defecto para AISG
-
-        // Si tenemos un endpoint específico, obtener el ID real
-        // Si no, usar lógica alternativa como un mapa de códigos a IDs
-        try {
-            const numericId = await fetchCompanyIdByCode(companyCode);
-            companyId = numericId || 1; // Si no se encuentra, usar 1 como fallback para AISG
-        } catch (err) {
-            console.error("Error fetching company ID:", err);
-            // Usar ID 1 para AISG como fallback
-            companyId = companyCode === "AISG" ? 1 : 0;
-        }
+    const handleCompanyChange = (companyIdStr: string) => {
+        const companyId = parseInt(companyIdStr, 10);
+        setSelectedCompanyId(companyIdStr);
 
         setForm(prevForm => ({
             ...prevForm,
-            id_company: companyCode,
-            companyIdNumeric: companyId,
+            id_company: companyId,
             id_client: "",
             id_service: ""
         }));
 
-        validateField('id_company', companyCode);
-        fetchClientsByCompany(companyValue);
+        setSelectedClient("");
+        setSelectedService("");
+
+        validateField('id_company', companyId);
+        fetchClientsByCompany(companyId);
     };
 
     // Manejar cambio de cliente
@@ -353,6 +307,8 @@ const EditSPConsumer: React.FC = () => {
             id_client: clientId,
             id_service: ""
         }));
+
+        setSelectedService("");
 
         validateField('id_client', clientId);
         fetchServicesByClient(clientId);
@@ -467,23 +423,18 @@ const EditSPConsumer: React.FC = () => {
                 const data = servicePerCustomerResponse.data;
 
                 if (data) {
-                    // Obtener el ID numérico de la compañía desde el backend (data.id_company ya es numérico)
-                    const companyIdNumeric = data.id_company || 1;
+                    // El ID de compañía ya viene como numérico del backend
+                    const companyId = data.id_company;
                     
-                    // Buscar el código de compañía basado en el ID numérico
-                    const companyData = companiesResponse.data.find((company: Company) => {
-                        // Buscar por nombre de compañía o código, dependiendo de cómo esté estructurada la respuesta
-                        return company.companyCode; // Por ahora asumimos que siempre habrá companyCode
-                    });
-                    
-                    const companyCode = companyData?.companyCode || "AISG"; // Fallback a AISG
-                    const companyValue = companyData ? `${companyData.companyCode} - ${companyData.companyName}` : "AISG - AISG Services";
+                    // Buscar la compañía correspondiente en la lista
+                    const companyData = companiesResponse.data.find((company: Company) => 
+                        company.Llave === companyId
+                    );
 
                     const formData = {
                         id_service: data.id_service.toString(),
                         id_client: data.id_client.toString(),
-                        id_company: companyCode,
-                        companyIdNumeric: companyIdNumeric,
+                        id_company: companyId,
                         minutes_included: data.minutes_included || 0,
                         minutes_minimum: data.minutes_minimum || 0,
                         fuselage_type: data.fuselage_type || "",
@@ -492,12 +443,12 @@ const EditSPConsumer: React.FC = () => {
 
                     setForm(formData);
                     setOriginalData(formData);
-                    setSelectedCompany(companyValue);
+                    setSelectedCompanyId(companyId.toString());
                     setSelectedClient(data.id_client.toString());
                     setSelectedService(data.id_service.toString());
 
                     // Cargar clientes para la compañía seleccionada
-                    await fetchClientsByCompany(companyValue);
+                    await fetchClientsByCompany(companyId);
 
                     // Cargar servicios para el cliente seleccionado
                     await fetchServicesByClient(data.id_client.toString());
@@ -524,7 +475,7 @@ const EditSPConsumer: React.FC = () => {
             return res.data.some((item: any) =>
                 item.id_service.toString() === form.id_service &&
                 item.id_client.toString() === form.id_client &&
-                item.id_company.toString() === form.companyIdNumeric.toString() &&
+                item.id_company.toString() === form.id_company.toString() &&
                 item.id_service_per_customer.toString() !== id // Excluir el registro actual
             );
         } catch (err) {
@@ -570,7 +521,7 @@ const EditSPConsumer: React.FC = () => {
             const keyFieldsChanged =
                 form.id_service !== originalData.id_service ||
                 form.id_client !== originalData.id_client ||
-                form.companyIdNumeric !== originalData.companyIdNumeric;
+                form.id_company !== originalData.id_company;
 
             if (keyFieldsChanged) {
                 const inUse = await checkIfInUse();
@@ -591,26 +542,15 @@ const EditSPConsumer: React.FC = () => {
 
             const whonew = sessionStorage.getItem("userName") || "admin";
 
-            // Buscar la compañía por código para obtener el ID numérico
-            const selectedCompanyData = companies.find(company => company.companyCode === form.id_company);
-            
-            if (!selectedCompanyData) {
-                setError("Invalid company selection. Please select a valid company.");
-                setSubmitting(false);
-                return;
-            }
-
-            // NO enviar timestamps - dejar que el backend los maneje automáticamente
             const data = {
                 id_service: parseInt(form.id_service),
                 id_client: parseInt(form.id_client),
-                id_company: form.companyIdNumeric || 1,  // Usar el ID numérico almacenado
+                id_company: form.id_company, // Ya es numérico
                 minutes_included: Math.max(0, Math.floor(form.minutes_included)),
                 minutes_minimum: Math.max(0, Math.floor(form.minutes_minimum)),
                 fuselage_type: form.fuselage_type.trim() || "",
                 technicians_included: Math.max(0, Math.floor(form.technicians_included)),
                 whonew
-                // NO incluir create_at ni updated_at - el backend los manejará automáticamente
             };
 
             console.log("Sending data:", data);
@@ -728,14 +668,14 @@ const EditSPConsumer: React.FC = () => {
                                                     ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
                                                     : 'border-[#cccccc] focus:border-[#00B140] focus:ring-[#00B140]'
                                                 } focus:ring-2 focus:outline-none transition-all`}
-                                            value={selectedCompany}
+                                            value={selectedCompanyId}
                                             onChange={(e) => handleCompanyChange(e.target.value)}
                                             disabled={submitting}
                                             required
                                         >
                                             <option value="">Select a company</option>
                                             {companies.map((company) => (
-                                                <option key={company.companyCode} value={`${company.companyCode} - ${company.companyName}`}>
+                                                <option key={company.Llave} value={company.Llave.toString()}>
                                                     {company.companyCode} - {company.companyName}
                                                 </option>
                                             ))}
@@ -760,14 +700,14 @@ const EditSPConsumer: React.FC = () => {
                                             className={`w-full px-4 py-3 rounded-lg bg-white text-[#002057] border ${validationErrors.id_client
                                                     ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
                                                     : 'border-[#cccccc] focus:border-[#00B140] focus:ring-[#00B140]'
-                                                } focus:ring-2 focus:outline-none transition-all ${!selectedCompany ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                                } focus:ring-2 focus:outline-none transition-all ${!selectedCompanyId ? 'opacity-50 cursor-not-allowed' : ''}`}
                                             value={selectedClient}
                                             onChange={(e) => handleClientChange(e.target.value)}
-                                            disabled={!selectedCompany || clientsLoading || submitting}
+                                            disabled={!selectedCompanyId || clientsLoading || submitting}
                                             required
                                         >
                                             <option value="">
-                                                {!selectedCompany ? "Select a company first" : "Select a client"}
+                                                {!selectedCompanyId ? "Select a company first" : "Select a client"}
                                             </option>
                                             {clients.map((client) => (
                                                 <option key={client.llave} value={client.llave}>
