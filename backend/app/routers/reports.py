@@ -1,12 +1,12 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
-from sqlalchemy import func, Integer, cast, String, literal_column
+from sqlalchemy import func, Integer, cast, String, literal_column, text
 from typing import List, Optional
 from datetime import datetime, timedelta
 
 from ..database import get_db
 from ..models import ServiceExecution, CatalogService, Cliente, DBTableCompany, DBTableAvion, DBtableUserHeader, ExtraServiceSaleAssignment
-from ..schemas_reports import ServiceExecutionResponse, OperationReportResponse
+from ..schemas_reports import ServiceExecutionResponse, OperationReportResponse, OperationReportV2Response, ServicesReportResponse
 
 router = APIRouter(prefix="/reports", tags=["reports"])
 
@@ -74,9 +74,8 @@ async def get_service_executions_count(db: Session = Depends(get_db)):
     Obtiene el conteo total de ejecuciones de servicios
     """
     try:
-        total_count = db.query(ServiceExecution).count()
-        return {"total_count": total_count}
-        
+        count = db.query(ServiceExecution).count()
+        return {"total_count": count}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error al obtener el conteo: {str(e)}")
 
@@ -179,3 +178,155 @@ async def get_operation_reports_count(db: Session = Depends(get_db)):
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error al obtener el conteo de reportes: {str(e)}")
+
+# NUEVO ENDPOINT V2 para el query específico - SOLO CONSULTA SIN FILTROS
+@router.get("/operation-reports-v2", response_model=List[OperationReportV2Response])
+async def get_operation_reports_v2(db: Session = Depends(get_db)):
+    """
+    Obtiene el reporte de operaciones ejecutando el query exacto proporcionado
+    Solo consulta, sin filtros de búsqueda (la búsqueda se hace en el frontend)
+    """
+    try:
+        # Query SQL exacto como se proporcionó - SIN FILTROS
+        sql_query = """
+        SELECT TOP 1000
+            cc.razonSocial AS COMPANY,
+            cc.llave as LLAVE,
+            v.linea AS AIRLINE,
+            v.fecha AS [DATE],
+            v.station AS STATION,
+            v.matricula AS [AC REG],
+            v.vuelo AS FLIGTH,
+            v.destino AS DEST,
+            v.bitacora AS [LOG BOOK],
+            v.tipoAvion AS [A/C TYPE],
+            FORMAT(DATEADD(SECOND, v.eta, '1970-01-01'), 'HH:mm') AS [START TIME],
+            FORMAT(DATEADD(SECOND, v.etd, '1970-01-01'), 'HH:mm') AS [END TIME],
+            v.servcio AS [SERV PR],
+            FORMAT(DATEADD(SECOND, v.etd - v.eta, '1970-01-01'), 'HH:mm') AS [ON GND],
+            cs.service_name AS SERV1,
+            cs.service_description AS SERV2,
+            cs.service_code AS SERV3,
+            cst.service_type_name AS SERV4,
+            csc.service_classification_name AS SERV5,
+            cs.service_technicians_included AS SERV6,
+            v.remarks AS REMARKS,
+            v.supervisor AS TECHNICIAN
+        FROM DBSaleVuelo v
+        LEFT JOIN DBTableCompanyCode cc
+            ON cc.companyCode = v.companyCode
+        LEFT JOIN CatalogServices cs
+            ON TRY_CAST(v.servcio AS INT) = cs.id_service
+        LEFT JOIN CatalogServiceType cst
+            ON cs.id_service_type = cst.id_service_type
+        LEFT JOIN CatalogServiceClassification csc
+            ON cs.id_service_classification = csc.id_service_classification
+        ORDER BY v.fecha DESC
+        """
+        
+        # Ejecutar query sin parámetros
+        result = db.execute(text(sql_query)).fetchall()
+        
+        # Convertir resultados al formato esperado por el frontend
+        reports = []
+        for row in result:
+            report_data = {
+                "COMPANY": row[0],  # cc.razonSocial AS COMPANY
+                "LLAVE": row[1] if row[1] is not None else None,  # cc.llave as llave
+                "AIRLINE": row[2],  # v.linea AS AIRLINE
+                "DATE": row[3],  # v.fecha AS [DATE]
+                "STATION": row[4],  # v.station AS STATION (CORREGIDO - era row[3])
+                "AC_REG": row[5],  # v.matricula AS [AC REG]
+                "FLIGTH": row[6],  # v.vuelo AS FLIGTH
+                "DEST": row[7],  # v.destino AS DEST
+                "LOG_BOOK": row[8],  # v.bitacora AS [LOG BOOK]
+                "AC_TYPE": row[9],  # v.tipoAvion AS [A/C TYPE]
+                "START_TIME": row[10],  # FORMAT(...) AS [START TIME]
+                "END_TIME": row[11],  # FORMAT(...) AS [END TIME]
+                "SERV_PR": row[12],  # v.servcio AS [SERV PR]
+                "ON_GND": row[13],  # FORMAT(...) AS [ON GND]
+                "SERV1": row[14],  # cs.service_name AS SERV1
+                "SERV2": row[15],  # cs.service_description AS SERV2
+                "SERV3": row[16],  # cs.service_code AS SERV3
+                "SERV4": row[17],  # cst.service_type_name AS SERV4
+                "SERV5": row[18],  # csc.service_classification_name AS SERV5
+                "SERV6": str(row[19]) if row[19] is not None else None,  # cs.service_technicians_included AS SERV6
+                "REMARKS": row[20],  # v.remarks AS REMARKS
+                "TECHNICIAN": row[21]  # v.supervisor AS TECHNICIAN
+            }
+            reports.append(report_data)
+        
+        return reports
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al obtener reportes de operación v2: {str(e)}")
+
+# NUEVO ENDPOINT para Services Report
+@router.get("/services-reports", response_model=List[ServicesReportResponse])
+async def get_services_reports(db: Session = Depends(get_db)):
+    """
+    Obtiene el reporte de servicios ejecutando el query específico con mapeo de servicios
+    Solo consulta, sin filtros de búsqueda (la búsqueda se hace en el frontend)
+    """
+    try:
+        # Query SQL exacto como se proporcionó con CTE para mapeo de servicios
+        sql_query = """
+        WITH ServicioMap AS (
+            SELECT 'P' AS servcio, 'RIPQ' AS service_code
+            UNION ALL SELECT 'R', 'ROPQ'
+            UNION ALL SELECT 'T', 'TRPQ'
+            UNION ALL SELECT 'X', 'SV3'
+        )
+        SELECT TOP 1000
+            cc.razonSocial AS COMPANY,
+            cc.llave AS LLAVE,
+            v.linea AS AIRLINE,
+            v.fecha AS [DATE],
+            v.station AS STATION,
+            v.matricula AS [AC REG],
+            v.vuelo AS FLIGHT,
+            v.tipoAvion AS [A/C TYPE],
+            FORMAT(DATEADD(SECOND, v.eta, '1970-01-01'), 'HH:mm') AS [START TIME],
+            FORMAT(DATEADD(SECOND, v.etd, '1970-01-01'), 'HH:mm') AS [END TIME],
+            FORMAT(DATEADD(SECOND, v.etd - v.eta, '1970-01-01'), 'HH:mm') AS [ON GND],
+            cs.service_name AS SERVICE,
+            v.bitacora AS [WORK REFERENCE],
+            v.supervisor AS TECHNICIAN
+        FROM DBSaleVuelo v
+        LEFT JOIN DBTableCompanyCode cc
+            ON cc.companyCode = v.companyCode
+        LEFT JOIN ServicioMap sm
+            ON v.servcio = sm.servcio
+        LEFT JOIN CatalogServices cs
+            ON sm.service_code = cs.service_code
+        ORDER BY v.fecha DESC
+        """
+        
+        # Ejecutar query
+        result = db.execute(text(sql_query)).fetchall()
+        
+        # Convertir resultados al formato esperado por el frontend
+        reports = []
+        for row in result:
+            report_data = {
+                "COMPANY": row[0],  # cc.razonSocial AS COMPANY
+                "LLAVE": row[1] if row[1] is not None else None,  # cc.llave AS LLAVE
+                "AIRLINE": row[2],  # v.linea AS AIRLINE
+                "DATE": row[3],  # v.fecha AS [DATE]
+                "STATION": row[4],  # v.station AS STATION
+                "AC_REG": row[5],  # v.matricula AS [AC REG]
+                "FLIGHT": row[6],  # v.vuelo AS FLIGHT
+                "AC_TYPE": row[7],  # v.tipoAvion AS [A/C TYPE]
+                "START_TIME": row[8],  # FORMAT(...) AS [START TIME]
+                "END_TIME": row[9],  # FORMAT(...) AS [END TIME]
+                "ON_GND": row[10],  # FORMAT(...) AS [ON GND]
+                "SERVICE": row[11],  # cs.service_name AS SERVICE
+                "WORK_REFERENCE": row[12],  # v.bitacora AS [WORK REFERENCE]
+                "TECHNICIAN": row[13]  # v.supervisor AS TECHNICIAN
+            }
+            reports.append(report_data)
+        
+        return reports
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al obtener reportes de servicios: {str(e)}")

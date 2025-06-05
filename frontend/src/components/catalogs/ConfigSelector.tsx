@@ -69,10 +69,10 @@ const CatalogSelector: React.FC = () => {
       <div className="max-w-7xl mx-auto p-6 font-['Montserrat']">
         {/* Cabecera principal con título y descripción */}
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-white">Complements</h1>
+          <h1 className="text-3xl font-bold text-white">Configurations</h1>
           <div className="mt-2 w-20 h-1 bg-[#e6001f] mx-auto"></div>
           <p className="text-gray-200 mt-2 font-light">
-            System complement management
+            System configuration management
           </p>
         </div>
         {/* Cards de selección de catálogo */}

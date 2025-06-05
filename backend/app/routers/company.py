@@ -3,8 +3,8 @@ from sqlalchemy.orm import Session
 from typing import List
 from sqlalchemy import text
 from ..database import get_db
-from ..schemas_company import CompanyResponse
-from ..models import DBTableCompany
+from ..schemas_company import CompanyResponse, AirlineResponse
+from ..models import DBTableCompany, DBTableCompanyCode, DBTableAirlineCode
 
 router = APIRouter(
     prefix="/companies",
@@ -14,68 +14,86 @@ router = APIRouter(
 @router.get("/", response_model=List[CompanyResponse])
 async def get_companies(db: Session = Depends(get_db)):
     """
-    Obtiene la lista de todas las compañías para dropdown
+    Obtiene la lista de todas las compañías para dropdown,
+    solo aquellas que tengan relación en ambas tablas por companyCode y taxId = rfc.
     """
     try:
-        # Usar el modelo ORM ahora que conocemos la estructura real
-        companies = db.query(DBTableCompany).all()
-        
+        companies = (
+            db.query(
+                DBTableCompany.companyCode,
+                DBTableCompany.companyName,
+                DBTableCompany.moneda.label("MonedaEmpresa"),
+                DBTableCompany.taxId.label("RFC_En_Company"),
+                DBTableCompanyCode.razonSocial.label("RazonSocial_En_CompanyCode"),
+                DBTableCompanyCode.comercial.label("NombreComercial"),
+                DBTableCompanyCode.tipoPersona.label("TipoPersona"),
+                DBTableCompanyCode.moneda.label("MonedaEnCompanyCode"),
+                DBTableCompanyCode.producto.label("Producto"),
+                DBTableCompanyCode.estatus.label("Estatus"),
+                DBTableCompanyCode.usuarioRegistro.label("UsuarioRegistro"),
+                DBTableCompanyCode.fechaRegistro.label("FechaRegistro"),
+                DBTableCompanyCode.horaRegistro.label("HoraRegistro"),
+                DBTableCompanyCode.llave.label("Llave"),
+            )
+            .join(
+                DBTableCompanyCode,
+                (DBTableCompany.companyCode == DBTableCompanyCode.companyCode) &
+                (DBTableCompany.taxId == DBTableCompanyCode.rfc)
+            )
+            .all()
+        )
+
         companies_data = []
         for company in companies:
             companies_data.append({
-                "companyCode": company.companyCode or "DEFAULT",
-                "companyName": company.companyName or "Default Company",
-                "moneda": company.moneda,
-                "fiel": company.fiel,
-                "taxId": company.taxId,
-                "direccion1": company.direccion1,
-                "direccion2": company.direccion2,
-                "direccion3": company.direccion3,
-                "direccion4": company.direccion4,
-                "direccion5": company.direccion5,
-                "codigoPostal": company.codigoPostal,
-                "municipio": company.municipio,
-                "estado": company.estado,
-                "pais": company.pais
+                "companyCode": company.companyCode,
+                "companyName": company.companyName,
+                "MonedaEmpresa": company.MonedaEmpresa,
+                "RFC_En_Company": company.RFC_En_Company,
+                "RazonSocial_En_CompanyCode": company.RazonSocial_En_CompanyCode,
+                "NombreComercial": company.NombreComercial,
+                "TipoPersona": company.TipoPersona,
+                "MonedaEnCompanyCode": company.MonedaEnCompanyCode,
+                "Producto": company.Producto,
+                "Estatus": company.Estatus,
+                "UsuarioRegistro": company.UsuarioRegistro,
+                "FechaRegistro": company.FechaRegistro,
+                "HoraRegistro": company.HoraRegistro,
+                "Llave": company.Llave,
             })
-        
-        # Si no hay datos, devolver al menos una compañía por defecto
-        if not companies_data:
-            companies_data = [{
-                "companyCode": "AISG",
-                "companyName": "A&P International Services S.A.P.I. de CV",
-                "moneda": "MXN",
-                "fiel": None,
-                "taxId": "&PI0405044W6",
-                "direccion1": "Avenida Kabah",
-                "direccion2": "Manzana 2 Lote 18",
-                "direccion3": "2B",
-                "direccion4": "Supermanzana 17",
-                "direccion5": "Cancún,",
-                "codigoPostal": "77505",
-                "municipio": "Benito Juárez,",
-                "estado": "Quintana Roo,",
-                "pais": "México"
-            }]
-        
+
         return companies_data
-        
+
     except Exception as e:
         print(f"Error en get_companies: {str(e)}")
-        # Devolver al menos una compañía por defecto para que el frontend funcione
-        return [{
-            "companyCode": "AISG",
-            "companyName": "A&P International Services S.A.P.I. de CV",
-            "moneda": "MXN",
-            "fiel": None,
-            "taxId": "&PI0405044W6",
-            "direccion1": "Avenida Kabah",
-            "direccion2": "Manzana 2 Lote 18",
-            "direccion3": "2B",
-            "direccion4": "Supermanzana 17",
-            "direccion5": "Cancún,",
-            "codigoPostal": "77505",
-            "municipio": "Benito Juárez,",
-            "estado": "Quintana Roo,",
-            "pais": "México"
-        }]
+        # Devolver lista vacía si hay error
+        return []
+
+@router.get("/airlines", response_model=List[AirlineResponse])
+async def get_airlines(db: Session = Depends(get_db)):
+    """
+    Obtiene la lista de todas las aerolíneas para dropdown desde DBTableAirlineCode.
+    """
+    try:
+        airlines = db.query(DBTableAirlineCode).all()
+
+        airlines_data = []
+        for airline in airlines:
+            airlines_data.append({
+                "llave": airline.llave,
+                "linea": airline.linea,
+                "nombre": airline.nombre,
+                "callSign": airline.callSign,
+                "pais": airline.pais,
+                "companyCode": airline.companyCode,
+                "keyObjectId": airline.keyObjectId,
+                "objectKeyValue": airline.objectKeyValue,
+                "objectKeyIndex": airline.objectKeyIndex,
+            })
+
+        return airlines_data
+
+    except Exception as e:
+        print(f"Error en get_airlines: {str(e)}")
+        # Devolver lista vacía si hay error
+        return []

@@ -156,7 +156,10 @@ const CatalogServices: React.FC = () => {
       setShowDeleteSuccess(true);
     } catch (err: any) {
       console.error("Error deleting service:", err);
-      setDeleteErrorMessage(`Could not delete service "${serviceToDelete.name}". Please try again.`);
+      // Simplificar el mensaje de error para el usuario final
+      setDeleteErrorMessage(
+        `Cannot delete service "${serviceToDelete.name}" because it is currently being used in the system.`
+      );
       setShowConfirmation(false);
       setShowDeleteError(true);
     } finally {

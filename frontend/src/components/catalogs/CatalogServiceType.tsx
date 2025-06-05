@@ -261,15 +261,14 @@ const CatalogServiceType: React.FC = () => {
         setDeletingServiceType(true);
         
         // Verificar si el service type está siendo utilizado
-        const { inUse, records } = await checkServiceTypeUsage(id);
+        const { inUse } = await checkServiceTypeUsage(id);
         
         setDeletingServiceType(false);
         
         if (inUse) {
-            // Mostrar popup de error con la lista de registros que lo utilizan
-            setDependentRecords(records);
+            // Mostrar popup de error simplificado
             setDeleteErrorMessage(
-                `Cannot delete service type "${name}" because it is being used by ${records.length} record(s) in the system.`
+                `Cannot delete service type "${name}" because it is currently being used in the system.`
             );
             setShowDeleteError(true);
             return;
@@ -287,13 +286,12 @@ const CatalogServiceType: React.FC = () => {
             setDeletingServiceType(true);
             
             // Verificar una vez más antes de eliminar
-            const { inUse, records } = await checkServiceTypeUsage(serviceTypeToDelete.id);
+            const { inUse } = await checkServiceTypeUsage(serviceTypeToDelete.id);
             
             if (inUse) {
-                // Si ahora está en uso, mostrar error
-                setDependentRecords(records);
+                // Si ahora está en uso, mostrar error simplificado
                 setDeleteErrorMessage(
-                    `Cannot delete service type "${serviceTypeToDelete.name}" because it is being used by ${records.length} record(s) in the system.`
+                    `Cannot delete service type "${serviceTypeToDelete.name}" because it is currently being used in the system.`
                 );
                 setShowDeleteConfirmation(false);
                 setShowDeleteError(true);
@@ -314,7 +312,7 @@ const CatalogServiceType: React.FC = () => {
             // Verificar si el error es por dependencias
             if (err.response?.status === 409 || err.response?.data?.detail?.includes("constraint")) {
                 setDeleteErrorMessage(
-                    `Cannot delete service type "${serviceTypeToDelete.name}" because it is being used by other records in the system.`
+                    `Cannot delete service type "${serviceTypeToDelete.name}" because it is currently being used in the system.`
                 );
                 setShowDeleteConfirmation(false);
                 setShowDeleteError(true);
@@ -577,7 +575,7 @@ const CatalogServiceType: React.FC = () => {
             {/* Popup de error de eliminación (registro en uso) */}
             {showDeleteError && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                    <div className="overflow-hidden max-w-lg w-full mx-4 rounded-lg shadow-xl">
+                    <div className="overflow-hidden max-w-md w-full mx-4 rounded-lg shadow-xl">
                         {/* Encabezado blanco con texto azul */}
                         <div className="bg-white rounded-t-lg px-6 py-4 shadow-lg">
                             <h2 className="text-2xl font-bold text-center text-[#002057]">
@@ -598,25 +596,6 @@ const CatalogServiceType: React.FC = () => {
                                     <p className="text-white text-lg mb-4">
                                         {deleteErrorMessage}
                                     </p>
-                                    {dependentRecords.length > 0 && (
-                                        <div className="mt-4">
-                                            <p className="text-white text-sm font-medium mb-2">
-                                                Records using this service type ({dependentRecords.length} found):
-                                            </p>
-                                            <div className="bg-[#0D1423] rounded-lg p-3 max-h-40 overflow-y-auto border border-gray-700">
-                                                {dependentRecords.map((record, index) => (
-                                                    <div key={index} className="text-gray-300 text-sm py-1 border-b border-gray-700 last:border-b-0">
-                                                        <span className="text-yellow-400 font-medium">{record.type}:</span> {record.name}
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    )}
-                                    <div className="mt-4 p-3 bg-blue-900 rounded-lg border border-blue-700">
-                                        <p className="text-blue-200 text-sm">
-                                            <strong>Tip:</strong> To delete this service type, you must first remove or update all records that reference it.
-                                        </p>
-                                    </div>
                                 </div>
                             </div>
                             <div className="mt-6 flex justify-center space-x-4">

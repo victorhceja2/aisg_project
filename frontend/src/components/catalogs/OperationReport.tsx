@@ -5,63 +5,78 @@ import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
-// Definir las interfaces
+// Definir las interfaces según el schema del backend OperationReportV2Response
 interface OperationReportData {
-    company: string;
-    airline: string;
-    date: string;
-    station: string;
-    acReg: string;
-    flight: string;
-    dest: string;
-    logBook: string;
-    acType: string;
-    startTime: string;
-    endTime: string;
-    servPr: string;
-    onGnd: string;
-    serv1: string;
-    serv2: string;
-    serv3: string;
-    serv4: string;
-    serv5: string;
-    serv6: string;
-    remarks: string;
-    technician?: string;
+    COMPANY: string;
+    LLAVE: number | null; // Campo agregado para búsqueda, NO se muestra en la tabla
+    AIRLINE: string;
+    DATE: string;
+    STATION: string;
+    AC_REG: string;
+    FLIGTH: string;
+    DEST: string;
+    LOG_BOOK: string;
+    AC_TYPE: string;
+    START_TIME: string;
+    END_TIME: string;
+    SERV_PR: string;
+    ON_GND: string;
+    SERV1: string;
+    SERV2: string;
+    SERV3: string;
+    SERV4: string;
+    SERV5: string;
+    SERV6: string;
+    REMARKS: string;
+    TECHNICIAN: string;
 }
 
 interface Company {
     companyCode: string;
     companyName: string;
+    MonedaEmpresa: string;
+    RFC_En_Company: string;
+    RazonSocial_En_CompanyCode: string;
+    NombreComercial: string;
+    TipoPersona: string;
+    MonedaEnCompanyCode: string;
+    Producto: string;
+    Estatus: string;
+    UsuarioRegistro: string;
+    FechaRegistro: string;
+    HoraRegistro: string;
+    Llave: number | string;
 }
 
-interface Client {
+interface Airline {
     llave: number;
+    linea: string;
     nombre: string;
-    comercial: string;
-    razonSocial: string;
+    callSign: string;
+    pais: string;
+    companyCode: string;
+    keyObjectId: string;
+    objectKeyValue: string;
+    objectKeyIndex: number;
 }
 
-/**
- * Pantalla de reporte de operaciones con filtros y tabla de resultados.
- * Aplica diseño consistente con el resto del sistema.
- */
 const OperationReport: React.FC = () => {
     const [filters, setFilters] = useState({
-        company: "",
-        airline: "",
-        station: "",
+        company: "all", // "all" por defecto
+        airline: "all", // "all" por defecto
+        station: "all", // "all" por defecto
         startDate: "",
         endDate: "",
     });
 
     const [reports, setReports] = useState<OperationReportData[]>([]);
+    const [allReports, setAllReports] = useState<OperationReportData[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
     // Estados para los dropdowns
     const [companies, setCompanies] = useState<Company[]>([]);
-    const [airlines, setAirlines] = useState<Client[]>([]);
+    const [airlines, setAirlines] = useState<Airline[]>([]);
     const [stations, setStations] = useState<string[]>([]);
 
     // Estados de carga para los dropdowns
@@ -73,47 +88,55 @@ const OperationReport: React.FC = () => {
     const customAlphabeticalSort = (a: string, b: string) => {
         const aUpper = a.toUpperCase();
         const bUpper = b.toUpperCase();
-        
-        // Verificar si empiezan con número
         const aStartsWithNumber = /^[0-9]/.test(aUpper);
         const bStartsWithNumber = /^[0-9]/.test(bUpper);
-        
-        // Si uno empieza con número y otro no, el que empieza con número va primero
         if (aStartsWithNumber && !bStartsWithNumber) return -1;
         if (!aStartsWithNumber && bStartsWithNumber) return 1;
-        
-        // Si ambos empiezan con número o ambos no empiezan con número, ordenar alfabéticamente
         return aUpper.localeCompare(bUpper, 'en', { numeric: true });
     };
 
-    // Cargar companies y stations al montar el componente (no airlines inicialmente)
     useEffect(() => {
-        fetchCompanies();
-        fetchStations();
+        const initializeData = async () => {
+            await fetchCompanies();
+            await fetchStations();
+            await loadAllReports();
+        };
+        initializeData();
     }, []);
 
-    // Effect para cargar aerolíneas cuando cambia la compañía seleccionada
     useEffect(() => {
-        if (filters.company) {
+        if (filters.company && filters.company !== "all") {
             fetchAirlinesByCompany(filters.company);
         } else {
-            // Si no hay compañía seleccionada, limpiar la lista de aerolíneas
             setAirlines([]);
+            setFilters(prev => ({ ...prev, airline: "all" })); // Reset airline to "all"
         }
     }, [filters.company]);
 
-    // Función para obtener companies
+    // Aplicar filtros automáticamente cuando cambian los datos o filtros
+    useEffect(() => {
+        if (allReports.length > 0) {
+            applyFilters();
+        }
+    }, [allReports, filters]);
+
     const fetchCompanies = async () => {
         try {
             setCompaniesLoading(true);
             const response = await axiosInstance.get('/companies/');
-            
-            // Ordenar companies alfabéticamente por nombre de compañía
-            const sortedCompanies = [...response.data].sort((a, b) => 
+            const sortedCompanies = [...response.data].sort((a, b) =>
                 customAlphabeticalSort(a.companyName, b.companyName)
             );
-            
             setCompanies(sortedCompanies);
+
+            // Mantener "all" por defecto
+            if (sortedCompanies.length > 0 && filters.company === "all") {
+                setFilters(prev => ({
+                    ...prev,
+                    company: "all",
+                    airline: "all"
+                }));
+            }
         } catch (err) {
             console.error("Error loading companies:", err);
         } finally {
@@ -121,24 +144,35 @@ const OperationReport: React.FC = () => {
         }
     };
 
-    // Nueva función para obtener aerolíneas filtradas por compañía y ordenadas alfabéticamente
-    const fetchAirlinesByCompany = async (companyValue: string) => {
+    const fetchAirlinesByCompany = async (companyLlave: string) => {
         try {
             setAirlinesLoading(true);
-            // Extraer el código de compañía (formato esperado: "CODE - Name")
-            const companyCode = companyValue.split(' - ')[0];
-
-            // Obtener aerolíneas filtradas por compañía
-            const response = await axiosInstance.get(`/catalog/clients?tipoCliente=1&companyCode=${companyCode}`);
-
-            // Ordenar alfabéticamente por nombre comercial o nombre usando ordenamiento personalizado
-            const sortedAirlines = [...(response.data || [])].sort((a, b) => {
-                const nameA = a.comercial || a.nombre || '';
-                const nameB = b.comercial || b.nombre || '';
+            // Buscar el companyCode correspondiente a la llave seleccionada
+            const selectedCompany = companies.find(c => String(c.Llave) === companyLlave);
+            const companyCode = selectedCompany ? selectedCompany.companyCode : "";
+            
+            // Usar el nuevo endpoint de airlines
+            const response = await axiosInstance.get('/companies/airlines');
+            
+            // Filtrar por companyCode si se seleccionó una compañía específica
+            let filteredAirlines = response.data || [];
+            if (companyCode) {
+                filteredAirlines = filteredAirlines.filter((airline: Airline) => 
+                    airline.companyCode === companyCode
+                );
+            }
+            
+            const sortedAirlines = [...filteredAirlines].sort((a, b) => {
+                const nameA = a.linea || a.nombre || '';
+                const nameB = b.linea || b.nombre || '';
                 return customAlphabeticalSort(nameA, nameB);
             });
-
             setAirlines(sortedAirlines);
+
+            // Mantener "all" por defecto
+            if (!filters.airline) {
+                setFilters(prev => ({ ...prev, airline: "all" }));
+            }
         } catch (err) {
             console.error("Error loading airlines for company:", err);
             setAirlines([]);
@@ -147,19 +181,14 @@ const OperationReport: React.FC = () => {
         }
     };
 
-    // Función para obtener estaciones, por ahora usando una lista predefinida debido a que en bd falta una normalización adecuada
     const fetchStations = async () => {
         try {
             setStationsLoading(true);
-            // Stations comunes en aeropuertos (usando lista predefinida en lugar de llamada a API)
             const stationsList = [
                 "GDL", "MEX", "CUN", "TIJ", "PVR", "SJD", "MTY", "BJX",
                 "LAX", "DFW", "MIA", "JFK", "ORD", "ATL", "DEN", "PHX"
             ];
-            
-            // Ordenar stations alfabéticamente usando ordenamiento personalizado
             const sortedStations = [...stationsList].sort(customAlphabeticalSort);
-            
             setStations(sortedStations);
         } catch (err) {
             console.error("Error loading stations:", err);
@@ -168,64 +197,105 @@ const OperationReport: React.FC = () => {
         }
     };
 
-    // Función para buscar datos desde la API
-    const searchReports = async () => {
+    // Función para cargar todos los datos del backend (sin parámetros)
+    const loadAllReports = async () => {
         try {
             setLoading(true);
             setError(null);
 
-            // Construir los parámetros de consulta
-            const params = new URLSearchParams();
-            if (filters.company) params.append('company', filters.company);
-            // Solo agregar airline si no es "all" o vacío
-            if (filters.airline && filters.airline !== "all") {
-                params.append('airline', filters.airline);
-            }
-            if (filters.station) params.append('station', filters.station);
-            if (filters.startDate) params.append('start_date', filters.startDate);
-            if (filters.endDate) params.append('end_date', filters.endDate);
-
-            const response = await axiosInstance.get(`/api/operation-reports?${params}`);
-            setReports(response.data);
+            const response = await axiosInstance.get('/reports/operation-reports-v2');
+            setAllReports(response.data);
         } catch (err) {
-            console.error("Error fetching reports:", err);
             setError("Could not load operation reports. Please try again.");
             setReports([]);
+            setAllReports([]);
         } finally {
             setLoading(false);
         }
     };
 
-    // Función para exportar a Excel
+    // Función para aplicar filtros localmente en el frontend
+    const applyFilters = () => {
+        let filteredReports = [...allReports];
+
+        // Aplicar filtro de compañía usando LLAVE directamente para buscar
+        if (filters.company && filters.company !== "all") {
+            const selectedCompanyLlave = Number(filters.company);
+            filteredReports = filteredReports.filter(report =>
+                report.LLAVE && report.LLAVE === selectedCompanyLlave
+            );
+        }
+
+        // Aplicar filtro de aerolínea usando el campo linea
+        if (filters.airline && filters.airline !== "all") {
+            const selectedAirline = airlines.find(airline => airline.llave.toString() === filters.airline);
+            if (selectedAirline) {
+                const airlineName = selectedAirline.linea;
+                filteredReports = filteredReports.filter(report =>
+                    report.AIRLINE && report.AIRLINE.toLowerCase().includes(airlineName.toLowerCase())
+                );
+            }
+        }
+
+        // Aplicar filtro de estación
+        if (filters.station && filters.station !== "all") {
+            filteredReports = filteredReports.filter(report =>
+                report.STATION && report.STATION.toLowerCase() === filters.station.toLowerCase()
+            );
+        }
+
+        // Aplicar filtro de fecha de inicio
+        if (filters.startDate) {
+            filteredReports = filteredReports.filter(report =>
+                report.DATE && report.DATE >= filters.startDate
+            );
+        }
+
+        // Aplicar filtro de fecha de fin
+        if (filters.endDate) {
+            filteredReports = filteredReports.filter(report =>
+                report.DATE && report.DATE <= filters.endDate
+            );
+        }
+
+        setReports(filteredReports);
+    };
+
+    // Función manual de búsqueda (para el botón)
+    const searchReports = () => {
+        applyFilters();
+    };
+
+    // Función para exportar a Excel (NO incluye LLAVE)
     const exportToExcel = () => {
         const headers = [
-            'Company', 'Airline', 'Date', 'Station', 'AC REG', 'Flight', 'Dest',
-            'Log Book', 'A/C Type', 'Start Time', 'End Time', 'Serv PR', 'On GND',
-            'Serv1', 'Serv2', 'Serv3', 'Serv4', 'Serv5', 'Serv6', 'Remarks', 'Technician'
+            'COMPANY', 'AIRLINE', 'DATE', 'STATION', 'AC REG', 'FLIGTH', 'DEST',
+            'LOG BOOK', 'A/C TYPE', 'START TIME', 'END TIME', 'SERV PR', 'ON GND',
+            'SERV1', 'SERV2', 'SERV3', 'SERV4', 'SERV5', 'SERV6', 'REMARKS', 'TECHNICIAN'
         ];
 
         const data = reports.length > 0 ? reports.map(report => [
-            report.company,
-            report.airline,
-            report.date,
-            report.station,
-            report.acReg,
-            report.flight,
-            report.dest,
-            report.logBook,
-            report.acType,
-            report.startTime,
-            report.endTime,
-            report.servPr,
-            report.onGnd,
-            report.serv1,
-            report.serv2,
-            report.serv3,
-            report.serv4,
-            report.serv5,
-            report.serv6,
-            report.remarks,
-            report.technician || ''
+            report.COMPANY,
+            report.AIRLINE,
+            report.DATE,
+            report.STATION,
+            report.AC_REG,
+            report.FLIGTH,
+            report.DEST,
+            report.LOG_BOOK,
+            report.AC_TYPE,
+            report.START_TIME,
+            report.END_TIME,
+            report.SERV_PR,
+            report.ON_GND,
+            report.SERV1,
+            report.SERV2,
+            report.SERV3,
+            report.SERV4,
+            report.SERV5,
+            report.SERV6,
+            report.REMARKS,
+            report.TECHNICIAN
         ]) : [['No data available']];
 
         const ws = XLSX.utils.aoa_to_sheet([headers, ...data]);
@@ -236,36 +306,36 @@ const OperationReport: React.FC = () => {
         XLSX.writeFile(wb, fileName);
     };
 
-    // Función para exportar a CSV
+    // Función para exportar a CSV (NO incluye LLAVE)
     const exportToCSV = () => {
         const headers = [
-            'Company', 'Airline', 'Date', 'Station', 'AC REG', 'Flight', 'Dest',
-            'Log Book', 'A/C Type', 'Start Time', 'End Time', 'Serv PR', 'On GND',
-            'Serv1', 'Serv2', 'Serv3', 'Serv4', 'Serv5', 'Serv6', 'Remarks', 'Technician'
+            'COMPANY', 'AIRLINE', 'DATE', 'STATION', 'AC REG', 'FLIGTH', 'DEST',
+            'LOG BOOK', 'A/C TYPE', 'START TIME', 'END TIME', 'SERV PR', 'ON GND',
+            'SERV1', 'SERV2', 'SERV3', 'SERV4', 'SERV5', 'SERV6', 'REMARKS', 'TECHNICIAN'
         ];
 
         const csvData = reports.length > 0 ? reports.map(report => [
-            report.company,
-            report.airline,
-            report.date,
-            report.station,
-            report.acReg,
-            report.flight,
-            report.dest,
-            report.logBook,
-            report.acType,
-            report.startTime,
-            report.endTime,
-            report.servPr,
-            report.onGnd,
-            report.serv1,
-            report.serv2,
-            report.serv3,
-            report.serv4,
-            report.serv5,
-            report.serv6,
-            report.remarks,
-            report.technician || ''
+            report.COMPANY,
+            report.AIRLINE,
+            report.DATE,
+            report.STATION,
+            report.AC_REG,
+            report.FLIGTH,
+            report.DEST,
+            report.LOG_BOOK,
+            report.AC_TYPE,
+            report.START_TIME,
+            report.END_TIME,
+            report.SERV_PR,
+            report.ON_GND,
+            report.SERV1,
+            report.SERV2,
+            report.SERV3,
+            report.SERV4,
+            report.SERV5,
+            report.SERV6,
+            report.REMARKS,
+            report.TECHNICIAN
         ]) : [['No data available']];
 
         const csvContent = [headers, ...csvData]
@@ -283,50 +353,45 @@ const OperationReport: React.FC = () => {
         document.body.removeChild(link);
     };
 
-    // Función para exportar a PDF (CORREGIDA)
+    // Función para exportar a PDF (NO incluye LLAVE)
     const exportToPDF = () => {
         try {
-            const doc = new jsPDF('l', 'mm', 'a4'); // landscape orientation
-
-            // Título del reporte
+            const doc = new jsPDF('l', 'mm', 'a4');
             doc.setFontSize(16);
             doc.text('Operations Report', 14, 15);
             doc.setFontSize(10);
             doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 14, 25);
 
-            // Definir las columnas para la tabla
             const columns = [
-                'Company', 'Airline', 'Date', 'Station', 'AC REG', 'Flight', 'Dest',
-                'Log Book', 'A/C Type', 'Start Time', 'End Time', 'Serv PR', 'On GND',
-                'Serv1', 'Serv2', 'Serv3', 'Serv4', 'Serv5', 'Serv6', 'Remarks', 'Technician'
+                'COMPANY', 'AIRLINE', 'DATE', 'STATION', 'AC REG', 'FLIGTH', 'DEST',
+                'LOG BOOK', 'A/C TYPE', 'START TIME', 'END TIME', 'SERV PR', 'ON GND',
+                'SERV1', 'SERV2', 'SERV3', 'SERV4', 'SERV5', 'SERV6', 'REMARKS', 'TECHNICIAN'
             ];
 
-            // Preparar los datos
             const tableData = reports.length > 0 ? reports.map(report => [
-                report.company || '',
-                report.airline || '',
-                report.date || '',
-                report.station || '',
-                report.acReg || '',
-                report.flight || '',
-                report.dest || '',
-                report.logBook || '',
-                report.acType || '',
-                report.startTime || '',
-                report.endTime || '',
-                report.servPr || '',
-                report.onGnd || '',
-                report.serv1 || '',
-                report.serv2 || '',
-                report.serv3 || '',
-                report.serv4 || '',
-                report.serv5 || '',
-                report.serv6 || '',
-                report.remarks || '',
-                report.technician || ''
+                report.COMPANY || '',
+                report.AIRLINE || '',
+                report.DATE || '',
+                report.STATION || '',
+                report.AC_REG || '',
+                report.FLIGTH || '',
+                report.DEST || '',
+                report.LOG_BOOK || '',
+                report.AC_TYPE || '',
+                report.START_TIME || '',
+                report.END_TIME || '',
+                report.SERV_PR || '',
+                report.ON_GND || '',
+                report.SERV1 || '',
+                report.SERV2 || '',
+                report.SERV3 || '',
+                report.SERV4 || '',
+                report.SERV5 || '',
+                report.SERV6 || '',
+                report.REMARKS || '',
+                report.TECHNICIAN || ''
             ]) : [['No data available', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '']];
 
-            // Usar autoTable correctamente importado
             autoTable(doc, {
                 head: [columns],
                 body: tableData,
@@ -345,37 +410,34 @@ const OperationReport: React.FC = () => {
                 margin: { top: 35, left: 14, right: 14 },
                 theme: 'striped',
                 columnStyles: {
-                    0: { cellWidth: 15 }, // Company
-                    1: { cellWidth: 15 }, // Airline
-                    2: { cellWidth: 12 }, // Date
-                    3: { cellWidth: 10 }, // Station
-                    4: { cellWidth: 12 }, // AC REG
-                    5: { cellWidth: 10 }, // Flight
-                    6: { cellWidth: 10 }, // Dest
-                    7: { cellWidth: 12 }, // Log Book
-                    8: { cellWidth: 12 }, // A/C Type
-                    9: { cellWidth: 12 }, // Start Time
-                    10: { cellWidth: 12 }, // End Time
-                    11: { cellWidth: 10 }, // Serv PR
-                    12: { cellWidth: 10 }, // On GND
-                    13: { cellWidth: 8 }, // Serv1
-                    14: { cellWidth: 8 }, // Serv2
-                    15: { cellWidth: 8 }, // Serv3
-                    16: { cellWidth: 8 }, // Serv4
-                    17: { cellWidth: 8 }, // Serv5
-                    18: { cellWidth: 8 }, // Serv6
-                    19: { cellWidth: 15 }, // Remarks
-                    20: { cellWidth: 12 }, // Technician
+                    0: { cellWidth: 15 },
+                    1: { cellWidth: 15 },
+                    2: { cellWidth: 12 },
+                    3: { cellWidth: 10 },
+                    4: { cellWidth: 12 },
+                    5: { cellWidth: 10 },
+                    6: { cellWidth: 10 },
+                    7: { cellWidth: 12 },
+                    8: { cellWidth: 12 },
+                    9: { cellWidth: 12 },
+                    10: { cellWidth: 12 },
+                    11: { cellWidth: 10 },
+                    12: { cellWidth: 10 },
+                    13: { cellWidth: 8 },
+                    14: { cellWidth: 8 },
+                    15: { cellWidth: 8 },
+                    16: { cellWidth: 8 },
+                    17: { cellWidth: 8 },
+                    18: { cellWidth: 8 },
+                    19: { cellWidth: 15 },
+                    20: { cellWidth: 12 },
                 }
             });
 
-            // Guardar el PDF
             const fileName = `operations_report_${new Date().toISOString().split('T')[0]}.pdf`;
             doc.save(fileName);
         } catch (error) {
             console.error('Error generating PDF:', error);
-
-            // Función alternativa si falla autoTable
             const doc = new jsPDF('l', 'mm', 'a4');
             doc.setFontSize(20);
             doc.text('Operations Report', 14, 22);
@@ -388,11 +450,11 @@ const OperationReport: React.FC = () => {
             if (reports.length === 0) {
                 doc.text('No data available', 14, yPosition);
             } else {
-                doc.text('Company | Airline | Date | Station | Flight', 14, yPosition);
+                doc.text('COMPANY | AIRLINE | DATE | STATION | FLIGTH', 14, yPosition);
                 yPosition += 10;
 
                 reports.forEach((report, index) => {
-                    const line = `${report.company || 'N/A'} | ${report.airline || 'N/A'} | ${report.date || 'N/A'} | ${report.station || 'N/A'} | ${report.flight || 'N/A'}`;
+                    const line = `${report.COMPANY || 'N/A'} | ${report.AIRLINE || 'N/A'} | ${report.DATE || 'N/A'} | ${report.STATION || 'N/A'} | ${report.FLIGTH || 'N/A'}`;
                     doc.text(line, 14, yPosition);
                     yPosition += 8;
                     if (yPosition > 180) {
@@ -429,7 +491,7 @@ const OperationReport: React.FC = () => {
                 {/* Filtros de búsqueda */}
                 <div className="bg-[#16213E] p-6 rounded-lg shadow-lg mb-6">
                     <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-4">
-                        {/* Company Dropdown - Ya tiene el formato CODE - NAME */}
+                        {/* Company Dropdown */}
                         <div>
                             <label className="block text-sm font-medium text-gray-300 mb-1">Company</label>
                             {companiesLoading ? (
@@ -441,13 +503,12 @@ const OperationReport: React.FC = () => {
                                     className="w-full bg-[#1E2A45] text-white px-3 py-2 rounded-md border border-gray-700 focus:border-[#00B140] focus:ring-2 focus:ring-[#00B140] focus:outline-none"
                                     value={filters.company}
                                     onChange={(e) => {
-                                        // Resetear el valor de aerolínea al cambiar de compañía
-                                        setFilters({ ...filters, company: e.target.value, airline: "" });
+                                        setFilters({ ...filters, company: e.target.value, airline: "all" });
                                     }}
                                 >
-                                    <option value="">Select a company</option>
+                                    <option value="all">All Companies</option>
                                     {companies.map((company) => (
-                                        <option key={company.companyCode} value={`${company.companyCode} - ${company.companyName}`}>
+                                        <option key={company.Llave} value={company.Llave}>
                                             {company.companyCode} - {company.companyName}
                                         </option>
                                     ))}
@@ -455,7 +516,7 @@ const OperationReport: React.FC = () => {
                             )}
                         </div>
 
-                        {/* Airline Dropdown - Ahora con formato llave - nombre */}
+                        {/* Airline Dropdown */}
                         <div>
                             <label className="block text-sm font-medium text-gray-300 mb-1">Airline</label>
                             {airlinesLoading ? (
@@ -467,20 +528,19 @@ const OperationReport: React.FC = () => {
                                     className="w-full bg-[#1E2A45] text-white px-3 py-2 rounded-md border border-gray-700 focus:border-[#00B140] focus:ring-2 focus:ring-[#00B140] focus:outline-none"
                                     value={filters.airline}
                                     onChange={(e) => setFilters({ ...filters, airline: e.target.value })}
-                                    disabled={!filters.company} // Deshabilitar si no hay compañía seleccionada
+                                    disabled={!filters.company || filters.company === "all"}
                                 >
-                                    <option value="">Select an airline</option>
                                     <option value="all">All Airlines</option>
                                     {airlines.map((airline) => (
                                         <option key={airline.llave} value={airline.llave}>
-                                            {airline.llave} - {airline.comercial || airline.nombre || `Airline #${airline.llave}`}
+                                            {airline.linea} - {airline.nombre || `Airline #${airline.llave}`}
                                         </option>
                                     ))}
                                 </select>
                             )}
                         </div>
 
-                        {/* Station Dropdown - Ahora con formato CODE - CODE */}
+                        {/* Station Dropdown */}
                         <div>
                             <label className="block text-sm font-medium text-gray-300 mb-1">Station</label>
                             {stationsLoading ? (
@@ -493,10 +553,10 @@ const OperationReport: React.FC = () => {
                                     value={filters.station}
                                     onChange={(e) => setFilters({ ...filters, station: e.target.value })}
                                 >
-                                    <option value="">Select a station</option>
+                                    <option value="all">All Stations</option>
                                     {stations.map((station) => (
                                         <option key={station} value={station}>
-                                            {station} - {station}
+                                            {station}
                                         </option>
                                     ))}
                                 </select>
@@ -552,7 +612,7 @@ const OperationReport: React.FC = () => {
                                 onClick={exportToCSV}
                             >
                                 <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
+                                    <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 011.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
                                 </svg>
                                 Export CSV
                             </button>
@@ -575,65 +635,71 @@ const OperationReport: React.FC = () => {
                     </div>
                 )}
 
-                {/* Tabla de resultados */}
+                {/* Información de resultados */}
+                <div className="mb-4 text-white">
+                    <p>Total records: {allReports.length} | Filtered records: {reports.length}</p>
+                </div>
+
+                {/* Tabla de resultados - LLAVE NO se muestra */}
                 <div className="overflow-x-auto">
                     <table className="w-full border-collapse text-xs text-white">
                         <thead>
                             <tr className="bg-white text-[#002057]">
-                                <th className="p-2">Company</th>
-                                <th className="p-2">Airline</th>
-                                <th className="p-2">Date</th>
-                                <th className="p-2">Station</th>
+                                <th className="p-2">COMPANY</th>
+                                <th className="p-2">AIRLINE</th>
+                                <th className="p-2">DATE</th>
+                                <th className="p-2">STATION</th>
                                 <th className="p-2">AC REG</th>
-                                <th className="p-2">Flight</th>
-                                <th className="p-2">Dest</th>
-                                <th className="p-2">Log Book</th>
-                                <th className="p-2">A/C Type</th>
-                                <th className="p-2">Start Time</th>
-                                <th className="p-2">End Time</th>
-                                <th className="p-2">Serv PR</th>
-                                <th className="p-2">On GND</th>
-                                <th className="p-2">Serv1</th>
-                                <th className="p-2">Serv2</th>
-                                <th className="p-2">Serv3</th>
-                                <th className="p-2">Serv4</th>
-                                <th className="p-2">Serv5</th>
-                                <th className="p-2">Serv6</th>
-                                <th className="p-2">Remarks</th>
-                                <th className="p-2">Technician</th>
+                                <th className="p-2">FLIGTH</th>
+                                <th className="p-2">DEST</th>
+                                <th className="p-2">LOG BOOK</th>
+                                <th className="p-2">A/C TYPE</th>
+                                <th className="p-2">START TIME</th>
+                                <th className="p-2">END TIME</th>
+                                <th className="p-2">SERV PR</th>
+                                <th className="p-2">ON GND</th>
+                                <th className="p-2">SERV1</th>
+                                <th className="p-2">SERV2</th>
+                                <th className="p-2">SERV3</th>
+                                <th className="p-2">SERV4</th>
+                                <th className="p-2">SERV5</th>
+                                <th className="p-2">SERV6</th>
+                                <th className="p-2">REMARKS</th>
+                                <th className="p-2">TECHNICIAN</th>
                             </tr>
                         </thead>
                         <tbody className="bg-transparent">
                             {reports.length > 0 ? (
                                 reports.map((item, index) => (
                                     <tr key={index} className="border-b border-[#233554] hover:bg-[#233554] transition-colors">
-                                        <td className="p-2">{item.company}</td>
-                                        <td className="p-2">{item.airline}</td>
-                                        <td className="p-2">{item.date}</td>
-                                        <td className="p-2">{item.station}</td>
-                                        <td className="p-2">{item.acReg}</td>
-                                        <td className="p-2">{item.flight}</td>
-                                        <td className="p-2">{item.dest}</td>
-                                        <td className="p-2">{item.logBook}</td>
-                                        <td className="p-2">{item.acType}</td>
-                                        <td className="p-2">{item.startTime}</td>
-                                        <td className="p-2">{item.endTime}</td>
-                                        <td className="p-2">{item.servPr}</td>
-                                        <td className="p-2">{item.onGnd}</td>
-                                        <td className="p-2">{item.serv1}</td>
-                                        <td className="p-2">{item.serv2}</td>
-                                        <td className="p-2">{item.serv3}</td>
-                                        <td className="p-2">{item.serv4}</td>
-                                        <td className="p-2">{item.serv5}</td>
-                                        <td className="p-2">{item.serv6}</td>
-                                        <td className="p-2">{item.remarks}</td>
-                                        <td className="p-2">{item.technician}</td>
+                                        <td className="p-2">{item.COMPANY || 'N/A'}</td>
+                                        <td className="p-2">{item.AIRLINE || 'N/A'}</td>
+                                        <td className="p-2">{item.DATE || 'N/A'}</td>
+                                        <td className="p-2">{item.STATION || 'N/A'}</td>
+                                        <td className="p-2">{item.AC_REG || 'N/A'}</td>
+                                        <td className="p-2">{item.FLIGTH || 'N/A'}</td>
+                                        <td className="p-2">{item.DEST || 'N/A'}</td>
+                                        <td className="p-2">{item.LOG_BOOK || 'N/A'}</td>
+                                        <td className="p-2">{item.AC_TYPE || 'N/A'}</td>
+                                        <td className="p-2">{item.START_TIME || 'N/A'}</td>
+                                        <td className="p-2">{item.END_TIME || 'N/A'}</td>
+                                        <td className="p-2">{item.SERV_PR || 'N/A'}</td>
+                                        <td className="p-2">{item.ON_GND || 'N/A'}</td>
+                                        <td className="p-2">{item.SERV1 || 'N/A'}</td>
+                                        <td className="p-2">{item.SERV2 || 'N/A'}</td>
+                                        <td className="p-2">{item.SERV3 || 'N/A'}</td>
+                                        <td className="p-2">{item.SERV4 || 'N/A'}</td>
+                                        <td className="p-2">{item.SERV5 || 'N/A'}</td>
+                                        <td className="p-2">{item.SERV6 || 'N/A'}</td>
+                                        <td className="p-2">{item.REMARKS || 'N/A'}</td>
+                                        <td className="p-2">{item.TECHNICIAN || 'N/A'}</td>
+                                        {/* LLAVE NO se muestra en la tabla */}
                                     </tr>
                                 ))
                             ) : (
                                 <tr>
                                     <td colSpan={21} className="p-4 text-center">
-                                        No operation reports found. Please search to view results.
+                                        {allReports.length === 0 ? 'No operation reports available.' : 'No operation reports match the current filters.'}
                                     </td>
                                 </tr>
                             )}

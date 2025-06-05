@@ -200,3 +200,49 @@ class OperationReport(Base):
     fecha = Column(DateTime)
     work_order = Column(String)
     tecnico_asignado = Column(String)
+
+# Nuevos modelos para el query específico
+class DBSaleVuelo(Base):
+    __tablename__ = "DBSaleVuelo"
+    id = Column(Integer, primary_key=True, index=True)
+    linea = Column(String(100))
+    fecha = Column(String(50))
+    station = Column(String(10))
+    matricula = Column(String(20))
+    vuelo = Column(String(20))
+    destino = Column(String(10))
+    bitacora = Column(String(50))
+    tipoAvion = Column(String(20))
+    eta = Column(Integer)
+    etd = Column(Integer)
+    servcio = Column(String(50))
+    remarks = Column(Text)
+    supervisor = Column(String(100))
+    companyCode = Column(String(10))
+
+class DBTableCompanyCode(Base):
+    __tablename__ = "DBTableCompanyCode"
+    llave = Column(Integer, primary_key=True, index=True)
+    companyCode = Column(String(10))
+    razonSocial = Column(String(200))
+    comercial = Column(String(100))
+    tipoPersona = Column(String(50))
+    moneda = Column(String(5))
+    producto = Column(String(50))
+    estatus = Column(Integer)
+    usuarioRegistro = Column(String(40))
+    fechaRegistro = Column(Integer)
+    horaRegistro = Column(Integer)
+    rfc = Column(String(25))
+
+class DBTableAirlineCode(Base):
+    __tablename__ = "DBTableAirlineCode"
+    llave = Column(Integer, primary_key=True, index=True)
+    linea = Column(String(100))
+    nombre = Column(String(100))
+    callSign = Column(String(100))
+    pais = Column(String(100))
+    companyCode = Column(String(10))
+    keyObjectId = Column(String(25))
+    objectKeyValue = Column(String(25))
+    objectKeyIndex = Column(Integer)

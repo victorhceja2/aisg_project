@@ -7,31 +7,49 @@ import autoTable from 'jspdf-autotable';
 import AISGBackground from "../catalogs/fondo";
 
 interface OperationRow {
-    company: string;
-    airline: string;
-    date: string;
-    station: string;
-    ac_reg: string;
-    fligth: string;
-    ac_type: string;
-    start_time: string;
-    end_time: string;
-    on_gnd: string;
-    service: string;
-    work_reference: string;
-    technician: string;
+    COMPANY: string;
+    LLAVE: number | string;
+    AIRLINE: string;
+    DATE: string;
+    STATION: string;
+    AC_REG: string;
+    FLIGHT: string;
+    AC_TYPE: string;
+    START_TIME: string;
+    END_TIME: string;
+    ON_GND: string;
+    SERVICE: string;
+    WORK_REFERENCE: string;
+    TECHNICIAN: string;
 }
 
 interface Company {
     companyCode: string;
     companyName: string;
+    MonedaEmpresa: string;
+    RFC_En_Company: string;
+    RazonSocial_En_CompanyCode: string;
+    NombreComercial: string;
+    TipoPersona: string;
+    MonedaEnCompanyCode: string;
+    Producto: string;
+    Estatus: string;
+    UsuarioRegistro: string;
+    FechaRegistro: string;
+    HoraRegistro: string;
+    Llave: number | string;
 }
 
-interface Client {
+interface Airline {
     llave: number;
+    linea: string;
     nombre: string;
-    comercial: string;
-    razonSocial: string;
+    callSign: string;
+    pais: string;
+    companyCode: string;
+    keyObjectId: string;
+    objectKeyValue: string;
+    objectKeyIndex: number;
 }
 
 /**
@@ -40,20 +58,21 @@ interface Client {
  */
 const OperationService: React.FC = () => {
     const [filters, setFilters] = useState({
-        company: "",
-        airline: "",
-        station: "",
+        company: "all",
+        airline: "all",
+        station: "all",
         startDate: "",
         endDate: "",
     });
     
     const [data, setData] = useState<OperationRow[]>([]);
+    const [allData, setAllData] = useState<OperationRow[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
     // Estados para los dropdowns
     const [companies, setCompanies] = useState<Company[]>([]);
-    const [airlines, setAirlines] = useState<Client[]>([]);
+    const [airlines, setAirlines] = useState<Airline[]>([]);
     const [stations, setStations] = useState<string[]>([]);
     
     // Estados de carga para los dropdowns
@@ -61,28 +80,62 @@ const OperationService: React.FC = () => {
     const [airlinesLoading, setAirlinesLoading] = useState(false);
     const [stationsLoading, setStationsLoading] = useState(true);
 
+    // Función de ordenamiento alfabético personalizado
+    const customAlphabeticalSort = (a: string, b: string) => {
+        const aUpper = a.toUpperCase();
+        const bUpper = b.toUpperCase();
+        const aStartsWithNumber = /^[0-9]/.test(aUpper);
+        const bStartsWithNumber = /^[0-9]/.test(bUpper);
+        if (aStartsWithNumber && !bStartsWithNumber) return -1;
+        if (!aStartsWithNumber && bStartsWithNumber) return 1;
+        return aUpper.localeCompare(bUpper, 'en', { numeric: true });
+    };
+
     // Cargar companies y stations al montar el componente (no airlines inicialmente)
     useEffect(() => {
-        fetchCompanies();
-        fetchStations();
+        const initializeData = async () => {
+            await fetchCompanies();
+            await fetchStations();
+            await loadAllServicesReports();
+        };
+        initializeData();
     }, []);
 
     // Effect para cargar aerolíneas cuando cambia la compañía seleccionada
     useEffect(() => {
-        if (filters.company) {
+        if (filters.company && filters.company !== "all") {
             fetchAirlinesByCompany(filters.company);
         } else {
-            // Si no hay compañía seleccionada, limpiar la lista de aerolíneas
             setAirlines([]);
+            setFilters(prev => ({ ...prev, airline: "all" }));
         }
     }, [filters.company]);
+
+    // Aplicar filtros automáticamente cuando cambian los datos o filtros
+    useEffect(() => {
+        if (allData.length > 0) {
+            applyFilters();
+        }
+    }, [allData, filters]);
 
     // Función para obtener companies
     const fetchCompanies = async () => {
         try {
             setCompaniesLoading(true);
             const response = await axiosInstance.get('/companies/');
-            setCompanies(response.data);
+            const sortedCompanies = [...response.data].sort((a, b) =>
+                customAlphabeticalSort(a.companyName, b.companyName)
+            );
+            setCompanies(sortedCompanies);
+
+            // Mantener "all" por defecto
+            if (sortedCompanies.length > 0 && filters.company === "all") {
+                setFilters(prev => ({
+                    ...prev,
+                    company: "all",
+                    airline: "all"
+                }));
+            }
         } catch (err) {
             console.error("Error loading companies:", err);
         } finally {
@@ -90,24 +143,36 @@ const OperationService: React.FC = () => {
         }
     };
 
-    // Función para obtener aerolíneas filtradas por compañía y ordenadas alfabéticamente
-    const fetchAirlinesByCompany = async (companyValue: string) => {
+    // Función para obtener aerolíneas filtradas por compañía
+    const fetchAirlinesByCompany = async (companyLlave: string) => {
         try {
             setAirlinesLoading(true);
-            // Extraer el código de compañía (formato esperado: "CODE - Name")
-            const companyCode = companyValue.split(' - ')[0];
+            // Buscar el companyCode correspondiente a la llave seleccionada
+            const selectedCompany = companies.find(c => String(c.Llave) === companyLlave);
+            const companyCode = selectedCompany ? selectedCompany.companyCode : "";
             
-            // Obtener aerolíneas filtradas por compañía
-            const response = await axiosInstance.get(`/catalog/clients?tipoCliente=1&companyCode=${companyCode}`);
+            // Usar el endpoint de airlines
+            const response = await axiosInstance.get('/companies/airlines');
             
-            // Ordenar alfabéticamente por nombre comercial o nombre
-            const sortedAirlines = [...(response.data || [])].sort((a, b) => {
-                const nameA = (a.comercial || a.nombre || '').toUpperCase();
-                const nameB = (b.comercial || b.nombre || '').toUpperCase();
-                return nameA.localeCompare(nameB);
+            // Filtrar por companyCode si se seleccionó una compañía específica
+            let filteredAirlines = response.data || [];
+            if (companyCode) {
+                filteredAirlines = filteredAirlines.filter((airline: Airline) => 
+                    airline.companyCode === companyCode
+                );
+            }
+            
+            const sortedAirlines = [...filteredAirlines].sort((a, b) => {
+                const nameA = a.linea || a.nombre || '';
+                const nameB = b.linea || b.nombre || '';
+                return customAlphabeticalSort(nameA, nameB);
             });
-            
             setAirlines(sortedAirlines);
+
+            // Mantener "all" por defecto
+            if (!filters.airline) {
+                setFilters(prev => ({ ...prev, airline: "all" }));
+            }
         } catch (err) {
             console.error("Error loading airlines for company:", err);
             setAirlines([]);
@@ -120,11 +185,12 @@ const OperationService: React.FC = () => {
     const fetchStations = async () => {
         try {
             setStationsLoading(true);
-            // Stations comunes en aeropuertos ordenadas alfabéticamente
-            setStations([
+            const stationsList = [
                 "GDL", "MEX", "CUN", "TIJ", "PVR", "SJD", "MTY", "BJX", 
                 "LAX", "DFW", "MIA", "JFK", "ORD", "ATL", "DEN", "PHX"
-            ].sort());
+            ];
+            const sortedStations = [...stationsList].sort(customAlphabeticalSort);
+            setStations(sortedStations);
         } catch (err) {
             console.error("Error loading stations:", err);
         } finally {
@@ -132,32 +198,72 @@ const OperationService: React.FC = () => {
         }
     };
 
-    // Función para buscar datos desde la API
-    const searchOperationServices = async () => {
+    // Función para cargar todos los datos del backend (sin parámetros)
+    const loadAllServicesReports = async () => {
         try {
             setLoading(true);
             setError(null);
-            
-            // Construir los parámetros de consulta
-            const params = new URLSearchParams();
-            if (filters.company) params.append('company', filters.company);
-            // Solo agregar airline si no es "all" o vacío
-            if (filters.airline && filters.airline !== "all") {
-                params.append('airline', filters.airline);
-            }
-            if (filters.station) params.append('station', filters.station);
-            if (filters.startDate) params.append('start_date', filters.startDate);
-            if (filters.endDate) params.append('end_date', filters.endDate);
-            
-            const response = await axiosInstance.get(`/api/operation-services?${params}`);
-            setData(response.data);
+
+            const response = await axiosInstance.get('/reports/services-reports');
+            setAllData(response.data);
         } catch (err) {
-            console.error("Error fetching operation services:", err);
-            setError("Could not load operation services. Please try again.");
+            setError("Could not load services reports. Please try again.");
             setData([]);
+            setAllData([]);
         } finally {
             setLoading(false);
         }
+    };
+
+    // Función para aplicar filtros localmente en el frontend
+    const applyFilters = () => {
+        let filteredReports = [...allData];
+
+        // Aplicar filtro de compañía usando LLAVE
+        if (filters.company && filters.company !== "all") {
+            filteredReports = filteredReports.filter(report =>
+                report.LLAVE && String(report.LLAVE) === filters.company
+            );
+        }
+
+        // Aplicar filtro de aerolínea usando el campo linea
+        if (filters.airline && filters.airline !== "all") {
+            const selectedAirline = airlines.find(airline => airline.llave.toString() === filters.airline);
+            if (selectedAirline) {
+                const airlineName = selectedAirline.linea;
+                filteredReports = filteredReports.filter(report =>
+                    report.AIRLINE && report.AIRLINE.toLowerCase().includes(airlineName.toLowerCase())
+                );
+            }
+        }
+
+        // Aplicar filtro de estación
+        if (filters.station && filters.station !== "all") {
+            filteredReports = filteredReports.filter(report =>
+                report.STATION && report.STATION.toLowerCase() === filters.station.toLowerCase()
+            );
+        }
+
+        // Aplicar filtro de fecha de inicio
+        if (filters.startDate) {
+            filteredReports = filteredReports.filter(report =>
+                report.DATE && report.DATE >= filters.startDate
+            );
+        }
+
+        // Aplicar filtro de fecha de fin
+        if (filters.endDate) {
+            filteredReports = filteredReports.filter(report =>
+                report.DATE && report.DATE <= filters.endDate
+            );
+        }
+
+        setData(filteredReports);
+    };
+
+    // Función manual de búsqueda (para el botón)
+    const searchOperationServices = () => {
+        applyFilters();
     };
 
     // Función para exportar a Excel
@@ -168,19 +274,19 @@ const OperationService: React.FC = () => {
         ];
 
         const exportData = data.length > 0 ? data.map(row => [
-            row.company,
-            row.airline,
-            row.date,
-            row.station,
-            row.ac_reg,
-            row.fligth,
-            row.ac_type,
-            row.start_time,
-            row.end_time,
-            row.on_gnd,
-            row.service,
-            row.work_reference,
-            row.technician
+            row.COMPANY,
+            row.AIRLINE,
+            row.DATE,
+            row.STATION,
+            row.AC_REG,
+            row.FLIGHT,
+            row.AC_TYPE,
+            row.START_TIME,
+            row.END_TIME,
+            row.ON_GND,
+            row.SERVICE,
+            row.WORK_REFERENCE,
+            row.TECHNICIAN
         ]) : [['No data available']];
 
         const ws = XLSX.utils.aoa_to_sheet([headers, ...exportData]);
@@ -199,19 +305,19 @@ const OperationService: React.FC = () => {
         ];
 
         const csvData = data.length > 0 ? data.map(row => [
-            row.company,
-            row.airline,
-            row.date,
-            row.station,
-            row.ac_reg,
-            row.fligth,
-            row.ac_type,
-            row.start_time,
-            row.end_time,
-            row.on_gnd,
-            row.service,
-            row.work_reference,
-            row.technician
+            row.COMPANY,
+            row.AIRLINE,
+            row.DATE,
+            row.STATION,
+            row.AC_REG,
+            row.FLIGHT,
+            row.AC_TYPE,
+            row.START_TIME,
+            row.END_TIME,
+            row.ON_GND,
+            row.SERVICE,
+            row.WORK_REFERENCE,
+            row.TECHNICIAN
         ]) : [['No data available']];
 
         const csvContent = [headers, ...csvData]
@@ -248,19 +354,19 @@ const OperationService: React.FC = () => {
 
             // Preparar los datos
             const tableData = data.length > 0 ? data.map(row => [
-                row.company || '',
-                row.airline || '',
-                row.date || '',
-                row.station || '',
-                row.ac_reg || '',
-                row.fligth || '',
-                row.ac_type || '',
-                row.start_time || '',
-                row.end_time || '',
-                row.on_gnd || '',
-                row.service || '',
-                row.work_reference || '',
-                row.technician || ''
+                row.COMPANY || '',
+                row.AIRLINE || '',
+                row.DATE || '',
+                row.STATION || '',
+                row.AC_REG || '',
+                row.FLIGHT || '',
+                row.AC_TYPE || '',
+                row.START_TIME || '',
+                row.END_TIME || '',
+                row.ON_GND || '',
+                row.SERVICE || '',
+                row.WORK_REFERENCE || '',
+                row.TECHNICIAN || ''
             ]) : [['No data available', '', '', '', '', '', '', '', '', '', '', '', '']];
 
             // Usar autoTable
@@ -321,7 +427,7 @@ const OperationService: React.FC = () => {
                 yPosition += 10;
                 
                 data.forEach((row, index) => {
-                    const line = `${row.company || 'N/A'} | ${row.airline || 'N/A'} | ${row.date || 'N/A'} | ${row.station || 'N/A'} | ${row.service || 'N/A'} | ${row.technician || 'N/A'}`;
+                    const line = `${row.COMPANY || 'N/A'} | ${row.AIRLINE || 'N/A'} | ${row.DATE || 'N/A'} | ${row.STATION || 'N/A'} | ${row.SERVICE || 'N/A'} | ${row.TECHNICIAN || 'N/A'}`;
                     doc.text(line, 14, yPosition);
                     yPosition += 8;
                     if (yPosition > 180) {
@@ -376,13 +482,12 @@ const OperationService: React.FC = () => {
                                         className="w-full bg-[#1E2A45] text-white px-3 py-2 rounded-md border border-gray-700 focus:border-[#00B140] focus:ring-2 focus:ring-[#00B140] focus:outline-none"
                                         value={filters.company}
                                         onChange={(e) => {
-                                            // Resetear el valor de aerolínea al cambiar de compañía
-                                            setFilters({ ...filters, company: e.target.value, airline: "" });
+                                            setFilters({ ...filters, company: e.target.value, airline: "all" });
                                         }}
                                     >
-                                        <option value="">Select a company</option>
+                                        <option value="all">All Companies</option>
                                         {companies.map((company) => (
-                                            <option key={company.companyCode} value={`${company.companyCode} - ${company.companyName}`}>
+                                            <option key={company.Llave} value={company.Llave}>
                                                 {company.companyCode} - {company.companyName}
                                             </option>
                                         ))}
@@ -402,13 +507,12 @@ const OperationService: React.FC = () => {
                                         className="w-full bg-[#1E2A45] text-white px-3 py-2 rounded-md border border-gray-700 focus:border-[#00B140] focus:ring-2 focus:ring-[#00B140] focus:outline-none"
                                         value={filters.airline}
                                         onChange={(e) => setFilters({ ...filters, airline: e.target.value })}
-                                        disabled={!filters.company} // Deshabilitar si no hay compañía seleccionada
+                                        disabled={!filters.company || filters.company === "all"}
                                     >
-                                        <option value="">Select an airline</option>
                                         <option value="all">All Airlines</option>
                                         {airlines.map((airline) => (
                                             <option key={airline.llave} value={airline.llave}>
-                                                {airline.llave} - {airline.comercial || airline.nombre || `Airline #${airline.llave}`}
+                                                {airline.linea} - {airline.nombre || `Airline #${airline.llave}`}
                                             </option>
                                         ))}
                                     </select>
@@ -428,10 +532,10 @@ const OperationService: React.FC = () => {
                                         value={filters.station}
                                         onChange={(e) => setFilters({ ...filters, station: e.target.value })}
                                     >
-                                        <option value="">Select a station</option>
+                                        <option value="all">All Stations</option>
                                         {stations.map((station) => (
                                             <option key={station} value={station}>
-                                                {station} - {station}
+                                                {station}
                                             </option>
                                         ))}
                                     </select>
@@ -513,6 +617,11 @@ const OperationService: React.FC = () => {
                         </div>
                     )}
 
+                    {/* Información de resultados */}
+                    <div className="mb-4 text-white">
+                        <p>Total records: {allData.length} | Filtered records: {data.length}</p>
+                    </div>
+
                     {/* Tabla de resultados */}
                     <div className="rounded-lg shadow-lg overflow-x-auto bg-[#1E2A45]">
                         <table className="min-w-full table-auto text-xs">
@@ -534,30 +643,30 @@ const OperationService: React.FC = () => {
                                 </tr>
                             </thead>
                             <tbody className="bg-transparent">
-                                {data.length === 0 && !loading ? (
-                                    <tr>
-                                        <td colSpan={13} className="text-center py-8 text-gray-400">
-                                            No operation services found. Please search to view results.
-                                        </td>
-                                    </tr>
-                                ) : (
+                                {data.length > 0 ? (
                                     data.map((row, idx) => (
                                         <tr key={idx} className="border-b border-[#233554] hover:bg-[#233554] transition-colors">
-                                            <td className="p-2 text-white">{row.company}</td>
-                                            <td className="p-2 text-white">{row.airline}</td>
-                                            <td className="p-2 text-white">{row.date}</td>
-                                            <td className="p-2 text-white">{row.station}</td>
-                                            <td className="p-2 text-white">{row.ac_reg}</td>
-                                            <td className="p-2 text-white">{row.fligth}</td>
-                                            <td className="p-2 text-white">{row.ac_type}</td>
-                                            <td className="p-2 text-white">{row.start_time}</td>
-                                            <td className="p-2 text-white">{row.end_time}</td>
-                                            <td className="p-2 text-white">{row.on_gnd}</td>
-                                            <td className="p-2 text-white">{row.service}</td>
-                                            <td className="p-2 text-white">{row.work_reference}</td>
-                                            <td className="p-2 text-white">{row.technician}</td>
+                                            <td className="p-2 text-white">{row.COMPANY || 'N/A'}</td>
+                                            <td className="p-2 text-white">{row.AIRLINE || 'N/A'}</td>
+                                            <td className="p-2 text-white">{row.DATE || 'N/A'}</td>
+                                            <td className="p-2 text-white">{row.STATION || 'N/A'}</td>
+                                            <td className="p-2 text-white">{row.AC_REG || 'N/A'}</td>
+                                            <td className="p-2 text-white">{row.FLIGHT || 'N/A'}</td>
+                                            <td className="p-2 text-white">{row.AC_TYPE || 'N/A'}</td>
+                                            <td className="p-2 text-white">{row.START_TIME || 'N/A'}</td>
+                                            <td className="p-2 text-white">{row.END_TIME || 'N/A'}</td>
+                                            <td className="p-2 text-white">{row.ON_GND || 'N/A'}</td>
+                                            <td className="p-2 text-white">{row.SERVICE || 'N/A'}</td>
+                                            <td className="p-2 text-white">{row.WORK_REFERENCE || 'N/A'}</td>
+                                            <td className="p-2 text-white">{row.TECHNICIAN || 'N/A'}</td>
                                         </tr>
                                     ))
+                                ) : (
+                                    <tr>
+                                        <td colSpan={13} className="text-center py-8 text-gray-400">
+                                            {allData.length === 0 ? 'No operation services available.' : 'No operation services match the current filters.'}
+                                        </td>
+                                    </tr>
                                 )}
                             </tbody>
                         </table>

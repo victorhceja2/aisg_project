@@ -263,15 +263,14 @@ const CatalogServiceInclude: React.FC = () => {
     setIsDeleting(true);
     
     // Verificar si el service include está siendo utilizado
-    const { inUse, records } = await checkServiceIncludeUsage(id);
+    const { inUse } = await checkServiceIncludeUsage(id);
     
     setIsDeleting(false);
     
     if (inUse) {
-      // Mostrar popup de error con la lista de registros que lo utilizan
-      setDependentRecords(records);
+      // Mostrar popup de error simplificado
       setDeleteErrorMessage(
-        `Cannot delete service include "${name}" because it is being used by ${records.length} record(s) in the system.`
+        `Cannot delete service include "${name}" because it is currently being used in the system.`
       );
       setShowDeleteError(true);
       return;
@@ -295,13 +294,12 @@ const CatalogServiceInclude: React.FC = () => {
     setIsDeleting(true);
     try {
       // Verificar una vez más antes de eliminar
-      const { inUse, records } = await checkServiceIncludeUsage(itemToDelete.id);
+      const { inUse } = await checkServiceIncludeUsage(itemToDelete.id);
       
       if (inUse) {
-        // Si ahora está en uso, mostrar error
-        setDependentRecords(records);
+        // Si ahora está en uso, mostrar error simplificado
         setDeleteErrorMessage(
-          `Cannot delete service include "${itemToDelete.name}" because it is being used by ${records.length} record(s) in the system.`
+          `Cannot delete service include "${itemToDelete.name}" because it is currently being used in the system.`
         );
         setShowDeleteConfirmation(false);
         setShowDeleteError(true);
@@ -322,7 +320,7 @@ const CatalogServiceInclude: React.FC = () => {
       // Verificar si el error es por dependencias
       if (err.response?.status === 409 || err.response?.data?.detail?.includes("constraint")) {
         setDeleteErrorMessage(
-          `Cannot delete service include "${itemToDelete.name}" because it is being used by other records in the system.`
+          `Cannot delete service include "${itemToDelete.name}" because it is currently being used in the system.`
         );
         setShowDeleteConfirmation(false);
         setShowDeleteError(true);
@@ -579,7 +577,7 @@ const CatalogServiceInclude: React.FC = () => {
       {/* Modal de error - no se puede eliminar */}
       {showDeleteError && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="overflow-hidden max-w-lg w-full mx-4 rounded-lg shadow-xl">
+          <div className="overflow-hidden max-w-md w-full mx-4 rounded-lg shadow-xl">
             {/* Encabezado blanco con texto azul */}
             <div className="bg-white rounded-t-lg px-6 py-4 shadow-lg">
               <h2 className="text-2xl font-bold text-center text-[#002057]">
@@ -590,36 +588,15 @@ const CatalogServiceInclude: React.FC = () => {
             
             {/* Cuerpo con fondo azul oscuro */}
             <div className="bg-[#1E2A45] rounded-b-lg shadow-lg px-8 py-8">
-              <div className="flex items-start mb-4">
-                <div className="bg-[#f59e0b] rounded-full p-2 mr-4 flex-shrink-0 mt-1">
+              <div className="flex items-center mb-4">
+                <div className="bg-[#f59e0b] rounded-full p-2 mr-4">
                   <svg className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                   </svg>
                 </div>
-                <div className="flex-1">
-                  <p className="text-white text-lg mb-4">
-                    {deleteErrorMessage}
-                  </p>
-                  {dependentRecords.length > 0 && (
-                    <div className="mt-4">
-                      <p className="text-white text-sm font-medium mb-2">
-                        Records using this service include ({dependentRecords.length} found):
-                      </p>
-                      <div className="bg-[#0D1423] rounded-lg p-3 max-h-40 overflow-y-auto border border-gray-700">
-                        {dependentRecords.map((record, index) => (
-                          <div key={index} className="text-gray-300 text-sm py-1 border-b border-gray-700 last:border-b-0">
-                            <span className="text-yellow-400 font-medium">{record.type}:</span> {record.name}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                  <div className="mt-4 p-3 bg-blue-900 rounded-lg border border-blue-700">
-                    <p className="text-blue-200 text-sm">
-                      <strong>Tip:</strong> To delete this service include, you must first remove or update all records that reference it.
-                    </p>
-                  </div>
-                </div>
+                <p className="text-white text-lg">
+                  {deleteErrorMessage}
+                </p>
               </div>
               <div className="mt-6 flex justify-center space-x-4">
                 <button
