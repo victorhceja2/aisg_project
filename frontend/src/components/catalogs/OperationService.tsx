@@ -69,6 +69,7 @@ const OperationService: React.FC = () => {
     const [allData, setAllData] = useState<OperationRow[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [dateError, setDateError] = useState<string | null>(null);
 
     // Estados para los dropdowns
     const [companies, setCompanies] = useState<Company[]>([]);
@@ -79,6 +80,20 @@ const OperationService: React.FC = () => {
     const [companiesLoading, setCompaniesLoading] = useState(true);
     const [airlinesLoading, setAirlinesLoading] = useState(false);
     const [stationsLoading, setStationsLoading] = useState(true);
+
+    // Función para validar fechas
+    const validateDates = (startDate: string, endDate: string): boolean => {
+        if (startDate && endDate) {
+            const start = new Date(startDate);
+            const end = new Date(endDate);
+            if (start > end) {
+                setDateError("Start date cannot be greater than end date.");
+                return false;
+            }
+        }
+        setDateError(null);
+        return true;
+    };
 
     // Función de ordenamiento alfabético personalizado
     const customAlphabeticalSort = (a: string, b: string) => {
@@ -217,6 +232,11 @@ const OperationService: React.FC = () => {
 
     // Función para aplicar filtros localmente en el frontend
     const applyFilters = () => {
+        // Validar fechas antes de aplicar filtros
+        if (!validateDates(filters.startDate, filters.endDate)) {
+            return;
+        }
+
         let filteredReports = [...allData];
 
         // Aplicar filtro de compañía usando LLAVE
@@ -263,7 +283,27 @@ const OperationService: React.FC = () => {
 
     // Función manual de búsqueda (para el botón)
     const searchOperationServices = () => {
+        if (!validateDates(filters.startDate, filters.endDate)) {
+            return;
+        }
         applyFilters();
+    };
+
+    // Función para manejar cambio de fecha de inicio
+    const handleStartDateChange = (value: string) => {
+        setFilters({ ...filters, startDate: value });
+        validateDates(value, filters.endDate);
+        
+        // Si hay una fecha de fin seleccionada y es menor que la nueva fecha de inicio, limpiarla
+        if (filters.endDate && value && filters.endDate < value) {
+            setFilters(prev => ({ ...prev, startDate: value, endDate: "" }));
+        }
+    };
+
+    // Función para manejar cambio de fecha de fin
+    const handleEndDateChange = (value: string) => {
+        setFilters({ ...filters, endDate: value });
+        validateDates(filters.startDate, value);
     };
 
     // Función para exportar a Excel
@@ -467,6 +507,13 @@ const OperationService: React.FC = () => {
                         </div>
                     )}
 
+                    {/* Mensaje de error de fechas */}
+                    {dateError && (
+                        <div className="bg-orange-500 text-white p-4 rounded-lg mb-6 shadow-md animate-pulse">
+                            <p className="font-medium">{dateError}</p>
+                        </div>
+                    )}
+
                     {/* Filtros de búsqueda */}
                     <form onSubmit={handleSearch} className="bg-[#16213E] p-6 rounded-lg shadow-lg mb-6">
                         <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-4">
@@ -547,9 +594,11 @@ const OperationService: React.FC = () => {
                                 <label className="block text-sm font-medium text-gray-300 mb-1">Start Date</label>
                                 <input
                                     type="date"
-                                    className="w-full bg-[#1E2A45] text-white px-3 py-2 rounded-md border border-gray-700 focus:border-[#00B140] focus:ring-2 focus:ring-[#00B140] focus:outline-none"
+                                    className={`w-full bg-[#1E2A45] text-white px-3 py-2 rounded-md border ${
+                                        dateError ? 'border-red-500' : 'border-gray-700'
+                                    } focus:border-[#00B140] focus:ring-2 focus:ring-[#00B140] focus:outline-none`}
                                     value={filters.startDate}
-                                    onChange={e => setFilters({ ...filters, startDate: e.target.value })}
+                                    onChange={e => handleStartDateChange(e.target.value)}
                                 />
                             </div>
 
@@ -558,9 +607,12 @@ const OperationService: React.FC = () => {
                                 <label className="block text-sm font-medium text-gray-300 mb-1">End Date</label>
                                 <input
                                     type="date"
-                                    className="w-full bg-[#1E2A45] text-white px-3 py-2 rounded-md border border-gray-700 focus:border-[#00B140] focus:ring-2 focus:ring-[#00B140] focus:outline-none"
+                                    className={`w-full bg-[#1E2A45] text-white px-3 py-2 rounded-md border ${
+                                        dateError ? 'border-red-500' : 'border-gray-700'
+                                    } focus:border-[#00B140] focus:ring-2 focus:ring-[#00B140] focus:outline-none`}
                                     value={filters.endDate}
-                                    onChange={e => setFilters({ ...filters, endDate: e.target.value })}
+                                    min={filters.startDate || undefined}
+                                    onChange={e => handleEndDateChange(e.target.value)}
                                 />
                             </div>
                         </div>
@@ -602,8 +654,12 @@ const OperationService: React.FC = () => {
                             
                             <button
                                 type="submit"
-                                className="bg-[#00B140] hover:bg-[#009935] text-white font-medium py-2 px-6 rounded-md shadow-md transition-all duration-200"
-                                disabled={loading}
+                                className={`${
+                                    dateError 
+                                        ? 'bg-gray-500 cursor-not-allowed' 
+                                        : 'bg-[#00B140] hover:bg-[#009935]'
+                                } text-white font-medium py-2 px-6 rounded-md shadow-md transition-all duration-200`}
+                                disabled={loading || !!dateError}
                             >
                                 {loading ? "Searching..." : "Search"}
                             </button>
