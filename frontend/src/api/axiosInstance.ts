@@ -1,8 +1,8 @@
 import axios from 'axios';
 
 // Establecer URLs para diferentes entornos
-const LOCAL_URL = 'http://localhost:8000';
-const SERVER_URL = 'http://82.165.213.124:8000';
+const LOCAL_URL = 'https://localhost:8000';
+const SERVER_URL = 'https://82.165.213.124:8000';
 
 // Crear instancia de axios
 const axiosInstance = axios.create({
@@ -32,8 +32,10 @@ if (import.meta.env.PROD) {
 // Interceptor para eliminar barras "/" al final de cada ruta
 axiosInstance.interceptors.request.use((config) => {
   if (config.url) {
+    console.log('Antes de normalizar URL:', config.url);
     // Quitar todos los "/" al final de la URL (pero no dejarla vacía)
     config.url = config.url.replace(/\/+$/, '') || config.url;
+    console.log('Después de normalizar URL:', config.url);
   }
   return config;
 }, (error) => {
