@@ -3,10 +3,11 @@ import axios from 'axios';
 // Establecer URLs para diferentes entornos
 const LOCAL_URL = 'https://localhost:8000';
 const SERVER_URL = 'https://82.165.213.124:8000';
+const PROD_URL = 'https://portal.aisg.com.mx:8000'; // Cambia esto por tu URL de producción real
 
 // Crear instancia de axios
 const axiosInstance = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || LOCAL_URL,
+  baseURL: import.meta.env.VITE_API_URL || LOCAL_URL || SERVER_URL || PROD_URL,
   headers: {
     'Content-Type': 'application/json',
   },
