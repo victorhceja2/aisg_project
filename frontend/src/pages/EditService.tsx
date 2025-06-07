@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import axiosInstance from '../api/axiosInstance';
+import API_ROUTES from '../api/routes';
 import { useParams, useNavigate } from "react-router-dom";
 import AISGBackground from "../components/catalogs/fondo";
 
@@ -105,11 +106,11 @@ const EditService: React.FC = () => {
   const fetchCatalogs = async () => {
     try {
       const [statusesRes, classificationsRes, categoriesRes, typesRes, includesRes] = await Promise.all([
-        axiosInstance.get('/catalog/service-status'),
-        axiosInstance.get('/catalog/service-classification'),
-        axiosInstance.get('/catalog/service-categories'),
-        axiosInstance.get('/catalog/service-types'),
-        axiosInstance.get('/catalog/service-includes')
+        axiosInstance.get(API_ROUTES.CATALOG.SERVICE_STATUS),
+        axiosInstance.get(API_ROUTES.CATALOG.SERVICE_CLASSIFICATION),
+        axiosInstance.get(API_ROUTES.CATALOG.SERVICE_CATEGORIES),
+        axiosInstance.get(API_ROUTES.CATALOG.SERVICE_TYPES),
+        axiosInstance.get(API_ROUTES.CATALOG.SERVICE_INCLUDES)
       ]);
 
       setStatuses(statusesRes.data);
@@ -127,7 +128,7 @@ const EditService: React.FC = () => {
   useEffect(() => {
     const fetchService = async () => {
       try {
-        const res = await axiosInstance.get(`/catalog/services/${id}`);
+        const res = await axiosInstance.get(`${API_ROUTES.CATALOG.SERVICES}/${id}`);
         console.log("Edit - Service data received:", res.data); // Debug para ver los datos exactos
         
         if (res.data) {
@@ -176,7 +177,7 @@ const EditService: React.FC = () => {
       
       console.log("Edit - Data to send:", dataToSend); // Debug para verificar los datos enviados
       
-      await axiosInstance.put(`/catalog/services/${id}`, dataToSend);
+      await axiosInstance.put(`${API_ROUTES.CATALOG.SERVICES}/${id}`, dataToSend);
       
       // Mostrar popup de éxito en lugar de navegar inmediatamente
       setShowSuccessPopup(true);

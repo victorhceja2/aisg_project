@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import AISGBackground from "./fondo";
 import axiosInstance from '../../api/axiosInstance';
+import API_ROUTES from '../../api/routes';
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -62,9 +63,9 @@ interface Airline {
 
 const OperationReport: React.FC = () => {
     const [filters, setFilters] = useState({
-        company: "all", // "all" por defecto
-        airline: "all", // "all" por defecto
-        station: "all", // "all" por defecto
+        company: "all",
+        airline: "all",
+        station: "all",
         startDate: "",
         endDate: "",
     });
@@ -113,7 +114,7 @@ const OperationReport: React.FC = () => {
     useEffect(() => {
         const initializeData = async () => {
             await fetchCompanies();
-            await fetchStations();
+            await fetchStationsFromAPI();
             await loadAllReports();
         };
         initializeData();
@@ -124,7 +125,7 @@ const OperationReport: React.FC = () => {
             fetchAirlinesByCompany(filters.company);
         } else {
             setAirlines([]);
-            setFilters(prev => ({ ...prev, airline: "all" })); // Reset airline to "all"
+            setFilters(prev => ({ ...prev, airline: "all" }));
         }
     }, [filters.company]);
 
@@ -135,39 +136,64 @@ const OperationReport: React.FC = () => {
         }
     }, [allReports, filters]);
 
+    // FUNCIÓN PARA CARGAR COMPANIES DINÁMICAMENTE
     const fetchCompanies = async () => {
         try {
             setCompaniesLoading(true);
-            const response = await axiosInstance.get('/companies/');
-            const sortedCompanies = [...response.data].sort((a, b) =>
-                customAlphabeticalSort(a.companyName, b.companyName)
-            );
-            setCompanies(sortedCompanies);
-
-            // Mantener "all" por defecto
-            if (sortedCompanies.length > 0 && filters.company === "all") {
-                setFilters(prev => ({
-                    ...prev,
-                    company: "all",
-                    airline: "all"
-                }));
+            const response = await axiosInstance.get(API_ROUTES.CATALOG.COMPANIES);
+            
+            if (response.data && Array.isArray(response.data) && response.data.length > 0) {
+                const sortedCompanies = [...response.data].sort((a, b) =>
+                    customAlphabeticalSort(a.companyName, b.companyName)
+                );
+                setCompanies(sortedCompanies);
+            } else {
+                setCompanies([]);
             }
-        } catch (err) {
+        } catch (err: any) {
             console.error("Error loading companies:", err);
+            setCompanies([]);
         } finally {
             setCompaniesLoading(false);
         }
     };
 
+    // FUNCIÓN PARA CARGAR AIRLINES DINÁMICAMENTE
     const fetchAirlinesByCompany = async (companyLlave: string) => {
         try {
             setAirlinesLoading(true);
-            // Buscar el companyCode correspondiente a la llave seleccionada
             const selectedCompany = companies.find(c => String(c.Llave) === companyLlave);
             const companyCode = selectedCompany ? selectedCompany.companyCode : "";
 
-            // Usar el nuevo endpoint de airlines
-            const response = await axiosInstance.get('/companies/airlines');
+            // Probar múltiples rutas para encontrar la correcta
+            const routesToTry = [
+                "/airlines",
+                "/catalog/airlines", 
+                "/companies-airlines",
+                "/catalog/companies-airlines",
+                "/api/airlines",
+                "/companies/airlines"
+            ];
+
+            let response;
+            let successfulRoute = null;
+
+            for (const route of routesToTry) {
+                try {
+                    response = await axiosInstance.get(route);
+                    if (response.data && Array.isArray(response.data) && response.data.length > 0) {
+                        successfulRoute = route;
+                        break;
+                    }
+                } catch (err: any) {
+                    continue;
+                }
+            }
+
+            if (!response || !successfulRoute) {
+                setAirlines([]);
+                return;
+            }
 
             // Filtrar por companyCode si se seleccionó una compañía específica
             let filteredAirlines = response.data || [];
@@ -182,31 +208,78 @@ const OperationReport: React.FC = () => {
                 const nameB = b.linea || b.nombre || '';
                 return customAlphabeticalSort(nameA, nameB);
             });
+            
             setAirlines(sortedAirlines);
 
-            // Mantener "all" por defecto
-            if (!filters.airline) {
-                setFilters(prev => ({ ...prev, airline: "all" }));
-            }
-        } catch (err) {
-            console.error("Error loading airlines for company:", err);
+        } catch (err: any) {
+            console.error("Error loading airlines:", err);
             setAirlines([]);
         } finally {
             setAirlinesLoading(false);
         }
     };
 
-    const fetchStations = async () => {
+    // FUNCIÓN PARA CARGAR STATIONS DINÁMICAMENTE
+    const fetchStationsFromAPI = async () => {
         try {
             setStationsLoading(true);
-            const stationsList = [
-                "GDL", "MEX", "CUN", "TIJ", "PVR", "SJD", "MTY", "BJX",
-                "LAX", "DFW", "MIA", "JFK", "ORD", "ATL", "DEN", "PHX"
+            
+            // Probar múltiples rutas para stations
+            const routesToTry = [
+                "/stations",
+                "/catalog/stations",
+                "/airports", 
+                "/catalog/airports",
+                "/api/stations",
+                "/api/catalog/stations"
             ];
+
+            let response;
+            let successfulRoute = null;
+
+            for (const route of routesToTry) {
+                try {
+                    response = await axiosInstance.get(route);
+                    if (response.data && Array.isArray(response.data) && response.data.length > 0) {
+                        successfulRoute = route;
+                        break;
+                    }
+                } catch (err: any) {
+                    continue;
+                }
+            }
+
+            if (!response || !successfulRoute) {
+                // Si no hay API disponible, extraer stations dinámicamente de los reports
+                if (allReports.length > 0) {
+                    const uniqueStations = [...new Set(allReports.map(report => report.STATION).filter(Boolean))];
+                    const sortedStations = uniqueStations.sort(customAlphabeticalSort);
+                    setStations(sortedStations);
+                } else {
+                    setStations([]);
+                }
+                return;
+            }
+
+            // Procesar datos de stations (adaptarse al formato que venga de la API)
+            let stationsList: string[] = [];
+            
+            if (typeof response.data[0] === 'string') {
+                stationsList = response.data;
+            } else if (response.data[0]?.code) {
+                stationsList = response.data.map((station: any) => station.code);
+            } else if (response.data[0]?.station) {
+                stationsList = response.data.map((station: any) => station.station);
+            } else if (response.data[0]?.name) {
+                stationsList = response.data.map((station: any) => station.name);
+            }
+
             const sortedStations = [...stationsList].sort(customAlphabeticalSort);
             setStations(sortedStations);
-        } catch (err) {
+
+        } catch (err: any) {
             console.error("Error loading stations:", err);
+            setStations([]);
         } finally {
             setStationsLoading(false);
         }
@@ -218,10 +291,28 @@ const OperationReport: React.FC = () => {
             setLoading(true);
             setError(null);
 
-            const response = await axiosInstance.get('/reports/operation-reports-v2');
-            setAllReports(response.data);
-        } catch (err) {
-            setError("Could not load operation reports. Please try again.");
+            const response = await axiosInstance.get(API_ROUTES.REPORTS.OPERATION_REPORT_V2);
+            setAllReports(response.data || []);
+            
+            // Si no hay stations cargadas, extraerlas de los reports
+            if (stations.length === 0 && response.data && response.data.length > 0) {
+                const uniqueStations = [...new Set(response.data.map((report: OperationReportData) => report.STATION).filter(Boolean))];
+                const sortedStations = uniqueStations.sort(customAlphabeticalSort);
+                setStations(sortedStations);
+                setStationsLoading(false);
+            }
+
+        } catch (err: any) {
+            console.error("Error loading operation reports:", err);
+
+            if (err.response?.status === 404) {
+                setError("Operation reports endpoint not found. Please contact the administrator.");
+            } else if (err.response?.data?.detail) {
+                setError(`Backend Error: ${err.response.data.detail}`);
+            } else {
+                setError("Could not load operation reports. Please try again.");
+            }
+
             setReports([]);
             setAllReports([]);
         } finally {
@@ -231,14 +322,13 @@ const OperationReport: React.FC = () => {
 
     // Función para aplicar filtros localmente en el frontend
     const applyFilters = () => {
-        // Validar fechas antes de aplicar filtros
         if (!validateDates(filters.startDate, filters.endDate)) {
             return;
         }
 
         let filteredReports = [...allReports];
 
-        // Aplicar filtro de compañía usando LLAVE directamente para buscar
+        // Aplicar filtro de compañía usando LLAVE
         if (filters.company && filters.company !== "all") {
             const selectedCompanyLlave = Number(filters.company);
             filteredReports = filteredReports.filter(report =>
@@ -246,7 +336,7 @@ const OperationReport: React.FC = () => {
             );
         }
 
-        // Aplicar filtro de aerolínea usando el campo linea
+        // Aplicar filtro de aerolínea
         if (filters.airline && filters.airline !== "all") {
             const selectedAirline = airlines.find(airline => airline.llave.toString() === filters.airline);
             if (selectedAirline) {
@@ -293,8 +383,7 @@ const OperationReport: React.FC = () => {
     const handleStartDateChange = (value: string) => {
         setFilters({ ...filters, startDate: value });
         validateDates(value, filters.endDate);
-        
-        // Si hay una fecha de fin seleccionada y es menor que la nueva fecha de inicio, limpiarla
+
         if (filters.endDate && value && filters.endDate < value) {
             setFilters(prev => ({ ...prev, startDate: value, endDate: "" }));
         }
@@ -553,7 +642,7 @@ const OperationReport: React.FC = () => {
                                         setFilters({ ...filters, company: e.target.value, airline: "all" });
                                     }}
                                 >
-                                    <option value="all">All Companies</option>
+                                    <option value="all">All Companies ({companies.length})</option>
                                     {companies.map((company) => (
                                         <option key={company.Llave} value={company.Llave}>
                                             {company.companyCode} - {company.companyName}
@@ -577,7 +666,7 @@ const OperationReport: React.FC = () => {
                                     onChange={(e) => setFilters({ ...filters, airline: e.target.value })}
                                     disabled={!filters.company || filters.company === "all"}
                                 >
-                                    <option value="all">All Airlines</option>
+                                    <option value="all">All Airlines ({airlines.length})</option>
                                     {airlines.map((airline) => (
                                         <option key={airline.llave} value={airline.llave}>
                                             {airline.linea} - {airline.nombre || `Airline #${airline.llave}`}
@@ -600,7 +689,7 @@ const OperationReport: React.FC = () => {
                                     value={filters.station}
                                     onChange={(e) => setFilters({ ...filters, station: e.target.value })}
                                 >
-                                    <option value="all">All Stations</option>
+                                    <option value="all">All Stations ({stations.length})</option>
                                     {stations.map((station) => (
                                         <option key={station} value={station}>
                                             {station}
@@ -615,9 +704,8 @@ const OperationReport: React.FC = () => {
                             <label className="block text-sm font-medium text-gray-300 mb-1">Start Date</label>
                             <input
                                 type="date"
-                                className={`w-full bg-[#1E2A45] text-white px-3 py-2 rounded-md border ${
-                                    dateError ? 'border-red-500' : 'border-gray-700'
-                                } focus:border-[#00B140] focus:ring-2 focus:ring-[#00B140] focus:outline-none`}
+                                className={`w-full bg-[#1E2A45] text-white px-3 py-2 rounded-md border ${dateError ? 'border-red-500' : 'border-gray-700'
+                                    } focus:border-[#00B140] focus:ring-2 focus:ring-[#00B140] focus:outline-none`}
                                 value={filters.startDate}
                                 onChange={e => handleStartDateChange(e.target.value)}
                             />
@@ -628,9 +716,8 @@ const OperationReport: React.FC = () => {
                             <label className="block text-sm font-medium text-gray-300 mb-1">End Date</label>
                             <input
                                 type="date"
-                                className={`w-full bg-[#1E2A45] text-white px-3 py-2 rounded-md border ${
-                                    dateError ? 'border-red-500' : 'border-gray-700'
-                                } focus:border-[#00B140] focus:ring-2 focus:ring-[#00B140] focus:outline-none`}
+                                className={`w-full bg-[#1E2A45] text-white px-3 py-2 rounded-md border ${dateError ? 'border-red-500' : 'border-gray-700'
+                                    } focus:border-[#00B140] focus:ring-2 focus:ring-[#00B140] focus:outline-none`}
                                 value={filters.endDate}
                                 min={filters.startDate || undefined}
                                 onChange={e => handleEndDateChange(e.target.value)}
@@ -664,18 +751,17 @@ const OperationReport: React.FC = () => {
                                 onClick={exportToCSV}
                             >
                                 <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 011.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
+                                    <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
                                 </svg>
                                 Export CSV
                             </button>
                         </div>
 
                         <button
-                            className={`${
-                                dateError 
-                                    ? 'bg-gray-500 cursor-not-allowed' 
+                            className={`${dateError
+                                    ? 'bg-gray-500 cursor-not-allowed'
                                     : 'bg-[#00B140] hover:bg-[#009935]'
-                            } text-white font-medium py-2 px-6 rounded-md shadow-md transition-all duration-200`}
+                                } text-white font-medium py-2 px-6 rounded-md shadow-md transition-all duration-200`}
                             onClick={searchReports}
                             disabled={loading || !!dateError}
                         >
@@ -749,7 +835,6 @@ const OperationReport: React.FC = () => {
                                         <td className="p-2">{item.SERV6 || 'N/A'}</td>
                                         <td className="p-2">{item.REMARKS || 'N/A'}</td>
                                         <td className="p-2">{item.TECHNICIAN || 'N/A'}</td>
-                                        {/* LLAVE NO se muestra en la tabla */}
                                     </tr>
                                 ))
                             ) : (

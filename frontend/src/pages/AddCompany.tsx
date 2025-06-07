@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import axiosInstance from '../api/axiosInstance';
+import API_ROUTES from '../api/routes';
 import { useNavigate } from "react-router-dom";
 import AISGBackground from "../components/catalogs/fondo";
 
@@ -56,15 +57,64 @@ const AddCompany: React.FC = () => {
         }
     }, [showDuplicateWarningPopup]);
 
+    // Efecto para manejar Enter en los popups
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'Enter') {
+                if (showSuccessPopup) {
+                    e.preventDefault();
+                    handleClosePopup();
+                } else if (showDuplicateWarningPopup) {
+                    e.preventDefault();
+                    closeDuplicateWarningPopup();
+                }
+            } else if (e.key === 'Escape') {
+                if (showSuccessPopup) {
+                    e.preventDefault();
+                    handleClosePopup();
+                } else if (showDuplicateWarningPopup) {
+                    e.preventDefault();
+                    closeDuplicateWarningPopup();
+                }
+            }
+        };
+
+        if (showSuccessPopup || showDuplicateWarningPopup) {
+            document.addEventListener('keydown', handleKeyDown);
+            return () => {
+                document.removeEventListener('keydown', handleKeyDown);
+            };
+        }
+    }, [showSuccessPopup, showDuplicateWarningPopup]);
+
     /**
      * Verifica si una configuración de compañía con el mismo ID ya existe
      */
     const checkDuplicateCompany = async (companyId: string) => {
         try {
-            const res = await axiosInstance.get(`/catalog/extra-company-configuration/?search=${encodeURIComponent(companyId)}`);
-            return res.data.some((item: any) => 
-                item.id_company.toString() === companyId
-            );
+            // Probar múltiples rutas para extra-company-configuration
+            const routesToTry = [
+                `${API_ROUTES.CATALOG.EXTRA_COMPANY_CONFIGURATION}?search=${encodeURIComponent(companyId)}`,
+                `/catalog/extra-company-configuration?search=${encodeURIComponent(companyId)}`,
+                `/extra-company-configuration?search=${encodeURIComponent(companyId)}`,
+                `/api/extra-company-configuration?search=${encodeURIComponent(companyId)}`,
+                `/catalog/company-configuration?search=${encodeURIComponent(companyId)}`
+            ];
+
+            for (const route of routesToTry) {
+                try {
+                    const res = await axiosInstance.get(route);
+                    if (res.data && Array.isArray(res.data)) {
+                        return res.data.some((item: any) => 
+                            item.id_company.toString() === companyId
+                        );
+                    }
+                } catch (err: any) {
+                    continue;
+                }
+            }
+
+            return false; // Si no hay endpoint disponible, asumimos que no es duplicado
         } catch (err) {
             console.error("Error checking for duplicate company", err);
             return false;
@@ -99,14 +149,48 @@ const AddCompany: React.FC = () => {
                 whonew: whonew
             };
 
-            // Envía la nueva configuración al backend
-            await axiosInstance.post(`/catalog/extra-company-configuration`, data);
+            // Probar múltiples rutas para POST extra-company-configuration
+            const routesToTry = [
+                API_ROUTES.CATALOG.EXTRA_COMPANY_CONFIGURATION,
+                "/catalog/extra-company-configuration",
+                "/extra-company-configuration",
+                "/api/extra-company-configuration",
+                "/catalog/company-configuration"
+            ];
+
+            let success = false;
+            let lastError = null;
+
+            for (const route of routesToTry) {
+                try {
+                    await axiosInstance.post(route, data);
+                    success = true;
+                    break;
+                } catch (err: any) {
+                    lastError = err;
+                    continue;
+                }
+            }
+
+            if (!success) {
+                throw lastError || new Error("All POST endpoints failed");
+            }
 
             // Mostrar popup de éxito en lugar de redirigir inmediatamente
             setShowSuccessPopup(true);
-        } catch (err) {
+        } catch (err: any) {
             console.error("Error al guardar la configuración", err);
-            setError("Could not save the configuration. Please check the data and try again.");
+            
+            // Manejo de errores más específico
+            if (err.response?.status === 400) {
+                setError("Invalid data provided. Please check the Company ID and try again.");
+            } else if (err.response?.status === 409) {
+                setError("Company configuration already exists.");
+            } else if (err.response?.status === 500) {
+                setError("Server error. Please try again later.");
+            } else {
+                setError("Could not save the configuration. Please check the data and try again.");
+            }
         }
     };
 
@@ -119,10 +203,18 @@ const AddCompany: React.FC = () => {
     };
 
     /**
-     * Cierra el popup de advertencia
+     * Cierra el popup de advertencia y devuelve el foco al input
      */
     const closeDuplicateWarningPopup = () => {
         setShowDuplicateWarningPopup(false);
+        setError(""); // Limpiar errores
+        // Devolver foco al input de ID de compañía
+        setTimeout(() => {
+            if (idCompanyInputRef.current) {
+                idCompanyInputRef.current.focus();
+                idCompanyInputRef.current.select();
+            }
+        }, 100);
     };
 
     /**
@@ -248,6 +340,12 @@ const AddCompany: React.FC = () => {
                                 <button
                                     ref={successOkButtonRef}
                                     onClick={handleClosePopup}
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter') {
+                                            e.preventDefault();
+                                            handleClosePopup();
+                                        }
+                                    }}
                                     className="w-full bg-[#00B140] hover:bg-[#009935] text-white font-medium py-3 px-4 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg"
                                 >
                                     OK
@@ -284,6 +382,12 @@ const AddCompany: React.FC = () => {
                                 <button
                                     ref={duplicateOkButtonRef}
                                     onClick={closeDuplicateWarningPopup}
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter') {
+                                            e.preventDefault();
+                                            closeDuplicateWarningPopup();
+                                        }
+                                    }}
                                     className="w-full bg-[#f59e0b] hover:bg-[#d97706] text-white font-medium py-3 px-4 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg"
                                 >
                                     OK

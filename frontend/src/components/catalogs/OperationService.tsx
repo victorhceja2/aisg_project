@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import axiosInstance from '../../api/axiosInstance';
+import API_ROUTES from '../../api/routes';
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -106,11 +107,11 @@ const OperationService: React.FC = () => {
         return aUpper.localeCompare(bUpper, 'en', { numeric: true });
     };
 
-    // Cargar companies y stations al montar el componente (no airlines inicialmente)
+    // Cargar datos al montar el componente
     useEffect(() => {
         const initializeData = async () => {
             await fetchCompanies();
-            await fetchStations();
+            await fetchStationsFromAPI();
             await loadAllServicesReports();
         };
         initializeData();
@@ -133,96 +134,216 @@ const OperationService: React.FC = () => {
         }
     }, [allData, filters]);
 
-    // Función para obtener companies
+    // FUNCIÓN PARA CARGAR COMPANIES DINÁMICAMENTE
     const fetchCompanies = async () => {
         try {
             setCompaniesLoading(true);
-            const response = await axiosInstance.get('/companies/');
-            const sortedCompanies = [...response.data].sort((a, b) =>
-                customAlphabeticalSort(a.companyName, b.companyName)
-            );
-            setCompanies(sortedCompanies);
-
-            // Mantener "all" por defecto
-            if (sortedCompanies.length > 0 && filters.company === "all") {
-                setFilters(prev => ({
-                    ...prev,
-                    company: "all",
-                    airline: "all"
-                }));
+            const response = await axiosInstance.get(API_ROUTES.CATALOG.COMPANIES);
+            
+            if (response.data && Array.isArray(response.data) && response.data.length > 0) {
+                const sortedCompanies = [...response.data].sort((a, b) =>
+                    customAlphabeticalSort(a.companyName, b.companyName)
+                );
+                setCompanies(sortedCompanies);
+            } else {
+                setCompanies([]);
             }
-        } catch (err) {
+        } catch (err: any) {
             console.error("Error loading companies:", err);
+            setCompanies([]);
         } finally {
             setCompaniesLoading(false);
         }
     };
 
-    // Función para obtener aerolíneas filtradas por compañía
+    // FUNCIÓN PARA CARGAR AIRLINES DINÁMICAMENTE
     const fetchAirlinesByCompany = async (companyLlave: string) => {
         try {
             setAirlinesLoading(true);
-            // Buscar el companyCode correspondiente a la llave seleccionada
             const selectedCompany = companies.find(c => String(c.Llave) === companyLlave);
             const companyCode = selectedCompany ? selectedCompany.companyCode : "";
-            
-            // Usar el endpoint de airlines
-            const response = await axiosInstance.get('/companies/airlines');
-            
+
+            // Probar múltiples rutas para encontrar la correcta
+            const routesToTry = [
+                "/airlines",
+                "/catalog/airlines", 
+                "/companies-airlines",
+                "/catalog/companies-airlines",
+                "/api/airlines",
+                "/companies/airlines"
+            ];
+
+            let response;
+            let successfulRoute = null;
+
+            for (const route of routesToTry) {
+                try {
+                    response = await axiosInstance.get(route);
+                    if (response.data && Array.isArray(response.data) && response.data.length > 0) {
+                        successfulRoute = route;
+                        break;
+                    }
+                } catch (err: any) {
+                    continue;
+                }
+            }
+
+            if (!response || !successfulRoute) {
+                setAirlines([]);
+                return;
+            }
+
             // Filtrar por companyCode si se seleccionó una compañía específica
             let filteredAirlines = response.data || [];
             if (companyCode) {
-                filteredAirlines = filteredAirlines.filter((airline: Airline) => 
+                filteredAirlines = filteredAirlines.filter((airline: Airline) =>
                     airline.companyCode === companyCode
                 );
             }
-            
+
             const sortedAirlines = [...filteredAirlines].sort((a, b) => {
                 const nameA = a.linea || a.nombre || '';
                 const nameB = b.linea || b.nombre || '';
                 return customAlphabeticalSort(nameA, nameB);
             });
+            
             setAirlines(sortedAirlines);
 
-            // Mantener "all" por defecto
-            if (!filters.airline) {
-                setFilters(prev => ({ ...prev, airline: "all" }));
-            }
-        } catch (err) {
-            console.error("Error loading airlines for company:", err);
+        } catch (err: any) {
+            console.error("Error loading airlines:", err);
             setAirlines([]);
         } finally {
             setAirlinesLoading(false);
         }
     };
 
-    // Función para obtener stations
-    const fetchStations = async () => {
+    // FUNCIÓN PARA CARGAR STATIONS DINÁMICAMENTE
+    const fetchStationsFromAPI = async () => {
         try {
             setStationsLoading(true);
-            const stationsList = [
-                "GDL", "MEX", "CUN", "TIJ", "PVR", "SJD", "MTY", "BJX", 
-                "LAX", "DFW", "MIA", "JFK", "ORD", "ATL", "DEN", "PHX"
+            
+            // Probar múltiples rutas para stations
+            const routesToTry = [
+                "/stations",
+                "/catalog/stations",
+                "/airports", 
+                "/catalog/airports",
+                "/api/stations",
+                "/api/catalog/stations"
             ];
+
+            let response;
+            let successfulRoute = null;
+
+            for (const route of routesToTry) {
+                try {
+                    response = await axiosInstance.get(route);
+                    if (response.data && Array.isArray(response.data) && response.data.length > 0) {
+                        successfulRoute = route;
+                        break;
+                    }
+                } catch (err: any) {
+                    continue;
+                }
+            }
+
+            if (!response || !successfulRoute) {
+                // Si no hay API disponible, extraer stations dinámicamente de los reports
+                if (allData.length > 0) {
+                    const uniqueStations = [...new Set(allData.map(report => report.STATION).filter(Boolean))];
+                    const sortedStations = uniqueStations.sort(customAlphabeticalSort);
+                    setStations(sortedStations);
+                } else {
+                    setStations([]);
+                }
+                return;
+            }
+
+            // Procesar datos de stations (adaptarse al formato que venga de la API)
+            let stationsList: string[] = [];
+            
+            if (typeof response.data[0] === 'string') {
+                stationsList = response.data;
+            } else if (response.data[0]?.code) {
+                stationsList = response.data.map((station: any) => station.code);
+            } else if (response.data[0]?.station) {
+                stationsList = response.data.map((station: any) => station.station);
+            } else if (response.data[0]?.name) {
+                stationsList = response.data.map((station: any) => station.name);
+            }
+
             const sortedStations = [...stationsList].sort(customAlphabeticalSort);
             setStations(sortedStations);
-        } catch (err) {
+
+        } catch (err: any) {
             console.error("Error loading stations:", err);
+            setStations([]);
         } finally {
             setStationsLoading(false);
         }
     };
 
-    // Función para cargar todos los datos del backend (sin parámetros)
+    // Función para cargar todos los datos del backend (CORREGIDA)
     const loadAllServicesReports = async () => {
         try {
             setLoading(true);
             setError(null);
 
-            const response = await axiosInstance.get('/reports/services-reports');
-            setAllData(response.data);
-        } catch (err) {
-            setError("Could not load services reports. Please try again.");
+            // Probar múltiples rutas para services reports
+            const routesToTry = [
+                API_ROUTES.REPORTS.SERVICES_REPORTS,
+                "/reports/services-reports",
+                "/services-reports",
+                "/catalog/services-reports",
+                "/operation-services",
+                "/reports/operation-services",
+                "/api/services-reports"
+            ];
+
+            let response;
+            let successfulRoute = null;
+
+            for (const route of routesToTry) {
+                try {
+                    response = await axiosInstance.get(route);
+                    if (response.data && Array.isArray(response.data)) {
+                        successfulRoute = route;
+                        break;
+                    }
+                } catch (err: any) {
+                    continue;
+                }
+            }
+
+            if (!response || !successfulRoute) {
+                setError("Services reports endpoint not found. Please contact the administrator.");
+                setData([]);
+                setAllData([]);
+                return;
+            }
+
+            setAllData(response.data || []);
+            
+            // Si no hay stations cargadas, extraerlas de los reports
+            if (stations.length === 0 && response.data && response.data.length > 0) {
+                const uniqueStations = [...new Set(response.data.map((report: OperationRow) => report.STATION).filter(Boolean))];
+                const sortedStations = uniqueStations.sort(customAlphabeticalSort);
+                setStations(sortedStations);
+                setStationsLoading(false);
+            }
+
+        } catch (err: any) {
+            console.error("Error loading services reports:", err);
+            
+            // Mensaje de error más específico
+            if (err.response?.status === 404) {
+                setError("Services reports endpoint not found. Please contact the administrator.");
+            } else if (err.response?.data?.detail) {
+                setError(`Backend Error: ${err.response.data.detail}`);
+            } else {
+                setError("Could not load services reports. Please try again.");
+            }
+            
             setData([]);
             setAllData([]);
         } finally {
@@ -241,8 +362,9 @@ const OperationService: React.FC = () => {
 
         // Aplicar filtro de compañía usando LLAVE
         if (filters.company && filters.company !== "all") {
+            const selectedCompanyLlave = Number(filters.company);
             filteredReports = filteredReports.filter(report =>
-                report.LLAVE && String(report.LLAVE) === filters.company
+                report.LLAVE && Number(report.LLAVE) === selectedCompanyLlave
             );
         }
 
@@ -306,7 +428,7 @@ const OperationService: React.FC = () => {
         validateDates(filters.startDate, value);
     };
 
-    // Función para exportar a Excel
+    // Función para exportar a Excel (NO incluye LLAVE)
     const exportToExcel = () => {
         const headers = [
             'Company', 'Airline', 'Date', 'Station', 'AC REG', 'Flight', 
@@ -337,7 +459,7 @@ const OperationService: React.FC = () => {
         XLSX.writeFile(wb, fileName);
     };
 
-    // Función para exportar a CSV
+    // Función para exportar a CSV (NO incluye LLAVE)
     const exportToCSV = () => {
         const headers = [
             'Company', 'Airline', 'Date', 'Station', 'AC REG', 'Flight', 
@@ -375,7 +497,7 @@ const OperationService: React.FC = () => {
         document.body.removeChild(link);
     };
 
-    // Función para exportar a PDF
+    // Función para exportar a PDF (NO incluye LLAVE)
     const exportToPDF = () => {
         try {
             const doc = new jsPDF('l', 'mm', 'a4'); // landscape orientation
@@ -532,7 +654,7 @@ const OperationService: React.FC = () => {
                                             setFilters({ ...filters, company: e.target.value, airline: "all" });
                                         }}
                                     >
-                                        <option value="all">All Companies</option>
+                                        <option value="all">All Companies ({companies.length})</option>
                                         {companies.map((company) => (
                                             <option key={company.Llave} value={company.Llave}>
                                                 {company.companyCode} - {company.companyName}
@@ -556,7 +678,7 @@ const OperationService: React.FC = () => {
                                         onChange={(e) => setFilters({ ...filters, airline: e.target.value })}
                                         disabled={!filters.company || filters.company === "all"}
                                     >
-                                        <option value="all">All Airlines</option>
+                                        <option value="all">All Airlines ({airlines.length})</option>
                                         {airlines.map((airline) => (
                                             <option key={airline.llave} value={airline.llave}>
                                                 {airline.linea} - {airline.nombre || `Airline #${airline.llave}`}
@@ -579,7 +701,7 @@ const OperationService: React.FC = () => {
                                         value={filters.station}
                                         onChange={(e) => setFilters({ ...filters, station: e.target.value })}
                                     >
-                                        <option value="all">All Stations</option>
+                                        <option value="all">All Stations ({stations.length})</option>
                                         {stations.map((station) => (
                                             <option key={station} value={station}>
                                                 {station}
@@ -678,7 +800,7 @@ const OperationService: React.FC = () => {
                         <p>Total records: {allData.length} | Filtered records: {data.length}</p>
                     </div>
 
-                    {/* Tabla de resultados */}
+                    {/* Tabla de resultados - LLAVE NO se muestra */}
                     <div className="rounded-lg shadow-lg overflow-x-auto bg-[#1E2A45]">
                         <table className="min-w-full table-auto text-xs">
                             <thead>

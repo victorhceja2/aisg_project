@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import axiosInstance from '../../api/axiosInstance';
-
+import API_ROUTES from '../../api/routes';
 import { Link, useNavigate } from "react-router-dom";
 import AISGBackground from "../catalogs/fondo";
 
@@ -92,11 +92,19 @@ const CatalogServiceType: React.FC = () => {
     const fetchServiceTypes = async () => {
         setLoading(true);
         try {
-            const res = await axiosInstance.get(`/catalog/service-types/${search ? `?search=${encodeURIComponent(search)}` : ""}`
-            );
+            const url = search 
+                ? `${API_ROUTES.CATALOG.SERVICE_TYPES}?search=${encodeURIComponent(search)}`
+                : API_ROUTES.CATALOG.SERVICE_TYPES;
+            
+            console.log("Fetching service types from:", url); // Para debugging
+            
+            const res = await axiosInstance.get(url);
+            console.log("Service types response:", res.data); // Para debugging
+            
             setServiceTypes(res.data);
             setError(null);
         } catch (err) {
+            console.error("Error fetching service types:", err);
             setError("Could not load service types. Please try again.");
         } finally {
             setLoading(false);
@@ -110,7 +118,7 @@ const CatalogServiceType: React.FC = () => {
 
             // Verificar en servicios
             try {
-                const servicesRes = await axiosInstance.get('/catalog/services');
+                const servicesRes = await axiosInstance.get(API_ROUTES.CATALOG.SERVICES);
                 const servicesUsingType = servicesRes.data.filter((service: any) => 
                     service.id_service_type === typeId
                 );
@@ -127,7 +135,7 @@ const CatalogServiceType: React.FC = () => {
 
             // Verificar en componentes (módulo principal que utiliza service types)
             try {
-                const componentsRes = await axiosInstance.get('/components');
+                const componentsRes = await axiosInstance.get(API_ROUTES.COMPONENTS);
                 const componentsUsingType = componentsRes.data.filter((comp: any) => 
                     comp.id_service_type === typeId ||
                     comp.service_type_id === typeId ||
@@ -146,7 +154,7 @@ const CatalogServiceType: React.FC = () => {
 
             // Verificar en customer services
             try {
-                const customerServicesRes = await axiosInstance.get('/catalog/service-per-customer');
+                const customerServicesRes = await axiosInstance.get(API_ROUTES.CATALOG.SERVICE_PER_CUSTOMER);
                 const customerServicesUsingType = customerServicesRes.data.filter((cs: any) => {
                     // Verificar si el servicio del customer service usa este tipo
                     return cs.service_type_id === typeId;
@@ -164,7 +172,7 @@ const CatalogServiceType: React.FC = () => {
 
             // Verificar en work orders
             try {
-                const workOrdersRes = await axiosInstance.get('/work-orders');
+                const workOrdersRes = await axiosInstance.get(API_ROUTES.WORK_ORDERS);
                 const workOrdersUsingType = workOrdersRes.data.filter((wo: any) => 
                     wo.service_type_id === typeId
                 );
@@ -181,7 +189,7 @@ const CatalogServiceType: React.FC = () => {
 
             // Verificar en cotizaciones/quotes
             try {
-                const quotesRes = await axiosInstance.get('/quotes');
+                const quotesRes = await axiosInstance.get(API_ROUTES.QUOTES);
                 const quotesUsingType = quotesRes.data.filter((quote: any) => 
                     quote.service_type_id === typeId
                 );
@@ -198,7 +206,7 @@ const CatalogServiceType: React.FC = () => {
 
             // Verificar en reportes operacionales
             try {
-                const operationReportsRes = await axiosInstance.get('/reports/operation-report');
+                const operationReportsRes = await axiosInstance.get(API_ROUTES.REPORTS.OPERATION_REPORT);
                 const reportsUsingType = operationReportsRes.data.filter((report: any) => 
                     report.type_id === typeId
                 );
@@ -215,7 +223,7 @@ const CatalogServiceType: React.FC = () => {
 
             // Verificar en ejecuciones de servicio
             try {
-                const serviceExecutionsRes = await axiosInstance.get('/reports/service-executions');
+                const serviceExecutionsRes = await axiosInstance.get(API_ROUTES.REPORTS.SERVICE_EXECUTIONS);
                 const executionsUsingType = serviceExecutionsRes.data.filter((exec: any) => 
                     exec.type_id === typeId
                 );
@@ -232,7 +240,7 @@ const CatalogServiceType: React.FC = () => {
 
             // Verificar en facturas/invoices
             try {
-                const invoicesRes = await axiosInstance.get('/billing/invoices');
+                const invoicesRes = await axiosInstance.get(API_ROUTES.BILLING.INVOICES);
                 const invoicesUsingType = invoicesRes.data.filter((invoice: any) => 
                     invoice.type_id === typeId
                 );
@@ -299,7 +307,7 @@ const CatalogServiceType: React.FC = () => {
                 return;
             }
 
-            await axiosInstance.delete(`/catalog/service-types/${serviceTypeToDelete.id}`);
+            await axiosInstance.delete(`${API_ROUTES.CATALOG.SERVICE_TYPES}/${serviceTypeToDelete.id}`);
             setDeletedServiceTypeName(serviceTypeToDelete.name);
             setShowDeleteConfirmation(false);
             setServiceTypeToDelete(null);

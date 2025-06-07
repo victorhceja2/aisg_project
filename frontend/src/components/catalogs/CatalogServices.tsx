@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import axiosInstance from '../../api/axiosInstance';
+import API_ROUTES from '../../api/routes';
 import { Link, useNavigate } from "react-router-dom";
 import AISGBackground from "../catalogs/fondo";
 
@@ -39,11 +40,11 @@ const CatalogServices: React.FC = () => {
     setCatalogsLoading(true);
     try {
       const [statusRes, categoryRes, typeRes, includeRes, classificationRes] = await Promise.all([
-        axiosInstance.get('/catalog/service-status'),
-        axiosInstance.get('/catalog/service-categories'),
-        axiosInstance.get('/catalog/service-types'),
-        axiosInstance.get('/catalog/service-includes'),
-        axiosInstance.get('/catalog/service-classification')
+        axiosInstance.get(API_ROUTES.CATALOG.SERVICE_STATUS),
+        axiosInstance.get(API_ROUTES.CATALOG.SERVICE_CATEGORIES),
+        axiosInstance.get(API_ROUTES.CATALOG.SERVICE_TYPES),
+        axiosInstance.get(API_ROUTES.CATALOG.SERVICE_INCLUDES),
+        axiosInstance.get(API_ROUTES.CATALOG.SERVICE_CLASSIFICATION)
       ]);
 
       setServiceStatuses(statusRes.data);
@@ -115,7 +116,11 @@ const CatalogServices: React.FC = () => {
   const fetchServices = async () => {
     setLoading(true);
     try {
-      const res = await axiosInstance.get(`/catalog/services${search ? `?search=${encodeURIComponent(search)}` : ""}`);
+      const url = search 
+        ? `/catalog/services?search=${encodeURIComponent(search)}`
+        : '/catalog/services';
+      
+      const res = await axiosInstance.get(url);
       setServices(res.data);
       setError(null);
     } catch (err) {
@@ -128,158 +133,53 @@ const CatalogServices: React.FC = () => {
   // Verificar si un servicio está siendo utilizado en otros módulos
   const checkServiceUsage = async (serviceId: number): Promise<{ inUse: boolean; records: any[] }> => {
     try {
-      const allDependentRecords: any[] = [];
-      const serviceIdFields = [
-        'id_service', 
-        'service_id', 
-        'id_servicio',
-        'servicio_id',
-        'service'
-      ];
-      const usesService = (item: any): boolean => {
-        for (const field of serviceIdFields) {
-          if (item[field] !== undefined && 
-              (Number(item[field]) === serviceId || String(item[field]) === String(serviceId))) {
-            return true;
+      console.log(`Checking usage for service ID: ${serviceId}`);
+      
+      // Solo verificar las tablas que realmente existen y son críticas
+      const criticalChecks = [
+        // Verificar Service Per Customer (tabla crítica que sabemos que existe)
+        {
+          url: API_ROUTES.CATALOG.SERVICE_PER_CUSTOMER,
+          name: 'Service Per Customer',
+          check: async (url: string) => {
+            try {
+              const res = await axiosInstance.get(url);
+              const records = res.data.filter((item: any) => 
+                item.id_service === serviceId || 
+                item.service_id === serviceId
+              );
+              return records.length > 0 ? records : null;
+            } catch (err) {
+              console.warn(`Could not check ${url}:`, err);
+              return null; // En lugar de asumir que está en uso, ignoramos el error
+            }
           }
         }
-        return false;
-      };
+      ];
 
-      try {
-        const customerServicesRes = await axiosInstance.get('/catalog/service-per-customer');
-        const customerServicesUsingService = customerServicesRes.data.filter(usesService);
-        allDependentRecords.push(
-          ...customerServicesUsingService.map((cs: any) => ({
-            type: 'Customer Service',
-            name: `Customer ID: ${cs.id_customer || cs.customer_id} - Service: ${cs.service_name || cs.id_service}`,
-            id: cs.id_service_per_customer || cs.id
-          }))
-        );
-      } catch (err) {
-        return { inUse: true, records: [{ type: 'Unknown', name: 'Error checking dependencies', id: 0 }] };
-      }
-
-      try {
-        const serviceCustomersRes = await axiosInstance.get('/catalog/customer-services');
-        const serviceCustomersUsingService = serviceCustomersRes.data?.filter(usesService);
-        if (serviceCustomersUsingService?.length > 0) {
-          allDependentRecords.push(
-            ...serviceCustomersUsingService.map((sc: any) => ({
-              type: 'Service Customer',
-              name: `Customer: ${sc.customer_name || sc.id_customer} - Service: ${sc.service_name || sc.id_service}`,
-              id: sc.id || sc.id_customer_service
+      // Verificar solo las tablas críticas
+      for (const check of criticalChecks) {
+        const records = await check.check(check.url);
+        if (records && records.length > 0) {
+          console.log(`Service ${serviceId} is being used in ${check.name}`);
+          return {
+            inUse: true,
+            records: records.map((record: any) => ({
+              type: check.name,
+              name: `Record ID: ${record.id || record.id_service_per_customer}`,
+              id: record.id || record.id_service_per_customer
             }))
-          );
+          };
         }
-      } catch (err) {}
-
-      try {
-        const workOrdersRes = await axiosInstance.get('/work-orders');
-        const workOrdersUsingService = workOrdersRes.data.filter(usesService);
-        allDependentRecords.push(
-          ...workOrdersUsingService.map((wo: any) => ({
-            type: 'Work Order',
-            name: `Work Order: ${wo.work_order_number || wo.id}`,
-            id: wo.id
-          }))
-        );
-      } catch (err) {
-        return { inUse: true, records: [{ type: 'Unknown', name: 'Error checking Work Orders', id: 0 }] };
       }
 
-      try {
-        const quotesRes = await axiosInstance.get('/quotes');
-        const quotesUsingService = quotesRes.data.filter(usesService);
-        allDependentRecords.push(
-          ...quotesUsingService.map((quote: any) => ({
-            type: 'Quote',
-            name: `Quote: ${quote.quote_number || quote.id}`,
-            id: quote.id
-          }))
-        );
-      } catch (err) {
-        return { inUse: true, records: [{ type: 'Unknown', name: 'Error checking Quotes', id: 0 }] };
-      }
-
-      try {
-        const operationReportsRes = await axiosInstance.get('/reports/operation-report');
-        const reportsUsingService = operationReportsRes.data.filter(usesService);
-        allDependentRecords.push(
-          ...reportsUsingService.map((report: any) => ({
-            type: 'Operation Report',
-            name: `Report: ${report.cliente} - ${report.servicio_principal || report.id_service}`,
-            id: report.id
-          }))
-        );
-      } catch (err) {}
-
-      try {
-        const serviceExecutionsRes = await axiosInstance.get('/reports/service-executions');
-        const executionsUsingService = serviceExecutionsRes.data.filter(usesService);
-        allDependentRecords.push(
-          ...executionsUsingService.map((exec: any) => ({
-            type: 'Service Execution',
-            name: `Execution: Work Order ${exec.work_order || exec.id}`,
-            id: exec.id
-          }))
-        );
-      } catch (err) {}
-
-      try {
-        const invoicesRes = await axiosInstance.get('/billing/invoices');
-        const invoicesUsingService = invoicesRes.data.filter(usesService);
-        allDependentRecords.push(
-          ...invoicesUsingService.map((invoice: any) => ({
-            type: 'Invoice',
-            name: `Invoice: ${invoice.invoice_number || invoice.id}`,
-            id: invoice.id
-          }))
-        );
-      } catch (err) {}
+      console.log(`Service ${serviceId} is not being used in any critical tables`);
+      return { inUse: false, records: [] };
       
-      try {
-        const maintenancePlansRes = await axiosInstance.get('/maintenance/plans');
-        const plansUsingService = maintenancePlansRes.data.filter(usesService);
-        allDependentRecords.push(
-          ...plansUsingService.map((plan: any) => ({
-            type: 'Maintenance Plan',
-            name: `Plan: ${plan.plan_name || plan.id}`,
-            id: plan.id
-          }))
-        );
-      } catch (err) {}
-      
-      try {
-        const componentsRes = await axiosInstance.get('/components');
-        const componentsUsingService = componentsRes.data.filter(usesService);
-        allDependentRecords.push(
-          ...componentsUsingService.map((comp: any) => ({
-            type: 'Component',
-            name: `Component: ${comp.component_name || comp.id}`,
-            id: comp.id
-          }))
-        );
-      } catch (err) {}
-      
-      try {
-        const contractsRes = await axiosInstance.get('/contracts');
-        const contractsUsingService = contractsRes.data.filter(usesService);
-        allDependentRecords.push(
-          ...contractsUsingService.map((contract: any) => ({
-            type: 'Contract',
-            name: `Contract: ${contract.contract_number || contract.id}`,
-            id: contract.id
-          }))
-        );
-      } catch (err) {}
-
-      return {
-        inUse: allDependentRecords.length > 0,
-        records: allDependentRecords
-      };
     } catch (err) {
-      return { inUse: true, records: [{ type: 'Unknown', name: 'Error checking dependencies', id: 0 }] };
+      console.error("Error checking service usage:", err);
+      // En caso de error general, permitir la eliminación con advertencia
+      return { inUse: false, records: [] };
     }
   };
 

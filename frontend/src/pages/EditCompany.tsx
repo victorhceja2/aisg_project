@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useRef } from "react";
 import axiosInstance from '../api/axiosInstance';
+import API_ROUTES from '../api/routes';
 import { useNavigate, useParams } from "react-router-dom";
 import AISGBackground from "../components/catalogs/fondo";
 
@@ -81,7 +82,7 @@ const EditCompany: React.FC = () => {
         const fetchConfig = async () => {
             try {
                 setLoading(true);
-                const res = await axiosInstance.get(`/catalog/extra-company-configuration/${id}`);
+                const res = await axiosInstance.get(`${API_ROUTES.CATALOG.EXTRA_COMPANY_CONFIGURATION}/${id}`);
                 const config = res.data;
                 setForm({
                     id_company: config.id_company.toString(),
@@ -116,7 +117,7 @@ const EditCompany: React.FC = () => {
                 whoupdate, // Agregar quién está actualizando
             };
             
-            await axiosInstance.put(`/catalog/extra-company-configuration/${id}`, data);
+            await axiosInstance.put(`${API_ROUTES.CATALOG.EXTRA_COMPANY_CONFIGURATION}/${id}`, data);
             
             // Mostrar popup de éxito en lugar de navegar inmediatamente
             setShowSuccessPopup(true);

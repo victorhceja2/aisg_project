@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import axiosInstance from '../api/axiosInstance';
+import API_ROUTES from '../api/routes';
 import { useNavigate } from "react-router-dom";
 import AISGBackground from "../components/catalogs/fondo";
 
@@ -73,7 +74,7 @@ const AddServiceType: React.FC = () => {
    */
   const checkDuplicateServiceType = async (name: string) => {
     try {
-      const res = await axiosInstance.get(`/catalog/service-types/?search=${encodeURIComponent(name)}`);
+      const res = await axiosInstance.get(`${API_ROUTES.CATALOG.SERVICE_TYPES}?search=${encodeURIComponent(name)}`);
       // Si hay resultados, verificamos si alguno coincide exactamente con el nombre
       return res.data.some((item: any) => 
         item.service_type_name.toLowerCase() === name.toLowerCase()
@@ -106,7 +107,7 @@ const AddServiceType: React.FC = () => {
       }
       
       const whonew = sessionStorage.getItem("userName") || "system";
-      await axiosInstance.post(`/catalog/service-types`, { 
+      await axiosInstance.post(API_ROUTES.CATALOG.SERVICE_TYPES, { 
         service_type_name: name, 
         whonew 
       });

@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import axiosInstance from '../api/axiosInstance';
+import API_ROUTES from '../api/routes';
 import { useNavigate } from "react-router-dom";
 import AISGBackground from "../components/catalogs/fondo";
 
@@ -77,7 +78,7 @@ const AddClassification: React.FC = () => {
    */
   const checkDuplicateClassification = async (name: string) => {
     try {
-      const res = await axiosInstance.get(`/catalog/service-classification/?search=${encodeURIComponent(name)}`);
+      const res = await axiosInstance.get(`${API_ROUTES.CATALOG.SERVICE_CLASSIFICATION}?search=${encodeURIComponent(name)}`);
       // Si hay resultados, verificamos si alguno coincide exactamente con el nombre
       return res.data.some((item: any) => 
         item.service_classification_name.toLowerCase() === name.toLowerCase()
@@ -109,7 +110,7 @@ const AddClassification: React.FC = () => {
 
     try {
       const whonew = sessionStorage.getItem("userName") || "system";
-      await axiosInstance.post(`/catalog/service-classification/`, {
+      await axiosInstance.post(API_ROUTES.CATALOG.SERVICE_CLASSIFICATION, {
         service_classification_name: name,
         whonew: whonew
       });

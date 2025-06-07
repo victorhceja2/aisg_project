@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import axiosInstance from '../../api/axiosInstance';
+import API_ROUTES from '../../api/routes';
 
 import { Link } from "react-router-dom";
 import AISGBackground from "../catalogs/fondo";
@@ -91,8 +92,11 @@ const CatalogServiceCategory: React.FC = () => {
     const fetchCategories = async () => {
         setLoading(true);
         try {
-            const res = await axiosInstance.get(`/catalog/service-categories/${search ? `?search=${encodeURIComponent(search)}` : ""}`
-            );
+            const url = search 
+                ? `${API_ROUTES.CATALOG.SERVICE_CATEGORIES}?search=${encodeURIComponent(search)}`
+                : API_ROUTES.CATALOG.SERVICE_CATEGORIES;
+            
+            const res = await axiosInstance.get(url);
             setCategories(res.data);
             setError(null);
         } catch {
@@ -109,7 +113,7 @@ const CatalogServiceCategory: React.FC = () => {
 
             // Verificar en servicios
             try {
-                const servicesRes = await axiosInstance.get('/catalog/services');
+                const servicesRes = await axiosInstance.get(API_ROUTES.CATALOG.SERVICES);
                 const servicesUsingCategory = servicesRes.data.filter((service: any) => 
                     service.id_service_category === categoryId
                 );
@@ -162,7 +166,7 @@ const CatalogServiceCategory: React.FC = () => {
 
             // Verificar en work orders
             try {
-                const workOrdersRes = await axiosInstance.get('/work-orders');
+                const workOrdersRes = await axiosInstance.get(API_ROUTES.WORK_ORDERS);
                 const workOrdersUsingCategory = workOrdersRes.data.filter((wo: any) => 
                     wo.service_category_id === categoryId
                 );
@@ -179,7 +183,7 @@ const CatalogServiceCategory: React.FC = () => {
 
             // Verificar en cotizaciones/quotes
             try {
-                const quotesRes = await axiosInstance.get('/quotes');
+                const quotesRes = await axiosInstance.get(API_ROUTES.QUOTES);
                 const quotesUsingCategory = quotesRes.data.filter((quote: any) => 
                     quote.service_category_id === categoryId
                 );
@@ -196,7 +200,7 @@ const CatalogServiceCategory: React.FC = () => {
 
             // Verificar en reportes operacionales
             try {
-                const operationReportsRes = await axiosInstance.get('/reports/operation-report');
+                const operationReportsRes = await axiosInstance.get(API_ROUTES.REPORTS.OPERATION_REPORT);
                 const reportsUsingCategory = operationReportsRes.data.filter((report: any) => 
                     report.category_id === categoryId
                 );
@@ -213,7 +217,7 @@ const CatalogServiceCategory: React.FC = () => {
 
             // Verificar en ejecuciones de servicio
             try {
-                const serviceExecutionsRes = await axiosInstance.get('/reports/service-executions');
+                const serviceExecutionsRes = await axiosInstance.get(API_ROUTES.REPORTS.SERVICE_EXECUTIONS);
                 const executionsUsingCategory = serviceExecutionsRes.data.filter((exec: any) => 
                     exec.category_id === categoryId
                 );
@@ -230,7 +234,7 @@ const CatalogServiceCategory: React.FC = () => {
 
             // Verificar en facturas/invoices
             try {
-                const invoicesRes = await axiosInstance.get('/billing/invoices');
+                const invoicesRes = await axiosInstance.get(API_ROUTES.BILLING.INVOICES);
                 const invoicesUsingCategory = invoicesRes.data.filter((invoice: any) => 
                     invoice.category_id === categoryId
                 );
@@ -298,7 +302,7 @@ const CatalogServiceCategory: React.FC = () => {
                 return;
             }
 
-            await axiosInstance.delete(`/catalog/service-categories/${categoryToDelete.id}`);
+            await axiosInstance.delete(`${API_ROUTES.CATALOG.SERVICE_CATEGORIES}/${categoryToDelete.id}`);
             
             // Guardar el nombre para mostrar en el popup de éxito
             setDeletedCategoryName(categoryToDelete.name);

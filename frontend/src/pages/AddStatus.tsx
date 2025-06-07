@@ -2,6 +2,7 @@
 // manejo de sesión de usuario y ventanas emergentes de confirmación/advertencia.
 import React, { useState, useEffect, useRef } from "react";
 import axiosInstance from '../api/axiosInstance';
+import API_ROUTES from '../api/routes';
 import { useNavigate } from "react-router-dom";
 import AISGBackground from "../components/catalogs/fondo";
 
@@ -95,7 +96,7 @@ const AddStatus: React.FC = () => {
 
   const checkDuplicateStatus = async (name: string): Promise<boolean> => {
     try {
-      const res = await axiosInstance.get(`/catalog/service-status`);
+      const res = await axiosInstance.get(API_ROUTES.CATALOG.SERVICE_STATUS);
       return res.data.some((status: any) =>
         status.status_name.toLowerCase() === name.toLowerCase()
       );
@@ -131,7 +132,7 @@ const AddStatus: React.FC = () => {
         whonew: whonew
       };
 
-      const response = await axiosInstance.post(`/catalog/service-status/`, data, {
+      const response = await axiosInstance.post(API_ROUTES.CATALOG.SERVICE_STATUS, data, {
         headers: {
           'Content-Type': 'application/json',
           'X-Username': whonew

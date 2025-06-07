@@ -21,6 +21,7 @@
  */
 import React, { useEffect, useState, useRef } from "react";
 import axiosInstance from '../../api/axiosInstance';
+import API_ROUTES from '../../api/routes';
 
 import { useNavigate } from "react-router-dom";
 import AISGBackground from "../catalogs/fondo";
@@ -146,42 +147,107 @@ const ServicePerCustomer: React.FC = () => {
     }
   }, [deleteConfirm, showSuccessModal, showDeleteError, deletingRecord]);
 
+  // FUNCIÓN PARA CARGAR CLIENTS DINÁMICAMENTE
   const fetchClients = async () => {
     try {
-      const res = await axiosInstance.get<ClientData[]>('/catalog/clients');
+      const res = await axiosInstance.get<ClientData[]>(API_ROUTES.CATALOG.CLIENTS);
       setClients(res.data || []);
     } catch (err) {
       setError(prevError => prevError ? `${prevError} Could not load client names.` : "Could not load client names.");
     }
   };
 
+  // FUNCIÓN PARA CARGAR SERVICES DINÁMICAMENTE
   const fetchServices = async () => {
     try {
-      const res = await axiosInstance.get<ServiceData[]>('/catalog/services');
+      const res = await axiosInstance.get<ServiceData[]>(API_ROUTES.CATALOG.SERVICES);
       setServices(res.data || []);
     } catch (err) {
       setError(prevError => prevError ? `${prevError} Could not load service names.` : "Could not load service names.");
     }
   };
 
+  // FUNCIÓN PARA CARGAR COMPANIES DINÁMICAMENTE con fallbacks
   const fetchCompanies = async () => {
     try {
-      const res = await axiosInstance.get<CompanyData[]>('/companies/');
-      setCompanies(res.data || []);
+      // Probar múltiples rutas para companies
+      const routesToTry = [
+        API_ROUTES.CATALOG.COMPANIES, // /companies
+        "/catalog/companies",
+        "/companies/",
+        "/api/companies",
+        "/catalog/company"
+      ];
+
+      let response;
+      let successfulRoute = null;
+
+      for (const route of routesToTry) {
+        try {
+          response = await axiosInstance.get<CompanyData[]>(route);
+          if (response.data && Array.isArray(response.data) && response.data.length > 0) {
+            successfulRoute = route;
+            break;
+          }
+        } catch (err: any) {
+          continue;
+        }
+      }
+
+      if (!response || !successfulRoute) {
+        setError(prevError => prevError ? `${prevError} Could not load company names.` : "Could not load company names.");
+        setCompanies([]);
+        return;
+      }
+
+      setCompanies(response.data || []);
     } catch (err) {
+      console.error("Error loading companies:", err);
       setError(prevError => prevError ? `${prevError} Could not load company names.` : "Could not load company names.");
+      setCompanies([]);
     }
   };
 
+  // FUNCIÓN PARA CARGAR RECORDS DINÁMICAMENTE con fallbacks
   const fetchRecords = async () => {
     try {
       setIsLoading(true);
       setError("");
-      const res = await axiosInstance.get<ServicePerCustomerRecord[]>(
-        `/catalog/service-per-customer${search ? `?fuselage_type=${encodeURIComponent(search)}` : ""}`,
-        { timeout: 30000 }
-      );
-      setRecords(res.data || []);
+
+      // Probar múltiples rutas para service-per-customer
+      const routesToTry = [
+        API_ROUTES.CATALOG.SERVICE_PER_CUSTOMER, // /catalog/service-per-customer
+        "/catalog/service-per-customer",
+        "/service-per-customer",
+        "/catalog/services-per-customer",
+        "/services-per-customer",
+        "/api/service-per-customer"
+      ];
+
+      let response;
+      let successfulRoute = null;
+
+      for (const route of routesToTry) {
+        try {
+          const fullRoute = `${route}${search ? `?fuselage_type=${encodeURIComponent(search)}` : ""}`;
+          response = await axiosInstance.get<ServicePerCustomerRecord[]>(fullRoute, { timeout: 30000 });
+          if (response.data && Array.isArray(response.data)) {
+            successfulRoute = route;
+            break;
+          }
+        } catch (err: any) {
+          continue;
+        }
+      }
+
+      if (!response || !successfulRoute) {
+        setError("Service per customer endpoint not found. Please contact the administrator.");
+        setRecords([]);
+        setIsLoading(false);
+        return;
+      }
+
+      setRecords(response.data || []);
       setIsLoading(false);
     } catch (err: any) {
       let errorMessage = "Could not load data. Please try again.";
@@ -338,7 +404,7 @@ const ServicePerCustomer: React.FC = () => {
     }
   };
 
-  // Eliminación SIN verificación doble - confiar en el backend
+  // Eliminación con rutas dinámicas
   const handleDelete = async (id: number) => {
     if (!id) return;
     
@@ -347,7 +413,35 @@ const ServicePerCustomer: React.FC = () => {
     try {
       setError("");
       console.log(`Proceeding with deletion of service per customer #${id}`);
-      await axiosInstance.delete(`/catalog/service-per-customer/${id}`, { timeout: 15000 });
+
+      // Probar múltiples rutas para DELETE
+      const routesToTry = [
+        `${API_ROUTES.CATALOG.SERVICE_PER_CUSTOMER}/${id}`, // /catalog/service-per-customer/{id}
+        `/catalog/service-per-customer/${id}`,
+        `/service-per-customer/${id}`,
+        `/catalog/services-per-customer/${id}`,
+        `/services-per-customer/${id}`,
+        `/api/service-per-customer/${id}`
+      ];
+
+      let success = false;
+      let lastError = null;
+
+      for (const route of routesToTry) {
+        try {
+          await axiosInstance.delete(route, { timeout: 15000 });
+          success = true;
+          break;
+        } catch (err: any) {
+          lastError = err;
+          continue;
+        }
+      }
+
+      if (!success) {
+        throw lastError || new Error("All DELETE endpoints failed");
+      }
+
       setDeletedRecordId(id);
       await fetchRecords();
       setDeleteConfirm(null);

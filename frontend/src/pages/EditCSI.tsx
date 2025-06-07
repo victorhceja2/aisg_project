@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import axiosInstance from '../api/axiosInstance';
+import API_ROUTES from '../api/routes';
 import { useNavigate, useParams } from "react-router-dom";
 import AISGBackground from "../components/catalogs/fondo";
 
@@ -77,7 +78,7 @@ const EditCSI: React.FC = () => {
         const fetchData = async () => {
             try {
                 console.log(`Fetching service include with ID: ${id}`);
-                const res = await axiosInstance.get(`/catalog/service-includes`);
+                const res = await axiosInstance.get(API_ROUTES.CATALOG.SERVICE_INCLUDES);
                 
                 if (res.data && Array.isArray(res.data)) {
                     const serviceInclude = res.data.find(
@@ -118,7 +119,7 @@ const EditCSI: React.FC = () => {
      */
     const checkDuplicateServiceInclude = async (name: string) => {
         try {
-            const res = await axiosInstance.get(`/catalog/service-includes`);
+            const res = await axiosInstance.get(API_ROUTES.CATALOG.SERVICE_INCLUDES);
             // Si hay resultados, verificamos si alguno coincide exactamente con el nombre
             // pero ignoramos el elemento actual que estamos editando
             return res.data.some((item: any) => 
@@ -181,7 +182,7 @@ const EditCSI: React.FC = () => {
             console.log("Sending update payload:", payload);
             
             // Enviamos la solicitud PUT con los datos actualizados
-            const response = await axiosInstance.put(`/catalog/service-includes/${id}`, payload);
+            const response = await axiosInstance.put(`${API_ROUTES.CATALOG.SERVICE_INCLUDES}/${id}`, payload);
             
             console.log("Update response:", response.data);
             

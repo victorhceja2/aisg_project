@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useRef } from "react";
 import axiosInstance from '../api/axiosInstance';
+import API_ROUTES from '../api/routes';
 import { useParams, useNavigate } from "react-router-dom";
 import AISGBackground from "../components/catalogs/fondo";
 
@@ -78,7 +79,7 @@ const EditServiceType: React.FC = () => {
       try {
         console.log(`Fetching service type with ID: ${id}`);
         // Primero obtenemos todos los tipos de servicio 
-        const res = await axiosInstance.get('/catalog/service-types');
+        const res = await axiosInstance.get(API_ROUTES.CATALOG.SERVICE_TYPES);
         
         // Luego filtramos para encontrar el que coincide con nuestro ID
         if (res.data && Array.isArray(res.data)) {
@@ -120,7 +121,7 @@ const EditServiceType: React.FC = () => {
    */
   const checkDuplicateServiceType = async (name: string) => {
     try {
-      const res = await axiosInstance.get(`/catalog/service-types`);
+      const res = await axiosInstance.get(API_ROUTES.CATALOG.SERVICE_TYPES);
       // Si hay resultados, verificamos si alguno coincide exactamente con el nombre
       // pero ignoramos el elemento actual que estamos editando
       return res.data.some((item: any) => 
@@ -161,7 +162,7 @@ const EditServiceType: React.FC = () => {
       
       const whonew = sessionStorage.getItem("userName") || "system";
       
-      await axiosInstance.put(`/catalog/service-types/${id}`, { 
+      await axiosInstance.put(`${API_ROUTES.CATALOG.SERVICE_TYPES}/${id}`, { 
         service_type_name: name, 
         whonew 
       });

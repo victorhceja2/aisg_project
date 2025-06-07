@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import axiosInstance from '../api/axiosInstance';
+import API_ROUTES from '../api/routes';
 import { useNavigate } from "react-router-dom";
 import AISGBackground from "../components/catalogs/fondo";
 
@@ -49,7 +50,7 @@ const AddCSI: React.FC = () => {
    */
   const checkDuplicateServiceInclude = async (name: string) => {
     try {
-      const res = await axiosInstance.get(`/catalog/service-includes/?search=${encodeURIComponent(name)}`);
+      const res = await axiosInstance.get(`${API_ROUTES.CATALOG.SERVICE_INCLUDES}?search=${encodeURIComponent(name)}`);
       // Si hay resultados, verificamos si alguno coincide exactamente con el nombre
       return res.data.some((item: any) => 
         item.service_include.toLowerCase() === name.toLowerCase()
@@ -84,7 +85,7 @@ const AddCSI: React.FC = () => {
       // Obtenemos el nombre de usuario actual desde sessionStorage
       const whonew = sessionStorage.getItem("userName") || "system";
       
-      await axiosInstance.post(`/catalog/service-includes`, {
+      await axiosInstance.post(API_ROUTES.CATALOG.SERVICE_INCLUDES, {
         service_include: serviceName,
         whonew,
       });

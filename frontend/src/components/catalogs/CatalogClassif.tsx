@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import axiosInstance from '../../api/axiosInstance';
+import API_ROUTES from '../../api/routes';
 
 import { Link } from "react-router-dom";
 import AISGBackground from "./fondo"; // Import from fondo.tsx
@@ -96,10 +97,9 @@ const CatalogClassif: React.FC = () => {
   const fetchClassifications = async () => {
     setLoading(true);
     try {
-      // CAMBIO: Corregir la URL del endpoint - eliminar la barra extra
       const url = search 
-        ? `/catalog/service-classification?search=${encodeURIComponent(search)}`
-        : `/catalog/service-classification`;
+        ? `${API_ROUTES.CATALOG.SERVICE_CLASSIFICATION}?search=${encodeURIComponent(search)}`
+        : API_ROUTES.CATALOG.SERVICE_CLASSIFICATION;
       
       console.log("Fetching classifications from:", url); // Para debugging
       
@@ -124,7 +124,7 @@ const CatalogClassif: React.FC = () => {
 
       // Verificar en servicios
       try {
-        const servicesRes = await axiosInstance.get('/catalog/services');
+        const servicesRes = await axiosInstance.get(API_ROUTES.CATALOG.SERVICES);
         const servicesUsingClassification = servicesRes.data.filter((service: any) =>
           service.id_service_classification === classificationId
         );
@@ -177,7 +177,7 @@ const CatalogClassif: React.FC = () => {
 
       // Verificar en work orders
       try {
-        const workOrdersRes = await axiosInstance.get('/work-orders');
+        const workOrdersRes = await axiosInstance.get(API_ROUTES.WORK_ORDERS);
         const workOrdersUsingClassification = workOrdersRes.data.filter((wo: any) => 
           wo.service_classification_id === classificationId
         );
@@ -194,7 +194,7 @@ const CatalogClassif: React.FC = () => {
 
       // Verificar en cotizaciones/quotes
       try {
-        const quotesRes = await axiosInstance.get('/quotes');
+        const quotesRes = await axiosInstance.get(API_ROUTES.QUOTES);
         const quotesUsingClassification = quotesRes.data.filter((quote: any) => 
           quote.service_classification_id === classificationId
         );
@@ -211,7 +211,7 @@ const CatalogClassif: React.FC = () => {
 
       // Verificar en reportes operacionales
       try {
-        const operationReportsRes = await axiosInstance.get('/reports/operation-report');
+        const operationReportsRes = await axiosInstance.get(API_ROUTES.REPORTS.OPERATION_REPORT);
         const reportsUsingClassification = operationReportsRes.data.filter((report: any) => 
           report.classification_id === classificationId
         );
@@ -228,7 +228,7 @@ const CatalogClassif: React.FC = () => {
 
       // Verificar en ejecuciones de servicio
       try {
-        const serviceExecutionsRes = await axiosInstance.get('/reports/service-executions');
+        const serviceExecutionsRes = await axiosInstance.get(API_ROUTES.REPORTS.SERVICE_EXECUTIONS);
         const executionsUsingClassification = serviceExecutionsRes.data.filter((exec: any) => 
           exec.classification_id === classificationId
         );
@@ -245,7 +245,7 @@ const CatalogClassif: React.FC = () => {
 
       // Verificar en facturas/invoices
       try {
-        const invoicesRes = await axiosInstance.get('/billing/invoices');
+        const invoicesRes = await axiosInstance.get(API_ROUTES.BILLING.INVOICES);
         const invoicesUsingClassification = invoicesRes.data.filter((invoice: any) => 
           invoice.classification_id === classificationId
         );
@@ -315,7 +315,7 @@ const CatalogClassif: React.FC = () => {
         return;
       }
 
-      await axiosInstance.delete(`/catalog/service-classification/${deleteItemId}`);
+      await axiosInstance.delete(`${API_ROUTES.CATALOG.SERVICE_CLASSIFICATION}/${deleteItemId}`);
 
       // Guardar el nombre del elemento eliminado para mostrarlo en el popup de éxito
       setDeletedItemName(deleteItemName);

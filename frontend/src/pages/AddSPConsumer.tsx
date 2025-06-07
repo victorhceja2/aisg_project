@@ -14,6 +14,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import axiosInstance from '../api/axiosInstance';
+import API_ROUTES from '../api/routes';
 import { useNavigate } from "react-router-dom";
 import AISGBackground from "../components/catalogs/fondo";
 
@@ -196,7 +197,7 @@ const AddSPConsumer: React.FC = () => {
       console.log("Fetching clients for company ID:", companyId);
 
       // Usar directamente el ID de la compañía para buscar clientes
-      const res = await axiosInstance.get(`/catalog/clients?company_id=${companyId}&tipoCliente=1`);
+      const res = await axiosInstance.get(`${API_ROUTES.CATALOG.CLIENTS}?company_id=${companyId}&tipoCliente=1`);
       console.log("Clients response:", res.data);
       setClients(res.data || []);
     } catch (err: any) {
@@ -231,7 +232,7 @@ const AddSPConsumer: React.FC = () => {
 
       console.log("Fetching services for client ID:", clientId);
       
-      const res = await axiosInstance.get(`/catalog/services?client_id=${encodeURIComponent(clientId)}`);
+      const res = await axiosInstance.get(`${API_ROUTES.CATALOG.SERVICES}?client_id=${encodeURIComponent(clientId)}`);
       console.log("Services response:", res.data);
       setServices(res.data || []);
     } catch (err: any) {
@@ -248,29 +249,29 @@ const AddSPConsumer: React.FC = () => {
     }
   };
 
-  const fetchFuselageTypes = async () => {
-    try {
-      setFuselageTypesLoading(true);
-      const res = await axiosInstance.get('/aircraft-models/');
-
-      const uniqueFuselages = [...new Set(
-        res.data
-          .map((aircraft: any) => aircraft.fuselaje)
-          .filter((fuselaje: string) => fuselaje && fuselaje.trim())
-      )];
-
-      const fuselageTypes = uniqueFuselages.map(fuselaje => ({
-        fuselage_type: fuselaje
-      }));
-
-      setFuselageTypes(fuselageTypes);
-    } catch (err) {
-      console.error("Error loading fuselage types:", err);
-      setError("Error loading fuselage type data.");
-    } finally {
-      setFuselageTypesLoading(false);
-    }
-  };
+    const fetchFuselageTypes = async () => {
+      try {
+        setFuselageTypesLoading(true);
+        const res = await axiosInstance.get('/aircraft-models');
+  
+        const uniqueFuselages = [...new Set(
+          res.data
+            .map((aircraft: any) => aircraft.fuselaje)
+            .filter((fuselaje: string) => fuselaje && fuselaje.trim())
+        )] as string[];
+  
+        const fuselageTypes = uniqueFuselages.map((fuselaje: string) => ({
+          fuselage_type: fuselaje
+        }));
+  
+        setFuselageTypes(fuselageTypes);
+      } catch (err) {
+        console.error("Error loading fuselage types:", err);
+        setError("Error loading fuselage type data.");
+      } finally {
+        setFuselageTypesLoading(false);
+      }
+    };
 
   const handleCompanyChange = (companyIdStr: string) => {
     const companyId = parseInt(companyIdStr, 10);
@@ -356,8 +357,8 @@ const AddSPConsumer: React.FC = () => {
       try {
         setCompaniesLoading(true);
 
-        // Cargar compañías
-        const companiesResponse = await axiosInstance.get('/companies/');
+        // Cargar compañías - usar la ruta correcta
+        const companiesResponse = await axiosInstance.get('/companies');
         setCompanies(companiesResponse.data);
 
         // Seleccionar automáticamente la primera compañía si hay alguna
@@ -392,7 +393,7 @@ const AddSPConsumer: React.FC = () => {
 
   const checkDuplicateServicePerCustomer = async () => {
     try {
-      const res = await axiosInstance.get(`/catalog/service-per-customer`);
+      const res = await axiosInstance.get(API_ROUTES.CATALOG.SERVICE_PER_CUSTOMER);
       return res.data.some((item: any) =>
         item.id_service.toString() === form.id_service &&
         item.id_client.toString() === form.id_client &&
@@ -452,7 +453,7 @@ const AddSPConsumer: React.FC = () => {
         whonew: typeof data.whonew
       });
 
-      await axiosInstance.post(`/catalog/service-per-customer`, data);
+      await axiosInstance.post(API_ROUTES.CATALOG.SERVICE_PER_CUSTOMER, data);
       setShowSuccessPopup(true);
     } catch (err: any) {
       console.error("Error:", err);

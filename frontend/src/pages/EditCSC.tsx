@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import axiosInstance from '../api/axiosInstance';
+import API_ROUTES from '../api/routes';
 import { useNavigate, useParams } from "react-router-dom";
 import AISGBackground from "../components/catalogs/fondo";
 
@@ -78,7 +79,7 @@ const EditCSC: React.FC = () => {
     const fetchCategory = async () => {
       try {
         console.log(`Fetching service category with ID: ${id}`);
-        const res = await axiosInstance.get(`/catalog/service-categories`);
+        const res = await axiosInstance.get(API_ROUTES.CATALOG.SERVICE_CATEGORIES);
         const found = res.data.find((cat: any) => cat.id_service_category?.toString() === id);
         if (found) {
           console.log("Category found:", found);
@@ -108,7 +109,7 @@ const EditCSC: React.FC = () => {
 
   const checkDuplicateCategory = async (name: string) => {
     try {
-      const res = await axiosInstance.get(`/catalog/service-categories`);
+      const res = await axiosInstance.get(API_ROUTES.CATALOG.SERVICE_CATEGORIES);
       return res.data.some((cat: any) =>
         cat.service_category_name.toLowerCase() === name.toLowerCase() &&
         cat.id_service_category.toString() !== id
@@ -158,7 +159,7 @@ const EditCSC: React.FC = () => {
 
       console.log("Sending update payload:", payload);
 
-      const response = await axiosInstance.put(`/catalog/service-categories/${id}`, payload);
+      const response = await axiosInstance.put(`${API_ROUTES.CATALOG.SERVICE_CATEGORIES}/${id}`, payload);
 
       console.log("Update response:", response.data);
 

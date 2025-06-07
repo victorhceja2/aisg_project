@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import axiosInstance from '../api/axiosInstance';
+import API_ROUTES from '../api/routes';
 import { useNavigate } from "react-router-dom";
 import AISGBackground from "../components/catalogs/fondo";
 
@@ -49,7 +50,7 @@ const AddCSC: React.FC = () => {
    */
   const checkDuplicateCategory = async (name: string) => {
     try {
-      const res = await axiosInstance.get(`/catalog/service-categories`);
+      const res = await axiosInstance.get(API_ROUTES.CATALOG.SERVICE_CATEGORIES);
       return res.data.some((cat: any) => 
         cat.service_category_name.toLowerCase() === name.toLowerCase()
       );
@@ -95,7 +96,7 @@ const AddCSC: React.FC = () => {
       
       console.log("Current user creating record:", currentUser);
       
-      const response = await axiosInstance.post(`/catalog/service-categories`, {
+      const response = await axiosInstance.post(API_ROUTES.CATALOG.SERVICE_CATEGORIES, {
         service_category_name: categoryName,
         whonew: currentUser  // Usar el usuario actual
       });

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import axiosInstance from '../api/axiosInstance';
+import API_ROUTES from '../api/routes';
 import { useNavigate, useParams } from "react-router-dom";
 import AISGBackground from "../components/catalogs/fondo";
 
@@ -91,7 +92,7 @@ const EditExtraService: React.FC = () => {
         const fetchData = async () => {
             try {
                 setIsFetching(true);
-                const res = await axiosInstance.get<ExtraServiceAssignment>(`/catalog/extra-service-sale-assignment/${id}`);
+                const res = await axiosInstance.get<ExtraServiceAssignment>(`${API_ROUTES.CATALOG.EXTRA_SERVICE_SALE_ASSIGNMENT}/${id}`);
                 const assignment = res.data;
 
                 setForm({
@@ -128,7 +129,7 @@ const EditExtraService: React.FC = () => {
                 return;
             }
 
-            await axiosInstance.put(`/catalog/extra-service-sale-assignment/${id}`, {
+            await axiosInstance.put(`${API_ROUTES.CATALOG.EXTRA_SERVICE_SALE_ASSIGNMENT}/${id}`, {
                 id_service_per_customer: parseInt(form.id_service_per_customer),
                 id_sale_flight: parseInt(form.id_sale_flight),
                 id_sale_employee: parseInt(form.id_sale_employee),

@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import axiosInstance from '../api/axiosInstance';
+import API_ROUTES from '../api/routes';
 import { useNavigate } from "react-router-dom";
 import AISGBackground from "../components/catalogs/fondo";
 
@@ -59,7 +60,7 @@ const AddExtraService: React.FC = () => {
      */
     const checkDuplicateAssignment = async () => {
         try {
-            const res = await axiosInstance.get(`/catalog/extra-service-sale-assignment`);
+            const res = await axiosInstance.get(API_ROUTES.CATALOG.EXTRA_SERVICE_SALE_ASSIGNMENT);
             return res.data.some((item: any) => 
                 item.id_service_per_customer.toString() === form.id_service_per_customer &&
                 item.id_sale_flight.toString() === form.id_sale_flight &&
@@ -94,7 +95,7 @@ const AddExtraService: React.FC = () => {
 
             const whonew = sessionStorage.getItem("userName") || "system";
             
-            await axiosInstance.post(`/catalog/extra-service-sale-assignment`, {
+            await axiosInstance.post(API_ROUTES.CATALOG.EXTRA_SERVICE_SALE_ASSIGNMENT, {
                 id_service_per_customer: parseInt(form.id_service_per_customer),
                 id_sale_flight: parseInt(form.id_sale_flight),
                 id_sale_employee: parseInt(form.id_sale_employee),

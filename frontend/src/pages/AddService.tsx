@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import axiosInstance from '../api/axiosInstance';
+import API_ROUTES from '../api/routes';
 import { useNavigate } from "react-router-dom";
 import AISGBackground from "../components/catalogs/fondo";
 
@@ -208,11 +209,11 @@ const AddService: React.FC = () => {
   const fetchCatalogs = async () => {
     try {
       const [statusesRes, classificationsRes, categoriesRes, typesRes, includesRes] = await Promise.all([
-        axiosInstance.get('/catalog/service-status'),
-        axiosInstance.get('/catalog/service-classification'),
-        axiosInstance.get('/catalog/service-categories'),
-        axiosInstance.get('/catalog/service-types'),
-        axiosInstance.get('/catalog/service-includes')
+        axiosInstance.get(API_ROUTES.CATALOG.SERVICE_STATUS),
+        axiosInstance.get(API_ROUTES.CATALOG.SERVICE_CLASSIFICATION),
+        axiosInstance.get(API_ROUTES.CATALOG.SERVICE_CATEGORIES),
+        axiosInstance.get(API_ROUTES.CATALOG.SERVICE_TYPES),
+        axiosInstance.get(API_ROUTES.CATALOG.SERVICE_INCLUDES)
       ]);
 
       setStatuses(statusesRes.data);
@@ -243,7 +244,7 @@ const AddService: React.FC = () => {
         return false;
       }
 
-      const res = await axiosInstance.get(`/catalog/services/`);
+      const res = await axiosInstance.get('/catalog/services');
       
       // Verificar que res.data sea un array y tenga elementos
       if (!Array.isArray(res.data) || res.data.length === 0) {
@@ -310,7 +311,7 @@ const AddService: React.FC = () => {
 
       console.log("Payload being sent:", payload); // Debug para verificar valores
 
-      await axiosInstance.post(`/catalog/services/`, payload);
+      await axiosInstance.post('/catalog/services', payload);
 
       // Mostrar popup de éxito en lugar de redirigir inmediatamente
       setShowSuccessPopup(true);

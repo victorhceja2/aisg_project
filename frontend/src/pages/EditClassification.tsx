@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import axiosInstance from '../api/axiosInstance';
+import API_ROUTES from '../api/routes';
 import { useParams, useNavigate } from "react-router-dom";
 import AISGBackground from "../components/catalogs/fondo";
 
@@ -77,7 +78,7 @@ const EditClassification: React.FC = () => {
   useEffect(() => {
     const fetchClassification = async () => {
       try {
-        const res = await axiosInstance.get(`/catalog/service-classification/${id}`);
+        const res = await axiosInstance.get(`${API_ROUTES.CATALOG.SERVICE_CLASSIFICATION}/${id}`);
         if (res.data && res.data.service_classification_name) {
           setName(res.data.service_classification_name);
           setOriginalName(res.data.service_classification_name); // Guardamos el nombre original
@@ -104,7 +105,7 @@ const EditClassification: React.FC = () => {
    */
   const checkDuplicateClassification = async (name: string) => {
     try {
-      const res = await axiosInstance.get(`/catalog/service-classification/?search=${encodeURIComponent(name)}`);
+      const res = await axiosInstance.get(`${API_ROUTES.CATALOG.SERVICE_CLASSIFICATION}?search=${encodeURIComponent(name)}`);
       // Si hay resultados, verificamos si alguno coincide exactamente con el nombre
       // pero ignoramos el elemento actual que estamos editando
       return res.data.some((item: any) => 
@@ -154,7 +155,7 @@ const EditClassification: React.FC = () => {
 
       console.log("Sending update payload:", payload);
 
-      const response = await axiosInstance.put(`/catalog/service-classification/${id}`, payload);
+      const response = await axiosInstance.put(`${API_ROUTES.CATALOG.SERVICE_CLASSIFICATION}/${id}`, payload);
 
       console.log("Update response:", response.data);
 

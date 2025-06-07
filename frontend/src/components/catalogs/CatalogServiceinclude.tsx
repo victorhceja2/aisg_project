@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import axiosInstance from '../../api/axiosInstance';
+import API_ROUTES from '../../api/routes';
 
 import { Link, useNavigate } from "react-router-dom";
 import AISGBackground from "../catalogs/fondo";
@@ -93,8 +94,15 @@ const CatalogServiceInclude: React.FC = () => {
   const fetchIncludes = async () => {
     setLoading(true);
     try {
-      const res = await axiosInstance.get(`/catalog/service-includes/${search ? `?search=${encodeURIComponent(search)}` : ""}`
-      );
+      const url = search 
+        ? `${API_ROUTES.CATALOG.SERVICE_INCLUDES}?search=${encodeURIComponent(search)}`
+        : API_ROUTES.CATALOG.SERVICE_INCLUDES;
+      
+      console.log("Fetching service includes from:", url); // Para debugging
+      
+      const res = await axiosInstance.get(url);
+      console.log("Service includes response:", res.data); // Para debugging
+      
       setIncludes(res.data);
       setError(null);
     } catch (err) {
@@ -112,7 +120,7 @@ const CatalogServiceInclude: React.FC = () => {
 
       // Verificar en servicios
       try {
-        const servicesRes = await axiosInstance.get('/catalog/services');
+        const servicesRes = await axiosInstance.get(API_ROUTES.CATALOG.SERVICES);
         const servicesUsingInclude = servicesRes.data.filter((service: any) => 
           service.id_service_include === includeId
         );
@@ -129,7 +137,7 @@ const CatalogServiceInclude: React.FC = () => {
 
       // Verificar en componentes (módulo principal que utiliza includes)
       try {
-        const componentsRes = await axiosInstance.get('/components');
+        const componentsRes = await axiosInstance.get('/api/components');
         const componentsUsingInclude = componentsRes.data.filter((comp: any) => 
           comp.id_service_include === includeId ||
           comp.include_id === includeId
@@ -147,7 +155,7 @@ const CatalogServiceInclude: React.FC = () => {
 
       // Verificar en customer services
       try {
-        const customerServicesRes = await axiosInstance.get('/catalog/service-per-customer');
+        const customerServicesRes = await axiosInstance.get('/api/customer-services');
         const customerServicesUsingInclude = customerServicesRes.data.filter((cs: any) => {
           // Verificar si el servicio del customer service usa este include
           return cs.service_include_id === includeId;
@@ -165,7 +173,7 @@ const CatalogServiceInclude: React.FC = () => {
 
       // Verificar en work orders
       try {
-        const workOrdersRes = await axiosInstance.get('/work-orders');
+        const workOrdersRes = await axiosInstance.get(API_ROUTES.WORK_ORDERS);
         const workOrdersUsingInclude = workOrdersRes.data.filter((wo: any) => 
           wo.service_include_id === includeId
         );
@@ -182,7 +190,7 @@ const CatalogServiceInclude: React.FC = () => {
 
       // Verificar en cotizaciones/quotes
       try {
-        const quotesRes = await axiosInstance.get('/quotes');
+        const quotesRes = await axiosInstance.get(API_ROUTES.QUOTES);
         const quotesUsingInclude = quotesRes.data.filter((quote: any) => 
           quote.service_include_id === includeId
         );
@@ -199,7 +207,7 @@ const CatalogServiceInclude: React.FC = () => {
 
       // Verificar en reportes operacionales
       try {
-        const operationReportsRes = await axiosInstance.get('/reports/operation-report');
+        const operationReportsRes = await axiosInstance.get(API_ROUTES.REPORTS.OPERATION_REPORT);
         const reportsUsingInclude = operationReportsRes.data.filter((report: any) => 
           report.include_id === includeId
         );
@@ -216,7 +224,7 @@ const CatalogServiceInclude: React.FC = () => {
 
       // Verificar en ejecuciones de servicio
       try {
-        const serviceExecutionsRes = await axiosInstance.get('/reports/service-executions');
+        const serviceExecutionsRes = await axiosInstance.get(API_ROUTES.REPORTS.SERVICE_EXECUTIONS);
         const executionsUsingInclude = serviceExecutionsRes.data.filter((exec: any) => 
           exec.include_id === includeId
         );
@@ -233,7 +241,7 @@ const CatalogServiceInclude: React.FC = () => {
 
       // Verificar en facturas/invoices
       try {
-        const invoicesRes = await axiosInstance.get('/billing/invoices');
+        const invoicesRes = await axiosInstance.get(API_ROUTES.BILLING.INVOICES);
         const invoicesUsingInclude = invoicesRes.data.filter((invoice: any) => 
           invoice.include_id === includeId
         );
@@ -307,7 +315,7 @@ const CatalogServiceInclude: React.FC = () => {
         return;
       }
 
-      await axiosInstance.delete(`/catalog/service-includes/${itemToDelete.id}`);
+      await axiosInstance.delete(`${API_ROUTES.CATALOG.SERVICE_INCLUDES}/${itemToDelete.id}`);
       setDeletedItemName(itemToDelete.name);
       setShowDeleteConfirmation(false);
       setItemToDelete(null);
