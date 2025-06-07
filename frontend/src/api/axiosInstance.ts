@@ -29,6 +29,17 @@ if (import.meta.env.PROD) {
     });
 }
 
+// Interceptor para eliminar barras "/" al final de cada ruta
+axiosInstance.interceptors.request.use((config) => {
+  if (config.url) {
+    // Quitar todos los "/" al final de la URL (pero no dejarla vacía)
+    config.url = config.url.replace(/\/+$/, '') || config.url;
+  }
+  return config;
+}, (error) => {
+  return Promise.reject(error);
+});
+
 // Función auxiliar para obtener la URL base actual (útil para debugging)
 export const getBaseUrl = () => axiosInstance.defaults.baseURL;
 
