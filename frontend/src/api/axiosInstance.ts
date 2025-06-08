@@ -10,12 +10,32 @@ let configLoaded = false;
 let configPromise: Promise<void> | null = null;
 
 const loadServerConfig = async (): Promise<void> => {
-  if (configLoaded) return; // Evita recargas si ya está configurado (p. ej., por setServerUrl)
+  if (configLoaded && axiosInstance.defaults.baseURL) {
+    // Si ya está cargada Y la baseURL está establecida (p.ej. por setServerUrl o una carga previa exitosa),
+    // no hacer nada más en esta llamada.
+    // Esto previene re-procesamiento innecesario si ensureConfigLoaded es llamado múltiples veces
+    // después de una carga exitosa dentro de la misma sesión de página.
+    return;
+  }
 
+  // Al reiniciar la app (recarga de página), configLoaded será false.
+  // Primero, intentar cargar desde localStorage.
+  const urlFromLocalStorage = localStorage.getItem("serverBaseUrl");
+
+  if (urlFromLocalStorage) {
+    axiosInstance.defaults.baseURL = urlFromLocalStorage;
+    configLoaded = true;
+    console.log("URL base cargada desde localStorage:", urlFromLocalStorage);
+    // Con esta lógica, si localStorage tiene un valor, no se consulta el archivo server.txt
+    // a menos que se llame a reloadServerConfig().
+    return;
+  }
+
+  // Si localStorage está vacío, intentar leer el archivo de configuración.
   let urlFromConfigFile: string | null = null;
+  console.log("localStorage vacío para serverBaseUrl, intentando leer config/server.txt...");
 
   try {
-    // Siempre intentar leer el archivo de configuración primero
     const response = await fetch("/config/server.txt"); // Asume que server.txt está en la carpeta public/config
     if (response.ok) {
       const serverUrlText = await response.text();
@@ -32,33 +52,20 @@ const loadServerConfig = async (): Promise<void> => {
     console.warn("Error al intentar leer config/server.txt:", error.message);
   }
 
-  const urlFromLocalStorage = localStorage.getItem("serverBaseUrl");
-
   if (urlFromConfigFile) {
-    // Prioridad 1: Usar la URL del archivo si se pudo leer y no está vacía
-    if (urlFromConfigFile !== urlFromLocalStorage) {
-      localStorage.setItem("serverBaseUrl", urlFromConfigFile); // Actualizar localStorage
-      console.log("URL base establecida/actualizada desde config/server.txt:", urlFromConfigFile);
-    } else {
-      console.log("URL base confirmada desde config/server.txt (coincide con localStorage):", urlFromConfigFile);
-    }
+    // Si el archivo se pudo leer y tiene contenido, usarlo y guardarlo en localStorage.
     axiosInstance.defaults.baseURL = urlFromConfigFile;
+    localStorage.setItem("serverBaseUrl", urlFromConfigFile);
     configLoaded = true;
+    console.log("URL base establecida desde config/server.txt y guardada en localStorage:", urlFromConfigFile);
     return;
   }
   
-  // Prioridad 2: Si el archivo no se pudo leer o estaba vacío, usar localStorage si existe
-  if (urlFromLocalStorage) {
-    axiosInstance.defaults.baseURL = urlFromLocalStorage;
-    configLoaded = true;
-    console.log("URL base cargada desde localStorage (config/server.txt no disponible o vacío):", urlFromLocalStorage);
-    return;
-  }
-
-  // Error: Ni el archivo ni localStorage proporcionaron una URL
-  const errorMessage = "CRITICAL ERROR: Server configuration (config/server.txt) could not be loaded, and no cached configuration was found in localStorage. The application cannot contact the server. Please contact your system administrator to ensure 'public/config/server.txt' is correctly configured and accessible.";
+  // Error: Ni localStorage ni el archivo proporcionaron una URL.
+  const errorMessage = "CRITICAL ERROR: Server configuration (localStorage and config/server.txt) could not be loaded. The application cannot contact the server. Please configure the server URL or contact your system administrator to ensure 'public/config/server.txt' is correctly configured and accessible if localStorage is empty.";
   console.error(errorMessage);
-  alert(errorMessage); 
+  // alert(errorMessage); // Alert puede ser intrusivo; el error en consola es prioritario.
+  // Considerar un mecanismo de UI más amigable para este error si es necesario.
   throw new Error("Server configuration not available.");
 };
 
@@ -69,15 +76,19 @@ const ensureConfigLoaded = async (): Promise<void> => {
   try {
     await configPromise;
   } catch (error: any) {
-    console.error("Error al cargar la configuración:", error.message);
+    console.error("Error al asegurar la carga de la configuración:", error.message);
+    // Limpiar configPromise para permitir un nuevo intento si es relevante
+    configPromise = null; 
+    configLoaded = false; // Asegurar que se intente recargar si hay un nuevo ensureConfigLoaded
     throw error; // Asegúrate de que el error se propague si la configuración falla
   }
 };
 
 // Bloquea solicitudes hasta que la configuración esté cargada
 const waitForConfig = async (): Promise<void> => {
-  if (!configLoaded) {
-    console.log("Esperando a que se cargue la configuración...");
+  // No solo verificar configLoaded, sino también que baseURL esté realmente establecida.
+  if (!configLoaded || !axiosInstance.defaults.baseURL) {
+    console.log("Esperando a que se cargue la configuración (baseURL no establecida o config no cargada)...");
     await ensureConfigLoaded();
   }
 };
@@ -91,20 +102,34 @@ axiosInstance.interceptors.request.use(async (config) => {
 
 export const setServerUrl = (url: string) => {
   const trimmedUrl = url.trim();
+  if (!trimmedUrl) {
+    console.warn("setServerUrl: Se intentó establecer una URL vacía.");
+    // Opcionalmente, manejar este caso de error más estrictamente.
+    // Por ahora, no cambiaremos la config si la URL es vacía.
+    return;
+  }
   axiosInstance.defaults.baseURL = trimmedUrl;
-  localStorage.setItem("serverBaseUrl", trimmedUrl); // Actualizar en localStorage
-  configLoaded = true; // Marcar como cargado para que loadServerConfig no intente sobrescribir
-                       // inmediatamente si se llama después. Si la app se recarga,
-                       // loadServerConfig volverá a leer el archivo.
-  console.log("URL base establecida manualmente:", trimmedUrl);
+  localStorage.setItem("serverBaseUrl", trimmedUrl); 
+  configLoaded = true; 
+  configPromise = Promise.resolve(); // Marcar la promesa de config como resuelta.
+  console.log("URL base establecida manualmente y guardada en localStorage:", trimmedUrl);
 };
 
 export const reloadServerConfig = async () => {
-  configLoaded = false; // Permitir que loadServerConfig se ejecute de nuevo
-  configPromise = null; // Forzar la re-ejecución de loadServerConfig
-  localStorage.removeItem("serverBaseUrl"); // Limpiar la caché para forzar la lectura desde el archivo
-  console.log("Recargando configuración del servidor...");
-  return await ensureConfigLoaded(); // Esto llamará a loadServerConfig
+  console.log("Iniciando recarga de configuración del servidor...");
+  configLoaded = false; 
+  configPromise = null; 
+  localStorage.removeItem("serverBaseUrl"); // Crucial: Limpiar la caché para forzar la lectura desde el archivo.
+  console.log("localStorage 'serverBaseUrl' eliminado para forzar lectura de archivo.");
+  try {
+    await ensureConfigLoaded(); // Esto llamará a loadServerConfig, que ahora leerá el archivo.
+    console.log("Configuración del servidor recargada exitosamente desde el archivo (si está disponible).");
+  } catch (error: any) {
+    console.error("Error durante reloadServerConfig:", error.message);
+    // El error ya se maneja y propaga en ensureConfigLoaded.
+    // Aquí solo se logea adicionalmente si es necesario.
+    throw error; // Re-lanzar para que el llamador sepa que falló.
+  }
 };
 
 export const getBaseUrl = () => axiosInstance.defaults.baseURL;
@@ -116,8 +141,6 @@ export const testServerConnection = async (url?: string): Promise<boolean> => {
     return false;
   }
   try {
-    // Asumimos que el endpoint de health no requiere que la config esté completamente cargada
-    // por axiosInstance, por eso usamos axios.get directamente con la URL de prueba.
     await axios.get(`${testUrl}/health`, { timeout: 5000 });
     return true;
   } catch {
@@ -128,11 +151,18 @@ export const testServerConnection = async (url?: string): Promise<boolean> => {
 // Cargar la configuración automáticamente al iniciar la aplicación
 (async () => {
   try {
+    console.log("Iniciando carga automática de configuración de la aplicación...");
     await ensureConfigLoaded();
-    console.log("Configuración cargada automáticamente al iniciar la aplicación.");
+    if (axiosInstance.defaults.baseURL) {
+      console.log("Configuración cargada automáticamente. URL base:", axiosInstance.defaults.baseURL);
+    } else {
+      // Esto no debería ocurrir si ensureConfigLoaded no lanzó un error.
+      console.error("Configuración supuestamente cargada, pero baseURL sigue sin estar definida.");
+    }
   } catch (error: any) {
-    console.error("Error al cargar la configuración al iniciar la aplicación:", error.message);
-    // El alert y el error ya se manejan dentro de loadServerConfig/ensureConfigLoaded
+    // El error ya se maneja y logea dentro de loadServerConfig/ensureConfigLoaded.
+    // No es necesario un alert() aquí a menos que se desee explícitamente.
+    // console.error("Fallo crítico al cargar la configuración al iniciar la aplicación:", error.message);
   }
 })();
 
