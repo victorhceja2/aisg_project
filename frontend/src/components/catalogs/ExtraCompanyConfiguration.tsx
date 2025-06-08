@@ -7,7 +7,6 @@ import { useNavigate } from "react-router-dom";
  * Componente para mostrar y administrar la configuración extra por compañía.
  * Permite buscar por ID de compañía, agregar, editar y eliminar configuraciones.
  */
-const API_BASE_URL = "http://localhost:8000";
 
 // Definición de la estructura de datos para una configuración extra por compañía
 interface ExtraCompanyConfig {

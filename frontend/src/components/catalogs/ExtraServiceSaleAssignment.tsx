@@ -3,9 +3,6 @@ import axiosInstance from '../../api/axiosInstance';
 
 import { Link, useNavigate } from "react-router-dom";
 
-// Definición de la URL base para la API
-const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
-
 // Definición de la estructura de datos para una asignación extra de servicio a venta
 interface ExtraServiceAssignment {
   id_xtra_sale_employee: number;

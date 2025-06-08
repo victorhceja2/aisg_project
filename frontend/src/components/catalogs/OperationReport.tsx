@@ -199,6 +199,7 @@ const OperationReport: React.FC = () => {
     const fetchStations = async () => {
         try {
             setStationsLoading(true);
+            // Esta lista es estática y no depende de una llamada a API
             const stationsList = [
                 "GDL", "MEX", "CUN", "TIJ", "PVR", "SJD", "MTY", "BJX",
                 "LAX", "DFW", "MIA", "JFK", "ORD", "ATL", "DEN", "PHX"
@@ -379,7 +380,7 @@ const OperationReport: React.FC = () => {
         ]) : [['No data available']];
 
         const csvContent = [headers, ...csvData]
-            .map(row => row.map(field => `"${field}"`).join(','))
+            .map(row => row.map(field => `"${String(field === null || field === undefined ? '' : field).replace(/"/g, '""')}"`).join(','))
             .join('\n');
 
         const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -478,6 +479,7 @@ const OperationReport: React.FC = () => {
             doc.save(fileName);
         } catch (error) {
             console.error('Error generating PDF:', error);
+            // Fallback PDF generation if autoTable fails
             const doc = new jsPDF('l', 'mm', 'a4');
             doc.setFontSize(20);
             doc.text('Operations Report', 14, 22);
@@ -493,13 +495,13 @@ const OperationReport: React.FC = () => {
                 doc.text('COMPANY | AIRLINE | DATE | STATION | FLIGTH', 14, yPosition);
                 yPosition += 10;
 
-                reports.forEach((report, index) => {
+                reports.forEach((report) => {
                     const line = `${report.COMPANY || 'N/A'} | ${report.AIRLINE || 'N/A'} | ${report.DATE || 'N/A'} | ${report.STATION || 'N/A'} | ${report.FLIGTH || 'N/A'}`;
                     doc.text(line, 14, yPosition);
                     yPosition += 8;
-                    if (yPosition > 180) {
+                    if (yPosition > 180) { // Check for page overflow
                         doc.addPage();
-                        yPosition = 20;
+                        yPosition = 20; // Reset Y position for new page
                     }
                 });
             }
@@ -755,7 +757,8 @@ const OperationReport: React.FC = () => {
                             ) : (
                                 <tr>
                                     <td colSpan={21} className="p-4 text-center">
-                                        {allReports.length === 0 ? 'No operation reports available.' : 'No operation reports match the current filters.'}
+                                        {allReports.length === 0 && !loading ? 'No operation reports available.' : 
+                                         !loading ? 'No operation reports match the current filters.' : ''}
                                     </td>
                                 </tr>
                             )}

@@ -92,7 +92,7 @@ const CatalogStatus: React.FC = () => {
   const fetchStatuses = async () => {
     setLoading(true);
     try {
-      const res = await axiosInstance.get(`/catalog/service-status/${search ? `?search=${encodeURIComponent(search)}` : ""}`
+      const res = await axiosInstance.get(`/catalog/service-status${search ? `?search=${encodeURIComponent(search)}` : ""}`
       );
       setStatuses(res.data);
       setError(null);

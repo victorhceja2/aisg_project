@@ -81,7 +81,7 @@ const ServicePerCustomer: React.FC = () => {
   const [showDeleteError, setShowDeleteError] = useState(false);
   const [deletedRecordId, setDeletedRecordId] = useState<number | null>(null);
   const [deleteErrorMessage, setDeleteErrorMessage] = useState("");
-  const [dependentRecords, setDependentRecords] = useState<any[]>([]);
+  const [dependentRecordsInfo, setDependentRecordsInfo] = useState<any[]>([]); // Renombrado para claridad
 
   const deleteSuccessOkButtonRef = useRef<HTMLButtonElement>(null);
   const deleteConfirmButtonRef = useRef<HTMLButtonElement>(null);
@@ -231,7 +231,6 @@ const ServicePerCustomer: React.FC = () => {
 
         const service = services.find(s => s.id_service === record.id_service);
         
-        // CAMBIO PRINCIPAL: Buscar compañía por ID numérico
         const company = companies.find(c => c.Llave === record.id_company);
 
         const clientName = client ?
@@ -259,131 +258,128 @@ const ServicePerCustomer: React.FC = () => {
     }
   }, [records, clients, services, companies]);
 
-  // CAMBIO PRINCIPAL: Verificación SIMPLIFICADA - solo confía en el backend
   const checkServiceUsage = async (servicePerCustomerId: number): Promise<{ inUse: boolean; records: any[] }> => {
     console.log(`Checking usage for service per customer ID: ${servicePerCustomerId}`);
     
-    // NUEVA ESTRATEGIA: Solo hacer una verificación básica en endpoints conocidos que funcionan
-    // Si no encontramos dependencias evidentes, permitir que el backend maneje las restricciones
-    
     try {
-      const allDependentRecords: any[] = [];
-      const servicePerCustomerFields = [
-        'id_service_per_customer',
-        'service_per_customer_id',
-        'id_servicio_por_cliente',
-        'servicio_cliente_id'
-      ];
-
-      const usesServicePerCustomer = (item: any): boolean => {
-        for (const field of servicePerCustomerFields) {
-          if (item[field] !== undefined && 
-              (Number(item[field]) === servicePerCustomerId || String(item[field]) === String(servicePerCustomerId))) {
-            return true;
-          }
-        }
-        return false;
-      };
-
-      // SOLO verificar endpoints que sabemos que existen en tu backend
-      // Basándome en los logs, parece que ninguno de estos endpoints existe actualmente
-      // Por lo tanto, vamos a hacer una verificación MUY básica
-
-      console.log("Performing simplified dependency check...");
+      // Esta función ahora solo sirve como placeholder o para verificaciones muy ligeras en el frontend.
+      // La lógica principal de restricción de borrado por dependencias recae en el backend.
+      console.log("Performing simplified dependency check (frontend)...");
       
-      // Intentar verificar solo un endpoint conocido que sabemos que funciona
-      // Si no hay endpoints de dependencias disponibles, permitir la eliminación
-      // y dejar que el backend maneje las restricciones de foreign key
+      // Aquí se podrían añadir llamadas a endpoints específicos si se desea mostrar información detallada
+      // de dependencias al usuario ANTES de que el backend rechace la eliminación.
+      // Por ahora, se asume que no hay dependencias o que el backend las manejará.
 
-      console.log(`Usage check result - In use: false (simplified check), Dependencies: none found, Total records: 0`);
+      // Ejemplo (si tuvieras un endpoint para verificar dependencias específicas):
+      // const { data: dependentData } = await axiosInstance.get(`/catalog/service-per-customer/${servicePerCustomerId}/dependencies`);
+      // if (dependentData && dependentData.length > 0) {
+      //   return { inUse: true, records: dependentData };
+      // }
 
+      console.log(`Usage check result - In use: false (simplified frontend check)`);
       return {
-        inUse: false, // Siempre permitir, el backend manejará las restricciones
+        inUse: false, 
         records: []
       };
     } catch (err) {
-      console.error("Error in checkServiceUsage:", err);
-      // En caso de error, permitir eliminación - el backend se encargará
+      console.error("Error in frontend checkServiceUsage:", err);
+      // En caso de error en la verificación del frontend, permitir continuar.
+      // El backend será el responsable final de la validación.
       return { inUse: false, records: [] };
     }
   };
 
-  // Verificación antes de mostrar confirmación de borrado
   const handleDeleteConfirm = async (id: number) => {
     console.log(`Attempting to delete service per customer ID: ${id}`);
-    setDeletingRecord(true);
+    setDeletingRecord(true); // Inicia el estado de carga/borrado
     
     try {
-      const { inUse, records } = await checkServiceUsage(id);
+      // La verificación de `checkServiceUsage` aquí es opcional o para feedback inmediato.
+      // El backend DEBE realizar la validación final.
+      const { inUse, records: dependentItems } = await checkServiceUsage(id);
 
-      if (inUse) {
-        const dependencyList = records.map(r => r.type).join(", ");
+      if (inUse && dependentItems.length > 0) {
+        // Este bloque se ejecutaría si la verificación del frontend encuentra dependencias
+        // y se desea informar al usuario antes de intentar el borrado.
+        const dependencyList = dependentItems.map(r => `${r.type}: ${r.name || r.id}`).join(", ");
         setDeleteErrorMessage(`Cannot delete service record #${id} because it is currently being used in: ${dependencyList}.`);
-        setDependentRecords(records);
+        setDependentRecordsInfo(dependentItems);
         setShowDeleteError(true);
         setDeletingRecord(false);
         return;
       }
 
-      console.log(`Service per customer #${id} passed initial validation, showing delete confirmation`);
-      setDeleteConfirm(id);
+      console.log(`Service per customer #${id} passed initial frontend validation (or skipped), showing delete confirmation modal.`);
+      setDeleteConfirm(id); // Mostrar modal de confirmación
     } catch (err) {
-      console.error("Error checking service usage:", err);
-      // En caso de error en la verificación, permitir eliminar
-      // El backend manejará las restricciones
-      console.log(`Error in verification, proceeding with delete confirmation for service #${id}`);
+      console.error("Error during pre-delete check:", err);
+      // Si hay un error en la verificación del frontend, es mejor permitir que el usuario intente borrar
+      // y que el backend maneje la restricción, en lugar de bloquearlo prematuramente.
+      console.log(`Error in frontend verification, proceeding with delete confirmation for service #${id}`);
       setDeleteConfirm(id);
     } finally {
-      setDeletingRecord(false);
+      // No se establece deletingRecord a false aquí, porque el modal de confirmación
+      // tendrá su propio manejo de estado de carga cuando se presione "Delete".
+      // Si la verificación de frontend falla y no se muestra el modal, entonces sí se resetea.
+      if (!deleteConfirm && !showDeleteError) {
+         setDeletingRecord(false);
+      }
     }
   };
-
-  // Eliminación SIN verificación doble - confiar en el backend
+  
   const handleDelete = async (id: number) => {
     if (!id) return;
     
-    setDeletingRecord(true);
+    setDeletingRecord(true); // Indicar que el proceso de borrado ha comenzado
 
     try {
       setError("");
-      console.log(`Proceeding with deletion of service per customer #${id}`);
+      console.log(`Proceeding with deletion of service per customer #${id} via API.`);
       await axiosInstance.delete(`/catalog/service-per-customer/${id}`, { timeout: 15000 });
-      setDeletedRecordId(id);
-      await fetchRecords();
-      setDeleteConfirm(null);
-      setShowSuccessModal(true);
-      setSuccess("Record deleted successfully");
-      console.log(`Service per customer #${id} deleted successfully`);
-    } catch (err: any) {
-      console.error("Error during deletion:", err);
       
-      // Manejar errores específicos del backend
-      if (err.response?.status === 409 || 
-          err.response?.status === 400 ||
-          (err.response?.data?.detail && 
-           (err.response.data.detail.includes("constraint") || 
-            err.response.data.detail.includes("used") || 
-            err.response.data.detail.includes("dependency") ||
-            err.response.data.detail.includes("foreign key") ||
-            err.response.data.detail.includes("referenced")))) {
-        setDeleteErrorMessage(`Cannot delete service record #${id} because it is currently being used in the system.`);
-      } else if (err.response?.status === 500) {
-        setDeleteErrorMessage(`Server error while deleting service record #${id}. The record may be in use by other parts of the system.`);
-      } else {
-        setDeleteErrorMessage(
-          `Error deleting service record #${id}. Please try again later.`
-        );
+      setDeletedRecordId(id);
+      await fetchRecords(); // Recargar los datos
+      setDeleteConfirm(null); // Cerrar modal de confirmación
+      setShowSuccessModal(true); // Mostrar modal de éxito
+      setSuccess(`Record #${id} deleted successfully.`); // Mensaje de éxito (puede ser usado en un toast o similar)
+      console.log(`Service per customer #${id} deleted successfully from backend.`);
+
+    } catch (err: any) {
+      console.error("Error during API deletion call:", err);
+      let specificErrorMessage = `Error deleting service record #${id}.`;
+
+      if (err.response) {
+        console.error("Backend error response:", err.response.data);
+        if (err.response.status === 409 || // Conflicto (usualmente por FK constraint)
+            err.response.status === 400 && err.response.data?.detail?.toLowerCase().includes("constraint") ||
+            err.response.data?.detail?.toLowerCase().includes("foreign key constraint fails") ||
+            err.response.data?.detail?.toLowerCase().includes("is referenced by") ||
+            err.response.data?.detail?.toLowerCase().includes("still in use")) {
+          specificErrorMessage = `Cannot delete service record #${id} because it is currently being used by other records in the system. Please resolve dependencies before deleting.`;
+          // Podrías intentar parsear err.response.data.dependencies si el backend lo envía
+          // setDependentRecordsInfo(err.response.data.dependencies || []); 
+        } else if (err.response.status === 500) {
+          specificErrorMessage = `A server error occurred while trying to delete service record #${id}. The record might be in use or another issue prevented deletion. Please contact support.`;
+        } else if (err.response.data?.detail) {
+          specificErrorMessage = `Error deleting service record #${id}: ${err.response.data.detail}`;
+        }
+      } else if (err.request) {
+        specificErrorMessage = `No response from server while trying to delete service record #${id}. Please check your network connection.`;
+      } else if (err.code === 'ECONNABORTED') {
+        specificErrorMessage = `Request to delete service record #${id} timed out. Please try again.`;
       }
-      setDependentRecords([]);
-      setDeleteConfirm(null);
-      setShowDeleteError(true);
+      
+      setDeleteErrorMessage(specificErrorMessage);
+      setDeleteConfirm(null); // Cerrar modal de confirmación si aún estaba abierto
+      setShowDeleteError(true); // Mostrar modal de error
     } finally {
-      setDeletingRecord(false);
+      setDeletingRecord(false); // Finalizar estado de carga/borrado
     }
   };
 
   const handleCancelDelete = () => {
     setDeleteConfirm(null);
+    setDeletingRecord(false); // Asegurarse de resetear el estado si se cancela desde el modal
   };
 
   const handleEdit = (id: number) => {
@@ -397,12 +393,13 @@ const ServicePerCustomer: React.FC = () => {
   const handleSuccessClose = () => {
     setShowSuccessModal(false);
     setDeletedRecordId(null);
+    setSuccess("");
   };
 
   const closeDeleteErrorModal = () => {
     setShowDeleteError(false);
     setDeleteErrorMessage("");
-    setDependentRecords([]);
+    setDependentRecordsInfo([]);
   };
 
   const SuccessAlert = () => (
@@ -461,11 +458,17 @@ const ServicePerCustomer: React.FC = () => {
             </p>
           </div>
 
-          {error && (
+          {error && !showDeleteError && ( // No mostrar error general si hay un error de borrado específico
             <div className="bg-red-500 text-white p-4 rounded-lg mb-6 shadow-md animate-pulse">
               <p className="font-medium">{error}</p>
             </div>
           )}
+          
+          {/* {success && !showSuccessModal && ( // Mensaje de éxito general (si se usa fuera del modal)
+            <div className="bg-green-500 text-white p-4 rounded-lg mb-6 shadow-md">
+              <p className="font-medium">{success}</p>
+            </div>
+          )} */}
 
           <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
             <div className="w-full md:w-2/3 relative">
@@ -485,7 +488,7 @@ const ServicePerCustomer: React.FC = () => {
             <button
               onClick={handleAdd}
               className="w-full md:w-auto bg-white hover:bg-gray-100 text-[#002057] font-medium py-2 px-4 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg flex items-center justify-center"
-              disabled={isLoading}
+              disabled={isLoading || deletingRecord}
             >
               <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
@@ -497,7 +500,7 @@ const ServicePerCustomer: React.FC = () => {
 
         <div className="flex-1 overflow-hidden px-6 pb-6">
           <div className="h-full w-full overflow-auto">
-            {isLoading && !deleteConfirm ? (
+            {isLoading && !deleteConfirm && !deletingRecord ? ( // Mostrar spinner solo si no hay un modal de borrado activo
               <div className="flex justify-center items-center h-full">
                 <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#00B140]"></div>
               </div>
@@ -525,20 +528,20 @@ const ServicePerCustomer: React.FC = () => {
                         <td className="px-3 py-4 border border-[#1e3462] text-white text-sm whitespace-nowrap">{r.service_name_from_endpoint}</td>
                         <td className="px-3 py-4 border border-[#1e3462] text-white text-sm whitespace-nowrap">{r.client_name_from_endpoint}</td>
                         <td className="px-3 py-4 border border-[#1e3462] text-white text-sm whitespace-nowrap">{r.company_name_from_endpoint}</td>
-                        <td className="px-3 py-4 border border-[#1e3462] text-white text-sm whitespace-nowrap">{r.minutes_included}</td>
-                        <td className="px-3 py-4 border border-[#1e3462] text-white text-sm whitespace-nowrap">{r.minutes_minimum}</td>
+                        <td className="px-3 py-4 border border-[#1e3462] text-white text-sm whitespace-nowrap text-center">{r.minutes_included}</td>
+                        <td className="px-3 py-4 border border-[#1e3462] text-white text-sm whitespace-nowrap text-center">{r.minutes_minimum}</td>
                         <td className="px-3 py-4 border border-[#1e3462] text-white text-sm whitespace-nowrap">{r.fuselage_type}</td>
-                        <td className="px-3 py-4 border border-[#1e3462] text-white text-sm whitespace-nowrap">{r.technicians_included}</td>
+                        <td className="px-3 py-4 border border-[#1e3462] text-white text-sm whitespace-nowrap text-center">{r.technicians_included}</td>
                         <td className="px-3 py-4 border border-[#1e3462] text-white text-sm whitespace-nowrap">{r.whonew}</td>
-                        <td className="px-3 py-4 border border-[#1e3462] text-white text-sm whitespace-nowrap">{r.create_at ? r.create_at.split("T")[0] : ""}</td>
-                        <td className="px-3 py-4 border border-[#1e3462] text-white text-sm whitespace-nowrap">{r.updated_at ? r.updated_at.split("T")[0] : ""}</td>
+                        <td className="px-3 py-4 border border-[#1e3462] text-white text-sm whitespace-nowrap">{r.create_at ? new Date(r.create_at).toLocaleDateString() : ""}</td>
+                        <td className="px-3 py-4 border border-[#1e3462] text-white text-sm whitespace-nowrap">{r.updated_at ? new Date(r.updated_at).toLocaleDateString() : ""}</td>
                         <td className="px-3 py-4 border border-[#1e3462] whitespace-nowrap">
                           <div className="flex justify-center gap-2">
                             <button
                               onClick={() => handleEdit(r.id_service_per_customer)}
-                              className="p-1.5 bg-white text-[#002057] rounded hover:bg-gray-100 transition-colors"
+                              className="p-1.5 bg-white text-[#002057] rounded hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                               title="Edit"
-                              disabled={isLoading || deletingRecord}
+                              disabled={isLoading || deletingRecord || !!deleteConfirm}
                             >
                               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -546,11 +549,12 @@ const ServicePerCustomer: React.FC = () => {
                             </button>
                             <button
                               onClick={() => handleDeleteConfirm(r.id_service_per_customer)}
-                              disabled={isLoading || deletingRecord}
-                              className="p-1.5 bg-[#e6001f] text-white rounded hover:bg-red-700 transition-colors disabled:opacity-50"
+                              disabled={isLoading || deletingRecord || !!deleteConfirm} // Deshabilitar si ya hay una operación de borrado o confirmación en curso
+                              className="p-1.5 bg-[#e6001f] text-white rounded hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                               title="Delete"
                             >
-                              {deletingRecord ? (
+                              {/* Mostrar spinner si ESTE botón específico está procesando su borrado */}
+                              {deletingRecord && deleteConfirm === r.id_service_per_customer ? (
                                 <div className="w-5 h-5 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
                               ) : (
                                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -596,7 +600,7 @@ const ServicePerCustomer: React.FC = () => {
                   </p>
                 </div>
                 <div className="mt-8 flex gap-3">
-                  {deletingRecord ? (
+                  {deletingRecord ? ( // Spinner general para el modal de borrado
                     <div className="w-full flex justify-center">
                       <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-white"></div>
                     </div>
@@ -635,10 +639,9 @@ const ServicePerCustomer: React.FC = () => {
           </div>
         )}
 
-        {/* Modal de error mejorado con información específica */}
         {showDeleteError && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="overflow-hidden max-w-md w-full mx-4 rounded-lg shadow-xl">
+            <div className="overflow-hidden max-w-lg w-full mx-4 rounded-lg shadow-xl">
               <div className="bg-white rounded-t-lg px-6 py-4 shadow-lg">
                 <h2 className="text-2xl font-bold text-center text-[#002057]">
                   Cannot Delete Service Record
@@ -653,9 +656,21 @@ const ServicePerCustomer: React.FC = () => {
                     </svg>
                   </div>
                   <div className="flex-1">
-                    <p className="text-white text-lg mb-4">
+                    <p className="text-white text-lg mb-2">
                       {deleteErrorMessage}
                     </p>
+                    {dependentRecordsInfo.length > 0 && ( // Cambiado a dependentRecordsInfo
+                      <div className="mt-3">
+                        <p className="text-white text-sm font-medium mb-1">Potential related records:</p>
+                        <div className="bg-[#0D1423] rounded-lg p-2 max-h-28 overflow-y-auto">
+                          {dependentRecordsInfo.map((record, index) => ( // Cambiado a dependentRecordsInfo
+                            <div key={index} className="text-gray-300 text-xs py-0.5">
+                              • {record.type}: {record.name || record.id}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
                 <div className="mt-6 flex justify-center space-x-4">

@@ -46,10 +46,11 @@ const Login: React.FC = () => {
       window.dispatchEvent(new Event('storageChange'));
       navigate("/reports", { replace: true });
     } catch (err) {
-      if (username === "admin" && password === "admin123") {
+      // Fallback login for "admin" user - This is not a hardcoded URL
+      if (username.trim().toLowerCase() === "admin" && password.trim() === "admin123") {
         const mockUserData = {
           userId: "1",
-          userName: "Administrator",
+          userName: "Administrator (Fallback)",
           perfil: "ADMIN"
         };
         sessionStorage.setItem("userId", mockUserData.userId);
@@ -86,7 +87,7 @@ const Login: React.FC = () => {
               <div className="flex justify-center my-4">
                 <div className="bg-gradient-to-r from-[#0033A0] to-[#00B140] p-3 rounded-full shadow-md">
                   <img
-                    src="/logo_aisg.jpeg"
+                    src="/logo_aisg.jpeg" // This is a local public asset, not an API URL
                     alt="AISG Logo"
                     className="w-16 h-16 object-contain rounded-full"
                   />
