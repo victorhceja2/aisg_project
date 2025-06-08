@@ -120,13 +120,13 @@ const OperationReport: React.FC = () => {
     }, []);
 
     useEffect(() => {
-        if (filters.company && filters.company !== "all") {
+        if (filters.company && filters.company !== "all" && companies.length > 0) {
             fetchAirlinesByCompany(filters.company);
         } else {
             setAirlines([]);
             setFilters(prev => ({ ...prev, airline: "all" })); // Reset airline to "all"
         }
-    }, [filters.company]);
+    }, [filters.company, companies]); // Asegurarse que companies esté en las dependencias
 
     // Aplicar filtros automáticamente cuando cambian los datos o filtros
     useEffect(() => {
@@ -234,6 +234,7 @@ const OperationReport: React.FC = () => {
     const applyFilters = () => {
         // Validar fechas antes de aplicar filtros
         if (!validateDates(filters.startDate, filters.endDate)) {
+            setReports([]); // Limpiar resultados si las fechas son inválidas
             return;
         }
 
@@ -243,15 +244,15 @@ const OperationReport: React.FC = () => {
         if (filters.company && filters.company !== "all") {
             const selectedCompanyLlave = Number(filters.company);
             filteredReports = filteredReports.filter(report =>
-                report.LLAVE && report.LLAVE === selectedCompanyLlave
+                report.LLAVE !== null && report.LLAVE === selectedCompanyLlave
             );
         }
 
         // Aplicar filtro de aerolínea usando el campo linea
         if (filters.airline && filters.airline !== "all") {
-            const selectedAirline = airlines.find(airline => airline.llave.toString() === filters.airline);
-            if (selectedAirline) {
-                const airlineName = selectedAirline.linea;
+            const selectedAirlineObj = airlines.find(airline => airline.llave.toString() === filters.airline);
+            if (selectedAirlineObj) {
+                const airlineName = selectedAirlineObj.linea;
                 filteredReports = filteredReports.filter(report =>
                     report.AIRLINE && report.AIRLINE.toLowerCase().includes(airlineName.toLowerCase())
                 );
@@ -268,14 +269,14 @@ const OperationReport: React.FC = () => {
         // Aplicar filtro de fecha de inicio
         if (filters.startDate) {
             filteredReports = filteredReports.filter(report =>
-                report.DATE && report.DATE >= filters.startDate
+                report.DATE && new Date(report.DATE) >= new Date(filters.startDate)
             );
         }
 
         // Aplicar filtro de fecha de fin
         if (filters.endDate) {
             filteredReports = filteredReports.filter(report =>
-                report.DATE && report.DATE <= filters.endDate
+                report.DATE && new Date(report.DATE) <= new Date(filters.endDate)
             );
         }
 
@@ -293,10 +294,8 @@ const OperationReport: React.FC = () => {
     // Función para manejar cambio de fecha de inicio
     const handleStartDateChange = (value: string) => {
         setFilters({ ...filters, startDate: value });
-        validateDates(value, filters.endDate);
-        
-        // Si hay una fecha de fin seleccionada y es menor que la nueva fecha de inicio, limpiarla
-        if (filters.endDate && value && filters.endDate < value) {
+        // La validación de fechas y el posible reseteo de endDate se maneja en applyFilters o al interactuar con endDate
+        if (filters.endDate && value && new Date(value) > new Date(filters.endDate)) {
             setFilters(prev => ({ ...prev, startDate: value, endDate: "" }));
         }
     };
@@ -304,7 +303,6 @@ const OperationReport: React.FC = () => {
     // Función para manejar cambio de fecha de fin
     const handleEndDateChange = (value: string) => {
         setFilters({ ...filters, endDate: value });
-        validateDates(filters.startDate, value);
     };
 
     // Función para exportar a Excel (NO incluye LLAVE)
@@ -315,29 +313,32 @@ const OperationReport: React.FC = () => {
             'SERV1', 'SERV2', 'SERV3', 'SERV4', 'SERV5', 'SERV6', 'REMARKS', 'TECHNICIAN'
         ];
 
-        const data = reports.length > 0 ? reports.map(report => [
-            report.COMPANY,
-            report.AIRLINE,
-            report.DATE,
-            report.STATION,
-            report.AC_REG,
-            report.FLIGTH,
-            report.DEST,
-            report.LOG_BOOK,
-            report.AC_TYPE,
-            report.START_TIME,
-            report.END_TIME,
-            report.SERV_PR,
-            report.ON_GND,
-            report.SERV1,
-            report.SERV2,
-            report.SERV3,
-            report.SERV4,
-            report.SERV5,
-            report.SERV6,
-            report.REMARKS,
-            report.TECHNICIAN
-        ]) : [['No data available']];
+        const data = reports.length > 0 ? reports.map(report => {
+            const companyObj = companies.find(c => c.Llave === report.LLAVE);
+            return [
+                companyObj ? companyObj.companyCode : report.COMPANY, // Muestra companyCode si se encuentra, sino el valor original
+                report.AIRLINE,
+                report.DATE,
+                report.STATION,
+                report.AC_REG,
+                report.FLIGTH,
+                report.DEST,
+                report.LOG_BOOK,
+                report.AC_TYPE,
+                report.START_TIME,
+                report.END_TIME,
+                report.SERV_PR,
+                report.ON_GND,
+                report.SERV1,
+                report.SERV2,
+                report.SERV3,
+                report.SERV4,
+                report.SERV5,
+                report.SERV6,
+                report.REMARKS,
+                report.TECHNICIAN
+            ];
+        }) : [['No data available']];
 
         const ws = XLSX.utils.aoa_to_sheet([headers, ...data]);
         const wb = XLSX.utils.book_new();
@@ -355,29 +356,32 @@ const OperationReport: React.FC = () => {
             'SERV1', 'SERV2', 'SERV3', 'SERV4', 'SERV5', 'SERV6', 'REMARKS', 'TECHNICIAN'
         ];
 
-        const csvData = reports.length > 0 ? reports.map(report => [
-            report.COMPANY,
-            report.AIRLINE,
-            report.DATE,
-            report.STATION,
-            report.AC_REG,
-            report.FLIGTH,
-            report.DEST,
-            report.LOG_BOOK,
-            report.AC_TYPE,
-            report.START_TIME,
-            report.END_TIME,
-            report.SERV_PR,
-            report.ON_GND,
-            report.SERV1,
-            report.SERV2,
-            report.SERV3,
-            report.SERV4,
-            report.SERV5,
-            report.SERV6,
-            report.REMARKS,
-            report.TECHNICIAN
-        ]) : [['No data available']];
+        const csvData = reports.length > 0 ? reports.map(report => {
+            const companyObj = companies.find(c => c.Llave === report.LLAVE);
+            return [
+                companyObj ? companyObj.companyCode : report.COMPANY,
+                report.AIRLINE,
+                report.DATE,
+                report.STATION,
+                report.AC_REG,
+                report.FLIGTH,
+                report.DEST,
+                report.LOG_BOOK,
+                report.AC_TYPE,
+                report.START_TIME,
+                report.END_TIME,
+                report.SERV_PR,
+                report.ON_GND,
+                report.SERV1,
+                report.SERV2,
+                report.SERV3,
+                report.SERV4,
+                report.SERV5,
+                report.SERV6,
+                report.REMARKS,
+                report.TECHNICIAN
+            ];
+        }) : [['No data available']];
 
         const csvContent = [headers, ...csvData]
             .map(row => row.map(field => `"${String(field === null || field === undefined ? '' : field).replace(/"/g, '""')}"`).join(','))
@@ -409,29 +413,32 @@ const OperationReport: React.FC = () => {
                 'SERV1', 'SERV2', 'SERV3', 'SERV4', 'SERV5', 'SERV6', 'REMARKS', 'TECHNICIAN'
             ];
 
-            const tableData = reports.length > 0 ? reports.map(report => [
-                report.COMPANY || '',
-                report.AIRLINE || '',
-                report.DATE || '',
-                report.STATION || '',
-                report.AC_REG || '',
-                report.FLIGTH || '',
-                report.DEST || '',
-                report.LOG_BOOK || '',
-                report.AC_TYPE || '',
-                report.START_TIME || '',
-                report.END_TIME || '',
-                report.SERV_PR || '',
-                report.ON_GND || '',
-                report.SERV1 || '',
-                report.SERV2 || '',
-                report.SERV3 || '',
-                report.SERV4 || '',
-                report.SERV5 || '',
-                report.SERV6 || '',
-                report.REMARKS || '',
-                report.TECHNICIAN || ''
-            ]) : [['No data available', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '']];
+            const tableData = reports.length > 0 ? reports.map(report => {
+                const companyObj = companies.find(c => c.Llave === report.LLAVE);
+                return [
+                    companyObj ? companyObj.companyCode : report.COMPANY || '',
+                    report.AIRLINE || '',
+                    report.DATE || '',
+                    report.STATION || '',
+                    report.AC_REG || '',
+                    report.FLIGTH || '',
+                    report.DEST || '',
+                    report.LOG_BOOK || '',
+                    report.AC_TYPE || '',
+                    report.START_TIME || '',
+                    report.END_TIME || '',
+                    report.SERV_PR || '',
+                    report.ON_GND || '',
+                    report.SERV1 || '',
+                    report.SERV2 || '',
+                    report.SERV3 || '',
+                    report.SERV4 || '',
+                    report.SERV5 || '',
+                    report.SERV6 || '',
+                    report.REMARKS || '',
+                    report.TECHNICIAN || ''
+                ];
+            }) : [['No data available', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '']];
 
             autoTable(doc, {
                 head: [columns],
@@ -480,34 +487,36 @@ const OperationReport: React.FC = () => {
         } catch (error) {
             console.error('Error generating PDF:', error);
             // Fallback PDF generation if autoTable fails
-            const doc = new jsPDF('l', 'mm', 'a4');
-            doc.setFontSize(20);
-            doc.text('Operations Report', 14, 22);
-            doc.setFontSize(12);
-            doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 14, 35);
+            const docFallback = new jsPDF('l', 'mm', 'a4');
+            docFallback.setFontSize(20);
+            docFallback.text('Operations Report', 14, 22);
+            docFallback.setFontSize(12);
+            docFallback.text(`Generated on: ${new Date().toLocaleDateString()}`, 14, 35);
 
             let yPosition = 50;
-            doc.setFontSize(10);
+            docFallback.setFontSize(10);
 
             if (reports.length === 0) {
-                doc.text('No data available', 14, yPosition);
+                docFallback.text('No data available', 14, yPosition);
             } else {
-                doc.text('COMPANY | AIRLINE | DATE | STATION | FLIGTH', 14, yPosition);
+                docFallback.text('COMPANY | AIRLINE | DATE | STATION | FLIGTH', 14, yPosition);
                 yPosition += 10;
 
                 reports.forEach((report) => {
-                    const line = `${report.COMPANY || 'N/A'} | ${report.AIRLINE || 'N/A'} | ${report.DATE || 'N/A'} | ${report.STATION || 'N/A'} | ${report.FLIGTH || 'N/A'}`;
-                    doc.text(line, 14, yPosition);
+                    const companyObj = companies.find(c => c.Llave === report.LLAVE);
+                    const companyDisplay = companyObj ? companyObj.companyCode : report.COMPANY;
+                    const line = `${companyDisplay || 'N/A'} | ${report.AIRLINE || 'N/A'} | ${report.DATE || 'N/A'} | ${report.STATION || 'N/A'} | ${report.FLIGTH || 'N/A'}`;
+                    docFallback.text(line, 14, yPosition);
                     yPosition += 8;
                     if (yPosition > 180) { // Check for page overflow
-                        doc.addPage();
+                        docFallback.addPage();
                         yPosition = 20; // Reset Y position for new page
                     }
                 });
             }
 
-            const fileName = `operations_report_${new Date().toISOString().split('T')[0]}.pdf`;
-            doc.save(fileName);
+            const fileNameFallback = `operations_report_fallback_${new Date().toISOString().split('T')[0]}.pdf`;
+            docFallback.save(fileNameFallback);
         }
     };
 
@@ -577,7 +586,7 @@ const OperationReport: React.FC = () => {
                                     className="w-full bg-[#1E2A45] text-white px-3 py-2 rounded-md border border-gray-700 focus:border-[#00B140] focus:ring-2 focus:ring-[#00B140] focus:outline-none"
                                     value={filters.airline}
                                     onChange={(e) => setFilters({ ...filters, airline: e.target.value })}
-                                    disabled={!filters.company || filters.company === "all"}
+                                    disabled={!filters.company || filters.company === "all" || companiesLoading}
                                 >
                                     <option value="all">All Airlines</option>
                                     {airlines.map((airline) => (
@@ -666,7 +675,7 @@ const OperationReport: React.FC = () => {
                                 onClick={exportToCSV}
                             >
                                 <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 011.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
+                                    <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
                                 </svg>
                                 Export CSV
                             </button>
@@ -674,20 +683,20 @@ const OperationReport: React.FC = () => {
 
                         <button
                             className={`${
-                                dateError 
+                                dateError || loading || companiesLoading || airlinesLoading || stationsLoading
                                     ? 'bg-gray-500 cursor-not-allowed' 
                                     : 'bg-[#00B140] hover:bg-[#009935]'
                             } text-white font-medium py-2 px-6 rounded-md shadow-md transition-all duration-200`}
                             onClick={searchReports}
-                            disabled={loading || !!dateError}
+                            disabled={loading || !!dateError || companiesLoading || airlinesLoading || stationsLoading}
                         >
-                            {loading ? 'Searching...' : 'Search'}
+                            {loading || companiesLoading || airlinesLoading || stationsLoading ? 'Searching...' : 'Search'}
                         </button>
                     </div>
                 </div>
 
                 {/* Indicador de carga */}
-                {loading && (
+                {(loading && reports.length === 0) && (
                     <div className="flex justify-center py-6">
                         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#00B140]"></div>
                     </div>
@@ -728,37 +737,43 @@ const OperationReport: React.FC = () => {
                         </thead>
                         <tbody className="bg-transparent">
                             {reports.length > 0 ? (
-                                reports.map((item, index) => (
-                                    <tr key={index} className="border-b border-[#233554] hover:bg-[#233554] transition-colors">
-                                        <td className="p-2">{item.COMPANY || 'N/A'}</td>
-                                        <td className="p-2">{item.AIRLINE || 'N/A'}</td>
-                                        <td className="p-2">{item.DATE || 'N/A'}</td>
-                                        <td className="p-2">{item.STATION || 'N/A'}</td>
-                                        <td className="p-2">{item.AC_REG || 'N/A'}</td>
-                                        <td className="p-2">{item.FLIGTH || 'N/A'}</td>
-                                        <td className="p-2">{item.DEST || 'N/A'}</td>
-                                        <td className="p-2">{item.LOG_BOOK || 'N/A'}</td>
-                                        <td className="p-2">{item.AC_TYPE || 'N/A'}</td>
-                                        <td className="p-2">{item.START_TIME || 'N/A'}</td>
-                                        <td className="p-2">{item.END_TIME || 'N/A'}</td>
-                                        <td className="p-2">{item.SERV_PR || 'N/A'}</td>
-                                        <td className="p-2">{item.ON_GND || 'N/A'}</td>
-                                        <td className="p-2">{item.SERV1 || 'N/A'}</td>
-                                        <td className="p-2">{item.SERV2 || 'N/A'}</td>
-                                        <td className="p-2">{item.SERV3 || 'N/A'}</td>
-                                        <td className="p-2">{item.SERV4 || 'N/A'}</td>
-                                        <td className="p-2">{item.SERV5 || 'N/A'}</td>
-                                        <td className="p-2">{item.SERV6 || 'N/A'}</td>
-                                        <td className="p-2">{item.REMARKS || 'N/A'}</td>
-                                        <td className="p-2">{item.TECHNICIAN || 'N/A'}</td>
-                                        {/* LLAVE NO se muestra en la tabla */}
-                                    </tr>
-                                ))
+                                reports.map((item, index) => {
+                                    const companyObj = companies.find(c => c.Llave === item.LLAVE);
+                                    const companyDisplay = companyObj ? companyObj.companyCode : item.COMPANY;
+                                    return (
+                                        <tr key={index} className="border-b border-[#233554] hover:bg-[#233554] transition-colors">
+                                            <td className="p-2">{companyDisplay || 'N/A'}</td>
+                                            <td className="p-2">{item.AIRLINE || 'N/A'}</td>
+                                            <td className="p-2">{item.DATE || 'N/A'}</td>
+                                            <td className="p-2">{item.STATION || 'N/A'}</td>
+                                            <td className="p-2">{item.AC_REG || 'N/A'}</td>
+                                            <td className="p-2">{item.FLIGTH || 'N/A'}</td>
+                                            <td className="p-2">{item.DEST || 'N/A'}</td>
+                                            <td className="p-2">{item.LOG_BOOK || 'N/A'}</td>
+                                            <td className="p-2">{item.AC_TYPE || 'N/A'}</td>
+                                            <td className="p-2">{item.START_TIME || 'N/A'}</td>
+                                            <td className="p-2">{item.END_TIME || 'N/A'}</td>
+                                            <td className="p-2">{item.SERV_PR || 'N/A'}</td>
+                                            <td className="p-2">{item.ON_GND || 'N/A'}</td>
+                                            <td className="p-2">{item.SERV1 || 'N/A'}</td>
+                                            <td className="p-2">{item.SERV2 || 'N/A'}</td>
+                                            <td className="p-2">{item.SERV3 || 'N/A'}</td>
+                                            <td className="p-2">{item.SERV4 || 'N/A'}</td>
+                                            <td className="p-2">{item.SERV5 || 'N/A'}</td>
+                                            <td className="p-2">{item.SERV6 || 'N/A'}</td>
+                                            <td className="p-2">{item.REMARKS || 'N/A'}</td>
+                                            <td className="p-2">{item.TECHNICIAN || 'N/A'}</td>
+                                            {/* LLAVE NO se muestra en la tabla */}
+                                        </tr>
+                                    );
+                                })
                             ) : (
                                 <tr>
                                     <td colSpan={21} className="p-4 text-center">
-                                        {allReports.length === 0 && !loading ? 'No operation reports available.' : 
-                                         !loading ? 'No operation reports match the current filters.' : ''}
+                                        { (loading || companiesLoading || stationsLoading) ? 'Loading data...' :
+                                          (allReports.length === 0 && !error) ? 'No operation reports available.' : 
+                                          'No operation reports match the current filters.'
+                                        }
                                     </td>
                                 </tr>
                             )}

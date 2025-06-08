@@ -22,6 +22,7 @@ interface Client {
   nombre: string;
   comercial: string;
   razonSocial: string;
+  mote?: string; // Añadido para las tres letras iniciales
 }
 
 interface Service {
@@ -575,11 +576,31 @@ const AddSPConsumer: React.FC = () => {
                       <option value="">
                         {!selectedCompanyId ? "Select a company first" : "Select a Client"}
                       </option>
-                      {clients.map((client) => (
-                        <option key={client.llave} value={client.llave}>
-                          {client.comercial ? `${client.comercial}` : (client.nombre ? `${client.nombre}` : `Airline #${client.llave}`)}
-                        </option>
-                      ))}
+                      {clients.map((client) => {
+                        let displayName = `Airline #${client.llave}`;
+                        const hasMote = client.mote && client.mote.trim() !== "";
+                        const hasNombre = client.nombre && client.nombre.trim() !== "";
+                        const hasComercial = client.comercial && client.comercial.trim() !== "";
+
+                        if (hasMote) {
+                          if (hasNombre) {
+                            displayName = `${client.mote} - ${client.nombre}`;
+                          } else if (hasComercial) {
+                            displayName = `${client.mote} - ${client.comercial}`;
+                          } else {
+                            displayName = client.mote!;
+                          }
+                        } else if (hasComercial) {
+                          displayName = client.comercial!;
+                        } else if (hasNombre) {
+                          displayName = client.nombre!;
+                        }
+                        return (
+                          <option key={client.llave} value={client.llave.toString()}>
+                            {displayName}
+                          </option>
+                        );
+                      })}
                     </select>
                   )}
                   {validationErrors.id_client && (
@@ -610,7 +631,7 @@ const AddSPConsumer: React.FC = () => {
                         {!selectedClient ? "Select a client first" : "Select a service"}
                       </option>
                       {services.map((service) => (
-                        <option key={service.id_service} value={service.id_service}>
+                        <option key={service.id_service} value={service.id_service.toString()}>
                           {service.service_code} - {service.service_name}
                         </option>
                       ))}

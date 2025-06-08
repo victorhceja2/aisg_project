@@ -338,21 +338,25 @@ const OperationService: React.FC = () => {
             'A/C Type', 'Start Time', 'End Time', 'On GND', 'Service', 'Work Reference', 'Technician'
         ];
 
-        const exportData = data.length > 0 ? data.map(row => [
-            row.COMPANY,
-            row.AIRLINE,
-            row.DATE,
-            row.STATION,
-            row.AC_REG,
-            row.FLIGHT,
-            row.AC_TYPE,
-            row.START_TIME,
-            row.END_TIME,
-            row.ON_GND,
-            row.SERVICE,
-            row.WORK_REFERENCE,
-            row.TECHNICIAN
-        ]) : [['No data available']];
+        const exportData = data.length > 0 ? data.map(row => {
+            const companyObj = companies.find(c => String(c.Llave) === String(row.LLAVE));
+            const companyDisplay = companyObj ? companyObj.companyCode : row.COMPANY;
+            return [
+                companyDisplay,
+                row.AIRLINE,
+                row.DATE,
+                row.STATION,
+                row.AC_REG,
+                row.FLIGHT,
+                row.AC_TYPE,
+                row.START_TIME,
+                row.END_TIME,
+                row.ON_GND,
+                row.SERVICE,
+                row.WORK_REFERENCE,
+                row.TECHNICIAN
+            ];
+        }) : [['No data available']];
 
         const ws = XLSX.utils.aoa_to_sheet([headers, ...exportData]);
         const wb = XLSX.utils.book_new();
@@ -369,21 +373,25 @@ const OperationService: React.FC = () => {
             'A/C Type', 'Start Time', 'End Time', 'On GND', 'Service', 'Work Reference', 'Technician'
         ];
 
-        const csvData = data.length > 0 ? data.map(row => [
-            row.COMPANY,
-            row.AIRLINE,
-            row.DATE,
-            row.STATION,
-            row.AC_REG,
-            row.FLIGHT,
-            row.AC_TYPE,
-            row.START_TIME,
-            row.END_TIME,
-            row.ON_GND,
-            row.SERVICE,
-            row.WORK_REFERENCE,
-            row.TECHNICIAN
-        ]) : [['No data available']];
+        const csvData = data.length > 0 ? data.map(row => {
+            const companyObj = companies.find(c => String(c.Llave) === String(row.LLAVE));
+            const companyDisplay = companyObj ? companyObj.companyCode : row.COMPANY;
+            return [
+                companyDisplay,
+                row.AIRLINE,
+                row.DATE,
+                row.STATION,
+                row.AC_REG,
+                row.FLIGHT,
+                row.AC_TYPE,
+                row.START_TIME,
+                row.END_TIME,
+                row.ON_GND,
+                row.SERVICE,
+                row.WORK_REFERENCE,
+                row.TECHNICIAN
+            ];
+        }) : [['No data available']];
 
         const csvContent = [headers, ...csvData]
             .map(row => row.map(field => `"${String(field === null || field === undefined ? '' : field)}"`).join(','))
@@ -415,21 +423,25 @@ const OperationService: React.FC = () => {
                 'A/C Type', 'Start Time', 'End Time', 'On GND', 'Service', 'Work Reference', 'Technician'
             ];
 
-            const tableData = data.length > 0 ? data.map(row => [
-                row.COMPANY || '',
-                row.AIRLINE || '',
-                row.DATE || '',
-                row.STATION || '',
-                row.AC_REG || '',
-                row.FLIGHT || '',
-                row.AC_TYPE || '',
-                row.START_TIME || '',
-                row.END_TIME || '',
-                row.ON_GND || '',
-                row.SERVICE || '',
-                row.WORK_REFERENCE || '',
-                row.TECHNICIAN || ''
-            ]) : [['No data available', '', '', '', '', '', '', '', '', '', '', '', '']];
+            const tableData = data.length > 0 ? data.map(row => {
+                const companyObj = companies.find(c => String(c.Llave) === String(row.LLAVE));
+                const companyDisplay = companyObj ? companyObj.companyCode : row.COMPANY;
+                return [
+                    companyDisplay || '',
+                    row.AIRLINE || '',
+                    row.DATE || '',
+                    row.STATION || '',
+                    row.AC_REG || '',
+                    row.FLIGHT || '',
+                    row.AC_TYPE || '',
+                    row.START_TIME || '',
+                    row.END_TIME || '',
+                    row.ON_GND || '',
+                    row.SERVICE || '',
+                    row.WORK_REFERENCE || '',
+                    row.TECHNICIAN || ''
+                ];
+            }) : [['No data available', '', '', '', '', '', '', '', '', '', '', '', '']];
 
             autoTable(doc, {
                 head: [columns],
@@ -475,7 +487,9 @@ const OperationService: React.FC = () => {
                 docFallback.text('Company | Airline | Date | Station | Service | Technician', 14, yPosition);
                 yPosition += 10;
                 data.forEach((row) => {
-                    const line = `${row.COMPANY || 'N/A'} | ${row.AIRLINE || 'N/A'} | ${row.DATE || 'N/A'} | ${row.STATION || 'N/A'} | ${row.SERVICE || 'N/A'} | ${row.TECHNICIAN || 'N/A'}`;
+                    const companyObj = companies.find(c => String(c.Llave) === String(row.LLAVE));
+                    const companyDisplay = companyObj ? companyObj.companyCode : row.COMPANY;
+                    const line = `${companyDisplay || 'N/A'} | ${row.AIRLINE || 'N/A'} | ${row.DATE || 'N/A'} | ${row.STATION || 'N/A'} | ${row.SERVICE || 'N/A'} | ${row.TECHNICIAN || 'N/A'}`;
                     docFallback.text(line, 14, yPosition);
                     yPosition += 8;
                     if (yPosition > 180) { // Basic pagination
@@ -679,23 +693,27 @@ const OperationService: React.FC = () => {
                             </thead>
                             <tbody className="bg-transparent">
                                 {data.length > 0 ? (
-                                    data.map((row, idx) => (
-                                        <tr key={idx} className="border-b border-[#233554] hover:bg-[#233554] transition-colors">
-                                            <td className="p-2 text-white">{row.COMPANY || 'N/A'}</td>
-                                            <td className="p-2 text-white">{row.AIRLINE || 'N/A'}</td>
-                                            <td className="p-2 text-white">{row.DATE || 'N/A'}</td>
-                                            <td className="p-2 text-white">{row.STATION || 'N/A'}</td>
-                                            <td className="p-2 text-white">{row.AC_REG || 'N/A'}</td>
-                                            <td className="p-2 text-white">{row.FLIGHT || 'N/A'}</td>
-                                            <td className="p-2 text-white">{row.AC_TYPE || 'N/A'}</td>
-                                            <td className="p-2 text-white">{row.START_TIME || 'N/A'}</td>
-                                            <td className="p-2 text-white">{row.END_TIME || 'N/A'}</td>
-                                            <td className="p-2 text-white">{row.ON_GND || 'N/A'}</td>
-                                            <td className="p-2 text-white">{row.SERVICE || 'N/A'}</td>
-                                            <td className="p-2 text-white">{row.WORK_REFERENCE || 'N/A'}</td>
-                                            <td className="p-2 text-white">{row.TECHNICIAN || 'N/A'}</td>
-                                        </tr>
-                                    ))
+                                    data.map((row, idx) => {
+                                        const companyObj = companies.find(c => String(c.Llave) === String(row.LLAVE));
+                                        const companyDisplay = companyObj ? companyObj.companyCode : row.COMPANY;
+                                        return (
+                                            <tr key={idx} className="border-b border-[#233554] hover:bg-[#233554] transition-colors">
+                                                <td className="p-2 text-white">{companyDisplay || 'N/A'}</td>
+                                                <td className="p-2 text-white">{row.AIRLINE || 'N/A'}</td>
+                                                <td className="p-2 text-white">{row.DATE || 'N/A'}</td>
+                                                <td className="p-2 text-white">{row.STATION || 'N/A'}</td>
+                                                <td className="p-2 text-white">{row.AC_REG || 'N/A'}</td>
+                                                <td className="p-2 text-white">{row.FLIGHT || 'N/A'}</td>
+                                                <td className="p-2 text-white">{row.AC_TYPE || 'N/A'}</td>
+                                                <td className="p-2 text-white">{row.START_TIME || 'N/A'}</td>
+                                                <td className="p-2 text-white">{row.END_TIME || 'N/A'}</td>
+                                                <td className="p-2 text-white">{row.ON_GND || 'N/A'}</td>
+                                                <td className="p-2 text-white">{row.SERVICE || 'N/A'}</td>
+                                                <td className="p-2 text-white">{row.WORK_REFERENCE || 'N/A'}</td>
+                                                <td className="p-2 text-white">{row.TECHNICIAN || 'N/A'}</td>
+                                            </tr>
+                                        );
+                                    })
                                 ) : (
                                     <tr>
                                         <td colSpan={13} className="text-center py-8 text-gray-400">
