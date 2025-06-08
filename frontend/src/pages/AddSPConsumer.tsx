@@ -4,7 +4,7 @@
  * Esta página permite a los usuarios agregar una nueva configuración de Servicio por Cliente.
  * Implementa un sistema de dropdowns en cascada donde:
  * 1. El selector de Compañía tiene un valor por defecto (primera compañía)
- * 2. El selector de Aerolínea muestra solo aerolíneas (tipoCliente = 1) filtradas por la compañía seleccionada
+ * 2. El selector de Aerolínea muestra solo aerolíneas (tipoCliente = 1) filtradas por la compañía seleccionada y ordenadas alfabéticamente.
  * 3. El selector de Servicio muestra servicios disponibles para la aerolínea seleccionada
  * 4. El selector de Fuselage Type obtiene datos de la tabla DBTableAvion
  * 
@@ -22,7 +22,7 @@ interface Client {
   nombre: string;
   comercial: string;
   razonSocial: string;
-  mote?: string; // Añadido para las tres letras iniciales
+  mote?: string; // Añadido para las tres letras iniciales (código de aerolínea)
 }
 
 interface Service {
@@ -40,6 +40,30 @@ interface Company {
 interface FuselageType {
   fuselage_type: string;
 }
+
+// Función helper para obtener el nombre a mostrar del cliente
+const getClientDisplayName = (client: Client): string => {
+  let displayName = `Airline #${client.llave}`; // Fallback
+  const hasMote = client.mote && client.mote.trim() !== "";
+  const hasNombre = client.nombre && client.nombre.trim() !== "";
+  const hasComercial = client.comercial && client.comercial.trim() !== "";
+
+  if (hasMote) {
+    if (hasNombre) {
+      displayName = `${client.mote} - ${client.nombre}`;
+    } else if (hasComercial) {
+      displayName = `${client.mote} - ${client.comercial}`;
+    } else {
+      displayName = client.mote!; // Solo mote si no hay nombre ni comercial
+    }
+  } else if (hasComercial) {
+    displayName = client.comercial!;
+  } else if (hasNombre) {
+    displayName = client.nombre!;
+  }
+  return displayName;
+};
+
 
 const AddSPConsumer: React.FC = () => {
   const navigate = useNavigate();
@@ -196,10 +220,19 @@ const AddSPConsumer: React.FC = () => {
 
       console.log("Fetching clients for company ID:", companyId);
 
-      // Usar directamente el ID de la compañía para buscar clientes
       const res = await axiosInstance.get(`/catalog/clients?company_id=${companyId}&tipoCliente=1`);
       console.log("Clients response:", res.data);
-      setClients(res.data || []);
+      
+      const rawClients: Client[] = res.data || [];
+      const sortedClients = rawClients.sort((a, b) => {
+          const nameA = getClientDisplayName(a).toLowerCase();
+          const nameB = getClientDisplayName(b).toLowerCase();
+          if (nameA < nameB) return -1;
+          if (nameA > nameB) return 1;
+          return 0;
+      });
+      setClients(sortedClients);
+
     } catch (err: any) {
       console.error("Error loading clients:", err);
       if (err.response) {
@@ -576,31 +609,11 @@ const AddSPConsumer: React.FC = () => {
                       <option value="">
                         {!selectedCompanyId ? "Select a company first" : "Select a Client"}
                       </option>
-                      {clients.map((client) => {
-                        let displayName = `Airline #${client.llave}`;
-                        const hasMote = client.mote && client.mote.trim() !== "";
-                        const hasNombre = client.nombre && client.nombre.trim() !== "";
-                        const hasComercial = client.comercial && client.comercial.trim() !== "";
-
-                        if (hasMote) {
-                          if (hasNombre) {
-                            displayName = `${client.mote} - ${client.nombre}`;
-                          } else if (hasComercial) {
-                            displayName = `${client.mote} - ${client.comercial}`;
-                          } else {
-                            displayName = client.mote!;
-                          }
-                        } else if (hasComercial) {
-                          displayName = client.comercial!;
-                        } else if (hasNombre) {
-                          displayName = client.nombre!;
-                        }
-                        return (
-                          <option key={client.llave} value={client.llave.toString()}>
-                            {displayName}
-                          </option>
-                        );
-                      })}
+                      {clients.map((client) => (
+                        <option key={client.llave} value={client.llave.toString()}>
+                          {getClientDisplayName(client)}
+                        </option>
+                      ))}
                     </select>
                   )}
                   {validationErrors.id_client && (

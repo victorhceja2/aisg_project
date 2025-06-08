@@ -80,6 +80,8 @@ const ServicePerCustomer: React.FC = () => {
 
   const [showDeleteError, setShowDeleteError] = useState(false);
   const [deletedRecordId, setDeletedRecordId] = useState<number | null>(null);
+  const [recordNameToDelete, setRecordNameToDelete] = useState<string>(""); // Nuevo estado para el nombre del registro
+  const [deletedRecordName, setDeletedRecordName] = useState<string>(""); // Nuevo estado para el nombre del registro eliminado
   const [deleteErrorMessage, setDeleteErrorMessage] = useState("");
   const [dependentRecordsInfo, setDependentRecordsInfo] = useState<any[]>([]); // Renombrado para claridad
 
@@ -289,34 +291,38 @@ const ServicePerCustomer: React.FC = () => {
     }
   };
 
-  const handleDeleteConfirm = async (id: number) => {
-    console.log(`Attempting to delete service per customer ID: ${id}`);
+  const handleDeleteConfirm = async (record: DisplayableServiceRecord) => {
+    console.log(`Attempting to delete service per customer ID: ${record.id_service_per_customer}`);
     setDeletingRecord(true); // Inicia el estado de carga/borrado
     
     try {
       // La verificación de `checkServiceUsage` aquí es opcional o para feedback inmediato.
       // El backend DEBE realizar la validación final.
-      const { inUse, records: dependentItems } = await checkServiceUsage(id);
+      const { inUse, records: dependentItems } = await checkServiceUsage(record.id_service_per_customer);
+      const recordName = `${record.service_name_from_endpoint} for ${record.client_name_from_endpoint}`;
 
       if (inUse && dependentItems.length > 0) {
         // Este bloque se ejecutaría si la verificación del frontend encuentra dependencias
         // y se desea informar al usuario antes de intentar el borrado.
         const dependencyList = dependentItems.map(r => `${r.type}: ${r.name || r.id}`).join(", ");
-        setDeleteErrorMessage(`Cannot delete service record #${id} because it is currently being used in: ${dependencyList}.`);
+        setDeleteErrorMessage(`Cannot delete service record "${recordName}" because it is currently being used in: ${dependencyList}.`);
         setDependentRecordsInfo(dependentItems);
         setShowDeleteError(true);
         setDeletingRecord(false);
         return;
       }
 
-      console.log(`Service per customer #${id} passed initial frontend validation (or skipped), showing delete confirmation modal.`);
-      setDeleteConfirm(id); // Mostrar modal de confirmación
+      console.log(`Service per customer "${recordName}" passed initial frontend validation (or skipped), showing delete confirmation modal.`);
+      setRecordNameToDelete(recordName); // Guardar el nombre para el modal
+      setDeleteConfirm(record.id_service_per_customer); // Mostrar modal de confirmación
     } catch (err) {
       console.error("Error during pre-delete check:", err);
       // Si hay un error en la verificación del frontend, es mejor permitir que el usuario intente borrar
       // y que el backend maneje la restricción, en lugar de bloquearlo prematuramente.
-      console.log(`Error in frontend verification, proceeding with delete confirmation for service #${id}`);
-      setDeleteConfirm(id);
+      const recordName = `${record.service_name_from_endpoint} for ${record.client_name_from_endpoint}`;
+      console.log(`Error in frontend verification, proceeding with delete confirmation for service "${recordName}"`);
+      setRecordNameToDelete(recordName);
+      setDeleteConfirm(record.id_service_per_customer);
     } finally {
       // No se establece deletingRecord a false aquí, porque el modal de confirmación
       // tendrá su propio manejo de estado de carga cuando se presione "Delete".
@@ -331,22 +337,24 @@ const ServicePerCustomer: React.FC = () => {
     if (!id) return;
     
     setDeletingRecord(true); // Indicar que el proceso de borrado ha comenzado
+    const currentRecordName = recordNameToDelete || `record #${id}`; // Usar el nombre guardado o un fallback
 
     try {
       setError("");
-      console.log(`Proceeding with deletion of service per customer #${id} via API.`);
+      console.log(`Proceeding with deletion of service per customer "${currentRecordName}" via API.`);
       await axiosInstance.delete(`/catalog/service-per-customer/${id}`, { timeout: 15000 });
       
       setDeletedRecordId(id);
+      setDeletedRecordName(currentRecordName); // Guardar el nombre del registro eliminado para el modal de éxito
       await fetchRecords(); // Recargar los datos
       setDeleteConfirm(null); // Cerrar modal de confirmación
       setShowSuccessModal(true); // Mostrar modal de éxito
-      setSuccess(`Record #${id} deleted successfully.`); // Mensaje de éxito (puede ser usado en un toast o similar)
-      console.log(`Service per customer #${id} deleted successfully from backend.`);
+      setSuccess(`Record "${currentRecordName}" deleted successfully.`); // Mensaje de éxito (puede ser usado en un toast o similar)
+      console.log(`Service per customer "${currentRecordName}" deleted successfully from backend.`);
 
     } catch (err: any) {
       console.error("Error during API deletion call:", err);
-      let specificErrorMessage = `Error deleting service record #${id}.`;
+      let specificErrorMessage = `Error deleting service record "${currentRecordName}".`;
 
       if (err.response) {
         console.error("Backend error response:", err.response.data);
@@ -355,18 +363,18 @@ const ServicePerCustomer: React.FC = () => {
             err.response.data?.detail?.toLowerCase().includes("foreign key constraint fails") ||
             err.response.data?.detail?.toLowerCase().includes("is referenced by") ||
             err.response.data?.detail?.toLowerCase().includes("still in use")) {
-          specificErrorMessage = `Cannot delete service record #${id} because it is currently being used by other records in the system. Please resolve dependencies before deleting.`;
+          specificErrorMessage = `Cannot delete service record "${currentRecordName}" because it is currently being used by other records in the system. Please resolve dependencies before deleting.`;
           // Podrías intentar parsear err.response.data.dependencies si el backend lo envía
           // setDependentRecordsInfo(err.response.data.dependencies || []); 
         } else if (err.response.status === 500) {
-          specificErrorMessage = `A server error occurred while trying to delete service record #${id}. The record might be in use or another issue prevented deletion. Please contact support.`;
+          specificErrorMessage = `A server error occurred while trying to delete service record "${currentRecordName}". The record might be in use or another issue prevented deletion. Please contact support.`;
         } else if (err.response.data?.detail) {
-          specificErrorMessage = `Error deleting service record #${id}: ${err.response.data.detail}`;
+          specificErrorMessage = `Error deleting service record "${currentRecordName}": ${err.response.data.detail}`;
         }
       } else if (err.request) {
-        specificErrorMessage = `No response from server while trying to delete service record #${id}. Please check your network connection.`;
+        specificErrorMessage = `No response from server while trying to delete service record "${currentRecordName}". Please check your network connection.`;
       } else if (err.code === 'ECONNABORTED') {
-        specificErrorMessage = `Request to delete service record #${id} timed out. Please try again.`;
+        specificErrorMessage = `Request to delete service record "${currentRecordName}" timed out. Please try again.`;
       }
       
       setDeleteErrorMessage(specificErrorMessage);
@@ -374,12 +382,14 @@ const ServicePerCustomer: React.FC = () => {
       setShowDeleteError(true); // Mostrar modal de error
     } finally {
       setDeletingRecord(false); // Finalizar estado de carga/borrado
+      setRecordNameToDelete(""); // Limpiar el nombre del registro a eliminar
     }
   };
 
   const handleCancelDelete = () => {
     setDeleteConfirm(null);
     setDeletingRecord(false); // Asegurarse de resetear el estado si se cancela desde el modal
+    setRecordNameToDelete(""); // Limpiar el nombre del registro a eliminar
   };
 
   const handleEdit = (id: number) => {
@@ -393,6 +403,7 @@ const ServicePerCustomer: React.FC = () => {
   const handleSuccessClose = () => {
     setShowSuccessModal(false);
     setDeletedRecordId(null);
+    setDeletedRecordName(""); // Limpiar el nombre del registro eliminado
     setSuccess("");
   };
 
@@ -420,7 +431,7 @@ const ServicePerCustomer: React.FC = () => {
               </svg>
             </div>
             <p className="text-white text-lg">
-              Service record #{deletedRecordId} has been successfully deleted!
+              Service record "{deletedRecordName}" has been successfully deleted!
             </p>
           </div>
 
@@ -548,7 +559,7 @@ const ServicePerCustomer: React.FC = () => {
                               </svg>
                             </button>
                             <button
-                              onClick={() => handleDeleteConfirm(r.id_service_per_customer)}
+                              onClick={() => handleDeleteConfirm(r)}
                               disabled={isLoading || deletingRecord || !!deleteConfirm} // Deshabilitar si ya hay una operación de borrado o confirmación en curso
                               className="p-1.5 bg-[#e6001f] text-white rounded hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                               title="Delete"
@@ -596,7 +607,7 @@ const ServicePerCustomer: React.FC = () => {
                     </svg>
                   </div>
                   <p className="text-white text-lg mt-1">
-                    Are you sure you want to delete service record #{deleteConfirm}? This action cannot be undone.
+                    Are you sure you want to delete service record "{recordNameToDelete}"? This action cannot be undone.
                   </p>
                 </div>
                 <div className="mt-8 flex gap-3">
