@@ -1,6 +1,8 @@
 INFO:     Will watch for changes in these directories: ['/root/aisg_project/backend']
 INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
-INFO:     Started reloader process [3117161] using WatchFiles
-INFO:     Started server process [3117170]
+INFO:     Started reloader process [3401139] using WatchFiles
+INFO:     Started server process [3401148]
 INFO:     Waiting for application startup.
 INFO:     Application startup complete.
+INFO:     200.188.103.224:53652 - "GET /reports/operation-reports-v2 HTTP/1.1" 200 OK
+INFO:     200.188.103.224:53657 - "GET /reports/operation-reports-v2 HTTP/1.1" 200 OK

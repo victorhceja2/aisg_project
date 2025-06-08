@@ -1,35 +1,69 @@
-import axios from 'axios';
+import axios from "axios";
 
-// Establecer URLs para diferentes entornos
-const LOCAL_URL = 'http://localhost:8000';
-const SERVER_URL = 'http://82.165.213.124:8000';
-
-// Crear instancia de axios
 const axiosInstance = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || LOCAL_URL,
   headers: {
-    'Content-Type': 'application/json',
+    "Content-Type": "application/json",
   },
 });
 
-// Intentar cargar la configuración desde server_ip.txt si estamos en producción
-if (import.meta.env.PROD) {
-  fetch('/server_ip.txt')
-    .then((res) => res.text())
-    .then((text) => {
-      if (text.trim()) {
-        axiosInstance.defaults.baseURL = text.trim();
-        console.log('API URL configurada desde server_ip.txt:', text.trim());
-      }
-    })
-    .catch((err) => {
-      console.error('Error al cargar server_ip.txt, usando URL alternativa:', err);
-      // Si falla, usar la URL del servidor
-      axiosInstance.defaults.baseURL = SERVER_URL;
-    });
-}
+let configLoaded = false;
+let configPromise: Promise<void> | null = null;
 
-// Función auxiliar para obtener la URL base actual (útil para debugging)
+const loadServerConfig = async (): Promise<void> => {
+  if (configLoaded) return;
+  
+  try {
+    const response = await fetch("/config/server.txt");
+    if (response.ok) {
+      const serverUrl = await response.text();
+      const trimmedUrl = serverUrl.trim();
+
+      if (trimmedUrl) {
+        axiosInstance.defaults.baseURL = trimmedUrl;
+        configLoaded = true;
+        return;
+      }
+    }
+    throw new Error("Archivo de configuración vacío o inválido");
+  } catch (error) {
+    console.error("Error: No se pudo cargar config/server.txt:", error.message);
+    throw error;
+  }
+};
+
+const ensureConfigLoaded = async (): Promise<void> => {
+  if (!configPromise) {
+    configPromise = loadServerConfig();
+  }
+  await configPromise;
+};
+
+axiosInstance.interceptors.request.use(async (config) => {
+  await ensureConfigLoaded();
+  return config;
+});
+
+export const setServerUrl = (url: string) => {
+  axiosInstance.defaults.baseURL = url;
+  configLoaded = true;
+};
+
+export const reloadServerConfig = async () => {
+  configLoaded = false;
+  configPromise = null;
+  return await loadServerConfig();
+};
+
 export const getBaseUrl = () => axiosInstance.defaults.baseURL;
+
+export const testServerConnection = async (url?: string): Promise<boolean> => {
+  const testUrl = url || axiosInstance.defaults.baseURL;
+  try {
+    await axios.get(`${testUrl}/health`, { timeout: 5000 });
+    return true;
+  } catch {
+    return false;
+  }
+};
 
 export default axiosInstance;
