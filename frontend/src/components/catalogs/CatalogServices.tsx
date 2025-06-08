@@ -163,11 +163,18 @@ const CatalogServices: React.FC = () => {
             id: cs.id_service_per_customer || cs.id
           }))
         );
-      } catch (err) {
+      } catch (err: any) {
         // console.warn("Error checking customer services:", err);
-        // Si una verificación falla, podríamos considerarlo como "en uso" para ser cautelosos
-        // o registrar el error y continuar. Por ahora, si falla una, asumimos que podría estar en uso.
-        return { inUse: true, records: [{ type: 'Unknown', name: 'Error checking dependencies', id: 0 }] };
+        // Si una verificación falla (distinto de 404), podríamos considerarlo como "en uso" para ser cautelosos
+        if (err.response && err.response.status !== 404) {
+          // console.warn("Error checking customer services (non-404):", err);
+          return { inUse: true, records: [{ type: 'Unknown', name: 'Error checking dependencies (Customer Services)', id: 0 }] };
+        } else if (!err.response) {
+          // Network error or other issue
+          // console.warn("Network or other error checking customer services:", err);
+          return { inUse: true, records: [{ type: 'Unknown', name: 'Error checking dependencies (Customer Services)', id: 0 }] };
+        }
+        // Si es 404, se ignora y se continúa, ya que el endpoint no existe.
       }
 
       // Verificar en Service Customers (customer-services) - si es una entidad diferente
@@ -183,9 +190,19 @@ const CatalogServices: React.FC = () => {
             }))
           );
         }
-      } catch (err) {
+      } catch (err: any) {
         // console.warn("Error checking service customers:", err);
-        // No es crítico si este endpoint no existe o falla, continuar
+        // Si el endpoint /catalog/customer-services no existe (404), no lo consideramos un error bloqueante.
+        if (err.response && err.response.status !== 404) {
+          // console.warn("Error checking service customers (non-404):", err);
+          // Para otros errores, podríamos ser cautelosos y asumir dependencia.
+          return { inUse: true, records: [{ type: 'Unknown', name: 'Error checking dependencies (Service Customers)', id: 0 }] };
+        } else if (!err.response) {
+            // Network error or other issue
+            // console.warn("Network or other error checking service customers:", err);
+            return { inUse: true, records: [{ type: 'Unknown', name: 'Error checking dependencies (Service Customers)', id: 0 }] };
+        }
+        // Si es 404, se ignora y se continúa.
       }
 
       // Verificar en Work Orders
@@ -199,9 +216,14 @@ const CatalogServices: React.FC = () => {
             id: wo.id
           }))
         );
-      } catch (err) {
-        // console.warn("Error checking work orders:", err);
-        return { inUse: true, records: [{ type: 'Unknown', name: 'Error checking Work Orders', id: 0 }] };
+      } catch (err: any) {
+        if (err.response && err.response.status !== 404) {
+            // console.warn("Error checking work orders (non-404):", err);
+            return { inUse: true, records: [{ type: 'Unknown', name: 'Error checking Work Orders', id: 0 }] };
+        } else if (!err.response) {
+            // console.warn("Network or other error checking work orders:", err);
+            return { inUse: true, records: [{ type: 'Unknown', name: 'Error checking Work Orders', id: 0 }] };
+        }
       }
 
       // Verificar en Quotes
@@ -215,9 +237,14 @@ const CatalogServices: React.FC = () => {
             id: quote.id
           }))
         );
-      } catch (err) {
-        // console.warn("Error checking quotes:", err);
-        return { inUse: true, records: [{ type: 'Unknown', name: 'Error checking Quotes', id: 0 }] };
+      } catch (err: any) {
+        if (err.response && err.response.status !== 404) {
+            // console.warn("Error checking quotes (non-404):", err);
+            return { inUse: true, records: [{ type: 'Unknown', name: 'Error checking Quotes', id: 0 }] };
+        } else if (!err.response) {
+            // console.warn("Network or other error checking quotes:", err);
+            return { inUse: true, records: [{ type: 'Unknown', name: 'Error checking Quotes', id: 0 }] };
+        }
       }
       
       // Verificar en Operation Reports
@@ -231,8 +258,12 @@ const CatalogServices: React.FC = () => {
             id: report.id
           }))
         );
-      } catch (err) {
-        // console.warn("Error checking operation reports:", err);
+      } catch (err: any) {
+        if (err.response && err.response.status !== 404) {
+            // console.warn("Error checking operation reports (non-404):", err);
+        } else if (!err.response) {
+            // console.warn("Network or other error checking operation reports:", err);
+        }
       }
 
       // Verificar en Service Executions
@@ -246,8 +277,12 @@ const CatalogServices: React.FC = () => {
             id: exec.id
           }))
         );
-      } catch (err) {
-        // console.warn("Error checking service executions:", err);
+      } catch (err: any) {
+        if (err.response && err.response.status !== 404) {
+            // console.warn("Error checking service executions (non-404):", err);
+        } else if (!err.response) {
+            // console.warn("Network or other error checking service executions:", err);
+        }
       }
 
       // Verificar en Invoices
@@ -261,8 +296,12 @@ const CatalogServices: React.FC = () => {
             id: invoice.id
           }))
         );
-      } catch (err) {
-        // console.warn("Error checking invoices:", err);
+      } catch (err: any) {
+        if (err.response && err.response.status !== 404) {
+            // console.warn("Error checking invoices (non-404):", err);
+        } else if (!err.response) {
+            // console.warn("Network or other error checking invoices:", err);
+        }
       }
       
       // Verificar en Maintenance Plans
@@ -276,8 +315,12 @@ const CatalogServices: React.FC = () => {
             id: plan.id
           }))
         );
-      } catch (err) {
-        // console.warn("Error checking maintenance plans:", err);
+      } catch (err: any) {
+        if (err.response && err.response.status !== 404) {
+            // console.warn("Error checking maintenance plans (non-404):", err);
+        } else if (!err.response) {
+            // console.warn("Network or other error checking maintenance plans:", err);
+        }
       }
       
       // Verificar en Components (si los componentes pueden estar ligados directamente a servicios)
@@ -291,8 +334,12 @@ const CatalogServices: React.FC = () => {
             id: comp.id
           }))
         );
-      } catch (err) {
-        // console.warn("Error checking components:", err);
+      } catch (err: any) {
+        if (err.response && err.response.status !== 404) {
+            // console.warn("Error checking components (non-404):", err);
+        } else if (!err.response) {
+            // console.warn("Network or other error checking components:", err);
+        }
       }
       
       // Verificar en Contracts
@@ -306,8 +353,12 @@ const CatalogServices: React.FC = () => {
             id: contract.id
           }))
         );
-      } catch (err) {
-        // console.warn("Error checking contracts:", err);
+      } catch (err: any) {
+        if (err.response && err.response.status !== 404) {
+            // console.warn("Error checking contracts (non-404):", err);
+        } else if (!err.response) {
+            // console.warn("Network or other error checking contracts:", err);
+        }
       }
 
       return {
@@ -323,12 +374,12 @@ const CatalogServices: React.FC = () => {
 
   const handleDeleteClick = async (id: number, name: string) => {
     setIsDeleting(true); // Iniciar el estado de carga/borrado
-    const { inUse } = await checkServiceUsage(id);
+    const { inUse, records } = await checkServiceUsage(id);
     setIsDeleting(false); // Finalizar el estado de carga/borrado
 
     if (inUse) {
       setDeleteErrorMessage("Cannot delete service because it is currently being used in the system.");
-      setDependentRecords([]); // Limpiar registros dependientes si no se van a mostrar
+      setDependentRecords(records); // Guardar los registros para mostrarlos si es necesario
       setShowDeleteError(true);
       setServiceToDelete(null); // Asegurarse de que no quede ningún servicio seleccionado para borrar
       return;
@@ -342,11 +393,11 @@ const CatalogServices: React.FC = () => {
 
     setIsDeleting(true);
     // Volver a verificar dependencias justo antes de borrar
-    const { inUse } = await checkServiceUsage(serviceToDelete.id);
+    const { inUse, records } = await checkServiceUsage(serviceToDelete.id);
 
     if (inUse) {
       setDeleteErrorMessage("Cannot delete service because it is currently being used in the system.");
-      setDependentRecords([]);
+      setDependentRecords(records);
       setShowConfirmation(false); // Cerrar el modal de confirmación
       setShowDeleteError(true);   // Mostrar el modal de error
       setIsDeleting(false);
