@@ -452,32 +452,7 @@ const OperationReport: React.FC = () => {
                 },
                 margin: { top: 35, left: 10, right: 10 }, 
                 theme: 'striped',
-                columnStyles: { 
-                    0: { cellWidth: 12 }, 
-                    1: { cellWidth: 12 }, 
-                    2: { cellWidth: 15 }, 
-                    3: { cellWidth: 10 }, 
-                    4: { cellWidth: 10 }, 
-                    5: { cellWidth: 10 }, 
-                    6: { cellWidth: 10 }, 
-                    7: { cellWidth: 10 }, 
-                    8: { cellWidth: 10 }, 
-                    9: { cellWidth: 10 }, 
-                    10: { cellWidth: 12 }, 
-                    11: { cellWidth: 7 },  
-                    12: { cellWidth: 10 }, 
-                    13: { cellWidth: 10 }, 
-                    14: { cellWidth: 12 }, 
-                    15: { cellWidth: 10 }, 
-                    16: { cellWidth: 7 },  
-                    17: { cellWidth: 7 },  
-                    18: { cellWidth: 7 },  
-                    19: { cellWidth: 7 },  
-                    20: { cellWidth: 7 },  
-                    21: { cellWidth: 7 },  
-                    22: { cellWidth: 15 }, 
-                    23: { cellWidth: 12 }  
-                }
+                // columnStyles eliminado para que el ancho de columna sea automático
             });
 
             const fileName = `operations_report_${new Date().toISOString().split('T')[0]}.pdf`;

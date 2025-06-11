@@ -88,7 +88,8 @@ const getExportableServiceRow = (row: OperationRow): string[] => [
     getAOGDisplay(row.AOG), // <--- CAMBIO
     getDisplayValue(row.START_TIME),
     getDisplayValue(row.END_TIME),
-    getDisplayValue(row.TOTAL_TECHNICIAN_TIME),
+    // CAMBIO: Mostrar ON_GND en la columna "Total Technician Time"
+    getDisplayValue(row.ON_GND ?? row.TOTAL_TECHNICIAN_TIME),
     getDisplayValue(row.SERVICE),
     getDisplayValue(row.WORK_REFERENCE),
     getDisplayValue(row.TECHNICIAN)
@@ -99,7 +100,7 @@ const sortOperationRows = (data: OperationRow[]): OperationRow[] => {
     return [...data].sort((a, b) => {
         const fields: (keyof OperationRow)[] = [
             "COMPANY", "AIRLINE", "DATE", "STATION", "AC_REG", "FLIGHT", "AC_TYPE", "ASSISTANT_TYPE", "AOG",
-            "START_TIME", "END_TIME", "TOTAL_TECHNICIAN_TIME", "SERVICE", "WORK_REFERENCE", "TECHNICIAN"
+            "START_TIME", "END_TIME", "ON_GND", "SERVICE", "WORK_REFERENCE", "TECHNICIAN"
         ];
         for (const field of fields) {
             let aValue = a[field] ?? "";

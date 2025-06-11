@@ -11,14 +11,18 @@ interface Company {
   company_llave: string; // Es un ID numérico, pero se maneja como string en el form
 }
 
-// Interface para los clientes/aerolíneas (consistente con AddSPConsumer y endpoint /dropdown/clients)
+// Interface para los clientes/aerolíneas (actualizado según nueva consulta del endpoint)
 interface AirlineClient {
-  airline_llave: string; // Es un ID numérico, pero se maneja como string en el form
+  company_code: string;
+  company_name: string;
+  company_llave: string;
   airline_name: string;
   airline_code: string;
-  company_code?: string;
-  company_name?: string;
-  company_llave?: string;
+  airline_llave: string;
+  client_code: string;
+  client_name: string;
+  client_status: string;
+  client_llave: string;
 }
 
 // Interface para los servicios
@@ -232,6 +236,7 @@ const EditSPConsumer: React.FC = () => {
                 return [];
             }
             const res = await axiosInstance.get(`/catalog/service-per-customer/dropdown/clients?company_code=${encodeURIComponent(companyCode)}`);
+            // El endpoint ahora devuelve una lista con airline_name, airline_code, airline_llave, client_code, client_name, client_status, client_llave, etc.
             const sortedClients = (res.data || []).sort((a: AirlineClient, b: AirlineClient) =>
                 a.airline_name.localeCompare(b.airline_name)
             );
@@ -329,16 +334,17 @@ const EditSPConsumer: React.FC = () => {
     // Manejar cambio de cliente (se selecciona por airline_code)
     const handleClientChange = async (clientCode: string) => {
         setSelectedClientCode(clientCode);
+        // Buscar el cliente por airline_code (que es el valor del select)
         const client = clients.find(c => c.airline_code === clientCode);
 
         setForm(prevForm => ({
             ...prevForm,
-            id_client: client?.airline_llave || "",
+            id_client: client?.client_llave || "",
             id_service: ""
         }));
         setSelectedService("");
 
-        validateField('id_client', client?.airline_llave || "");
+        validateField('id_client', client?.client_llave || "");
         clearFieldError('id_service');
 
         if (client?.airline_llave) {
@@ -446,8 +452,6 @@ const EditSPConsumer: React.FC = () => {
                 const servicePerCustomerRes = await axiosInstance.get(`/catalog/service-per-customer/${id}`);
                 const serviceData = servicePerCustomerRes.data;
 
-                console.log("Fetched serviceData:", serviceData);
-
                 if (serviceData) {
                     const formDataFromDB = {
                         id_service: serviceData.id_service.toString(),
@@ -460,40 +464,31 @@ const EditSPConsumer: React.FC = () => {
                     };
                     setForm(formDataFromDB);
                     setOriginalData(formDataFromDB);
-                    console.log("Set form with formDataFromDB:", formDataFromDB);
 
                     const currentCompany = loadedCompanies.find(c => String(c.company_llave) === formDataFromDB.id_company);
-                    console.log("Finding company with llave:", formDataFromDB.id_company, "Found:", currentCompany);
 
                     if (currentCompany) {
                         setSelectedCompanyCode(currentCompany.company_code);
-                        console.log("Selected company code:", currentCompany.company_code);
 
-                        // Fetch clients for this company, keeping selection if needed (true for initial load)
+                        // Fetch clients for this company, keeping selection si es carga inicial
                         const loadedClients = await fetchClientsByCompanyCode(currentCompany.company_code, true);
-                        console.log("Loaded clients for company", currentCompany.company_code, ":", loadedClients);
 
-                        const currentClient = loadedClients.find(c => String(c.airline_llave) === formDataFromDB.id_client);
-                        console.log("Finding client with llave:", formDataFromDB.id_client, "Found:", currentClient);
+                        // Buscar el cliente por client_llave (nuevo campo del endpoint)
+                        const currentClient = loadedClients.find(c => String(c.client_llave) === formDataFromDB.id_client);
 
                         if (currentClient) {
                             setSelectedClientCode(currentClient.airline_code);
-                            console.log("Selected client code:", currentClient.airline_code);
 
-                            // Fetch services for this client, keeping selection (true for initial load)
-                            const loadedServices = await fetchServicesByClientLlave(currentClient.airline_llave, true); // Use currentClient.airline_llave
-                            console.log("Loaded services for client", currentClient.airline_llave, ":", loadedServices);
-                            
+                            // Fetch services for this client, keeping selection (true para carga inicial)
+                            const loadedServices = await fetchServicesByClientLlave(currentClient.airline_llave, true);
+
                             setSelectedService(formDataFromDB.id_service);
-                            console.log("Selected service ID:", formDataFromDB.id_service);
                         } else {
-                            console.warn(`Client with llave ${formDataFromDB.id_client} not found in loaded clients for company ${currentCompany.company_name}.`);
                             setSelectedClientCode(""); // Clear if not found
                             setServices([]); // Clear services if client not found
                             setSelectedService("");
                         }
                     } else {
-                        console.warn(`Company with llave ${formDataFromDB.id_company} not found in loaded companies.`);
                         setSelectedCompanyCode(""); // Clear if not found
                         setClients([]); // Clear clients if company not found
                         setSelectedClientCode("");
@@ -509,7 +504,6 @@ const EditSPConsumer: React.FC = () => {
                 setError("Error loading data. Please refresh the page.");
             } finally {
                 setLoading(false);
-                // Ensure loading states are false if they were true
                 if (companiesLoading) setCompaniesLoading(false);
                 if (clientsLoading) setClientsLoading(false);
                 if (servicesLoading) setServicesLoading(false);
@@ -535,22 +529,12 @@ const EditSPConsumer: React.FC = () => {
             );
         } catch (err) {
             console.error("Error checking for duplicate service per customer", err);
-            // Assume not duplicate on error to allow submission, or handle error more gracefully
             return false;
         }
     };
 
     // Verificar si el registro está siendo usado
     const checkIfInUse = async () => {
-        // This is a placeholder. Implement actual logic if needed.
-        // For example, check against related records in other tables.
-        // try {
-        // const res = await axiosInstance.get(`/some-endpoint/check-usage/service-per-customer/${id}`);
-        // return res.data.isInUse; // Assuming endpoint returns { isInUse: boolean }
-        // } catch (err) {
-        // console.error("Error checking if service per customer is in use", err);
-        // return false; // Default to not in use on error, or handle as critical
-        // }
         return false; // Placeholder
     };
 
@@ -563,13 +547,11 @@ const EditSPConsumer: React.FC = () => {
         const isValid = validateAllFields();
         if (!isValid) {
             setError("Please fill in all required fields correctly.");
-            // Focus on the first invalid field if possible (more complex UI logic)
             return;
         }
         setSubmitting(true);
 
         try {
-            // Check for duplicates or if in use only if key identifiers have changed
             const keyFieldsChanged =
                 form.id_service !== originalData.id_service ||
                 form.id_client !== originalData.id_client ||
@@ -590,14 +572,14 @@ const EditSPConsumer: React.FC = () => {
                 }
             }
 
-            const whonew = sessionStorage.getItem("userName") || "admin"; // Get username
+            const whonew = sessionStorage.getItem("userName") || "admin";
             const data = {
                 id_service: parseInt(form.id_service),
                 id_client: parseInt(form.id_client),
                 id_company: parseInt(form.id_company),
                 minutes_included: Math.max(0, Math.floor(Number(form.minutes_included))),
                 minutes_minimum: Math.max(0, Math.floor(Number(form.minutes_minimum))),
-                fuselage_type: form.fuselage_type.trim() || "", // Ensure fuselage_type is not just whitespace
+                fuselage_type: form.fuselage_type.trim() || "",
                 technicians_included: Math.max(0, Math.floor(Number(form.technicians_included))),
                 whonew
             };
@@ -609,7 +591,6 @@ const EditSPConsumer: React.FC = () => {
             if (err.response && err.response.data) {
                 if (err.response.data.detail) {
                     if (Array.isArray(err.response.data.detail)) {
-                        // Handle Pydantic validation errors
                         const errorMessages = err.response.data.detail.map((errorDetail: any) => {
                             const field = errorDetail.loc ? errorDetail.loc.join('.') : 'Unknown field';
                             const message = errorDetail.msg || 'Validation error';
@@ -617,20 +598,16 @@ const EditSPConsumer: React.FC = () => {
                         }).join('; ');
                         setError(`Validation errors: ${errorMessages}`);
                     } else {
-                        // Handle other FastAPI HTTPException details
                         setError(`Error: ${err.response.data.detail}`);
                     }
                 } else {
                     setError(`Backend error: ${JSON.stringify(err.response.data)}`);
                 }
             } else if (err.response) {
-                // Handle non-FastAPI HTTP errors
                 setError(`HTTP Error ${err.response.status}: ${err.response.statusText}`);
             } else if (err.request) {
-                // Handle network errors (no response)
                 setError("Network error: No response received from server. Please check your connection.");
             } else {
-                // Handle other request setup errors
                 setError(`Request error: ${err.message}`);
             }
         } finally {
@@ -643,7 +620,7 @@ const EditSPConsumer: React.FC = () => {
     };
     const handleClosePopup = () => {
         setShowSuccessPopup(false);
-        navigate("/catalogs/customer"); // Navigate back after success
+        navigate("/catalogs/customer");
     };
     const closeDuplicateWarningPopup = () => {
         setShowDuplicateWarningPopup(false);
@@ -728,8 +705,9 @@ const EditSPConsumer: React.FC = () => {
                                         >
                                             <option value="">{!selectedCompanyCode ? "Select a company first" : "Select a client"}</option>
                                             {clients.map((client) => (
-                                                <option key={client.airline_llave} value={client.airline_code}>
-                                                    {client.airline_name}
+                                                <option key={client.client_llave} value={client.airline_code}>
+                                                    {/* Mostrar nombre de aerolínea y nombre de cliente para mayor claridad */}
+                                                    {client.airline_name} ({client.client_name})
                                                 </option>
                                             ))}
                                         </select>
@@ -749,7 +727,7 @@ const EditSPConsumer: React.FC = () => {
                                             className={`w-full px-4 py-3 rounded-lg bg-white text-[#002057] border ${validationErrors.id_service ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : 'border-[#cccccc] focus:border-[#00B140] focus:ring-[#00B140]'} focus:ring-2 focus:outline-none transition-all ${!selectedClientCode ? 'opacity-50 cursor-not-allowed' : ''}`}
                                             value={selectedService}
                                             onChange={(e) => handleServiceChange(e.target.value)}
-                                            disabled={!selectedClientCode || servicesLoading || submitting} // Disabled if no client is selected
+                                            disabled={!selectedClientCode || servicesLoading || submitting}
                                             required
                                         >
                                             <option value="">{!selectedClientCode ? "Select a client first" : "Select a service"}</option>

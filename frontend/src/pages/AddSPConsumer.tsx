@@ -30,6 +30,10 @@ interface AirlineClient {
   airline_name: string;
   airline_code: string;
   airline_llave?: string;
+  client_code: string;
+  client_name: string;
+  client_status: string;
+  client_llave: string;
 }
 
 interface Service {
@@ -357,10 +361,11 @@ const AddSPConsumer: React.FC = () => {
 
   const handleClientChange = (clientCode: string) => {
     setSelectedClientCode(clientCode);
+    // Buscar el cliente por airline_code (que es el valor del select)
     const client = clients.find(c => c.airline_code === clientCode);
     setForm(prevForm => ({
       ...prevForm,
-      id_client: client?.airline_llave || "",
+      id_client: client?.client_llave || "",
       id_service: ""
     }));
     clearFieldError('id_client');
@@ -578,8 +583,9 @@ const AddSPConsumer: React.FC = () => {
                         {!selectedCompanyCode ? "Select a company first" : "Select a Client"}
                       </option>
                       {clients.map((client) => (
-                        <option key={client.airline_code} value={client.airline_code}>
-                          {client.airline_name}
+                        <option key={client.client_llave} value={client.airline_code}>
+                          {/* Mostrar nombre de aerolínea y nombre de cliente para mayor claridad */}
+                          {client.airline_name} ({client.client_name})
                         </option>
                       ))}
                     </select>
