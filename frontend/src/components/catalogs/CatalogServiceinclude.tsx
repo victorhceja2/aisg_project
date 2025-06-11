@@ -6,6 +6,7 @@ import AISGBackground from "../catalogs/fondo";
 
 const CatalogServiceInclude: React.FC = () => {
   const [includes, setIncludes] = useState<any[]>([]);
+  const [allIncludes, setAllIncludes] = useState<any[]>([]);
   const [search, setSearch] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -90,11 +91,12 @@ const CatalogServiceInclude: React.FC = () => {
     }
   }, [showDeleteConfirmation, showDeleteSuccess, showDeleteError, isDeleting]);
 
+  // Obtener todos los includes solo una vez
   const fetchIncludes = async () => {
     setLoading(true);
     try {
-      const res = await axiosInstance.get(`/catalog/service-includes/${search ? `?search=${encodeURIComponent(search)}` : ""}`
-      );
+      const res = await axiosInstance.get(`/catalog/service-includes`);
+      setAllIncludes(res.data);
       setIncludes(res.data);
       setError(null);
     } catch (err) {
@@ -104,6 +106,21 @@ const CatalogServiceInclude: React.FC = () => {
       setLoading(false);
     }
   };
+
+  // Filtro en frontend desde la primera letra
+  useEffect(() => {
+    if (search.trim() === "") {
+      setIncludes(allIncludes);
+    } else {
+      setIncludes(
+        allIncludes.filter(inc =>
+          (inc.service_include || "")
+            .toLowerCase()
+            .includes(search.trim().toLowerCase())
+        )
+      );
+    }
+  }, [search, allIncludes]);
 
   // Verificar si un service include está siendo utilizado por diferentes módulos
   const checkServiceIncludeUsage = async (includeId: number): Promise<{ inUse: boolean; records: any[] }> => {
@@ -350,7 +367,7 @@ const CatalogServiceInclude: React.FC = () => {
 
   useEffect(() => {
     fetchIncludes();
-  }, [search]);
+  }, []);
 
   return (
     <AISGBackground>
@@ -419,7 +436,7 @@ const CatalogServiceInclude: React.FC = () => {
                   includes.map((inc) => (
                     <tr key={inc.id_service_include} className="bg-transparent">
                       <td className="px-4 py-3 border border-[#1e3462] font-medium text-white">{inc.service_include}</td>
-                      <td className="px-4 py-3 border border-[#1e3462] text-white">{inc.whonew || "-"}</td>
+                      <td className="px-4 py-3 border border-[#1e3462] text-white">{inc.whonew ? inc.whonew : "-"}</td>
                       <td className="px-4 py-3 border border-[#1e3462] text-white">
                         {inc.create_at ? new Date(inc.create_at).toLocaleString() : "-"}
                       </td>

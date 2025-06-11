@@ -1,6 +1,36 @@
 
-> frontend@0.8.25 preview
-> vite preview --host --port 5100
+> frontend@0.8.25 dev
+> vite --host --port 5100
+
+6:59:32 AM [vite] (client) Re-optimizing dependencies because lockfile has changed
+
+  VITE v6.3.5  ready in 204 ms
 
   ➜  Local:   http://localhost:5100/
   ➜  Network: http://216.225.204.181:5100/
+7:00:18 AM [vite] (client) hmr update /src/components/catalogs/OperationReport.tsx, /src/index.css
+7:00:41 AM [vite] (client) hmr update /src/components/catalogs/OperationReport.tsx, /src/index.css
+7:04:18 AM [vite] (client) hmr update /src/components/catalogs/OperationReport.tsx, /src/index.css
+7:08:07 AM [vite] (client) hmr update /src/components/catalogs/OperationService.tsx, /src/index.css
+7:12:05 AM [vite] (client) hmr update /src/components/catalogs/OperationReport.tsx, /src/index.css
+7:17:59 AM [vite] (client) hmr update /src/components/catalogs/OperationService.tsx, /src/index.css
+7:26:18 AM [vite] (client) hmr update /src/components/catalogs/ServicePerCustomer.tsx, /src/index.css
+7:28:26 AM [vite] (client) hmr update /src/components/catalogs/ServicePerCustomer.tsx, /src/index.css
+7:40:43 AM [vite] (client) hmr update /src/components/catalogs/ServicePerCustomer.tsx, /src/index.css
+7:44:30 AM [vite] (client) hmr update /src/components/catalogs/ServicePerCustomer.tsx, /src/index.css
+7:50:51 AM [vite] (client) hmr update /src/components/catalogs/ServicePerCustomer.tsx, /src/index.css
+7:53:37 AM [vite] (client) hmr update /src/components/catalogs/ServicePerCustomer.tsx, /src/index.css
+7:55:37 AM [vite] (client) hmr update /src/components/catalogs/CatalogServices.tsx, /src/index.css
+7:58:34 AM [vite] (client) hmr update /src/components/catalogs/CatalogServices.tsx, /src/index.css
+7:59:59 AM [vite] (client) hmr update /src/pages/Login.tsx, /src/index.css
+8:00:11 AM [vite] (client) hmr update /src/pages/Login.tsx, /src/index.css
+8:00:12 AM [vite] (client) hmr update /src/pages/Login.tsx, /src/index.css
+8:00:13 AM [vite] (client) hmr update /src/pages/Login.tsx, /src/index.css
+8:00:14 AM [vite] (client) hmr update /src/pages/Login.tsx, /src/index.css
+8:00:15 AM [vite] (client) hmr update /src/pages/Login.tsx, /src/index.css
+8:00:16 AM [vite] (client) hmr update /src/pages/Login.tsx, /src/index.css
+8:00:17 AM [vite] (client) hmr update /src/pages/Login.tsx, /src/index.css
+8:00:17 AM [vite] (client) hmr update /src/pages/Login.tsx, /src/index.css
+8:00:18 AM [vite] (client) hmr update /src/pages/Login.tsx, /src/index.css
+8:00:20 AM [vite] (client) hmr update /src/pages/Login.tsx, /src/index.css
+8:00:21 AM [vite] (client) hmr update /src/pages/Login.tsx, /src/index.css

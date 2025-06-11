@@ -6,6 +6,7 @@ import AISGBackground from "../catalogs/fondo";
 
 const CatalogServiceCategory: React.FC = () => {
     const [categories, setCategories] = useState<any[]>([]);
+    const [allCategories, setAllCategories] = useState<any[]>([]);
     const [search, setSearch] = useState("");
     const [error, setError] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
@@ -88,11 +89,12 @@ const CatalogServiceCategory: React.FC = () => {
         }
     }, [showDeleteConfirmPopup, showDeleteSuccessPopup, showDeleteErrorPopup, isDeleting]);
 
+    // Obtener todas las categorías solo una vez
     const fetchCategories = async () => {
         setLoading(true);
         try {
-            const res = await axiosInstance.get(`/catalog/service-categories/${search ? `?search=${encodeURIComponent(search)}` : ""}`
-            );
+            const res = await axiosInstance.get(`/catalog/service-categories`);
+            setAllCategories(res.data);
             setCategories(res.data);
             setError(null);
         } catch {
@@ -101,6 +103,21 @@ const CatalogServiceCategory: React.FC = () => {
             setLoading(false);
         }
     };
+
+    // Filtro en frontend desde la primera letra
+    useEffect(() => {
+        if (search.trim() === "") {
+            setCategories(allCategories);
+        } else {
+            setCategories(
+                allCategories.filter(cat =>
+                    (cat.service_category_name || "")
+                        .toLowerCase()
+                        .includes(search.trim().toLowerCase())
+                )
+            );
+        }
+    }, [search, allCategories]);
 
     // Verificar si una categoría está siendo utilizada por diferentes módulos
     const checkCategoryUsage = async (categoryId: number): Promise<{ inUse: boolean; records: any[] }> => {
@@ -355,7 +372,7 @@ const CatalogServiceCategory: React.FC = () => {
 
     useEffect(() => {
         fetchCategories();
-    }, [search]);
+    }, []);
 
     return (
         <AISGBackground>
@@ -424,7 +441,7 @@ const CatalogServiceCategory: React.FC = () => {
                                     categories.map((cat) => (
                                         <tr key={cat.id_service_category} className="bg-transparent">
                                             <td className="px-4 py-3 border border-[#1e3462] font-medium text-white">{cat.service_category_name}</td>
-                                            <td className="px-4 py-3 border border-[#1e3462] text-white">{cat.whonew || "-"}</td>
+                                            <td className="px-4 py-3 border border-[#1e3462] text-white">{cat.whonew ? cat.whonew : "-"}</td>
                                             <td className="px-4 py-3 border border-[#1e3462] text-white">
                                                 {cat.create_at ? new Date(cat.create_at).toLocaleString() : "-"}
                                             </td>

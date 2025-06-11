@@ -6,6 +6,7 @@ import AISGBackground from "../catalogs/fondo";
 
 const CatalogStatus: React.FC = () => {
   const [statuses, setStatuses] = useState<any[]>([]);
+  const [allStatuses, setAllStatuses] = useState<any[]>([]);
   const [search, setSearch] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -89,11 +90,12 @@ const CatalogStatus: React.FC = () => {
     }
   }, [showDeleteConfirmation, showDeleteSuccess, showDeleteError, deletingStatus]);
 
+  // Obtener todos los statuses solo una vez
   const fetchStatuses = async () => {
     setLoading(true);
     try {
-      const res = await axiosInstance.get(`/catalog/service-status${search ? `?search=${encodeURIComponent(search)}` : ""}`
-      );
+      const res = await axiosInstance.get(`/catalog/service-status`);
+      setAllStatuses(res.data);
       setStatuses(res.data);
       setError(null);
     } catch (err) {
@@ -102,6 +104,21 @@ const CatalogStatus: React.FC = () => {
       setLoading(false);
     }
   };
+
+  // Filtro en frontend desde la primera letra
+  useEffect(() => {
+    if (search.trim() === "") {
+      setStatuses(allStatuses);
+    } else {
+      setStatuses(
+        allStatuses.filter(s =>
+          (s.status_name || "")
+            .toLowerCase()
+            .includes(search.trim().toLowerCase())
+        )
+      );
+    }
+  }, [search, allStatuses]);
 
   // Verificar si un status está siendo utilizado por diferentes módulos
   const checkStatusUsage = async (statusId: number): Promise<{ inUse: boolean; records: any[] }> => {
@@ -351,7 +368,7 @@ const CatalogStatus: React.FC = () => {
 
   useEffect(() => {
     fetchStatuses();
-  }, [search]);
+  }, []);
 
   return (
     <AISGBackground>
@@ -417,45 +434,51 @@ const CatalogStatus: React.FC = () => {
                     </td>
                   </tr>
                 ) : (
-                  statuses.map((s) => (
-                    <tr key={s.id_service_status} className="hover:bg-[#1E2A45] transition-colors">
-                      <td className="px-4 py-3 text-white font-medium">{s.status_name}</td>
-                      <td className="px-4 py-3 text-white">{s.whonew || "-"}</td>
-                      <td className="px-4 py-3 text-white">
-                        {s.create_at ? new Date(s.create_at).toLocaleString() : "-"}
-                      </td>
-                      <td className="px-4 py-3 text-white">
-                        {s.updated_at ? new Date(s.updated_at).toLocaleString() : "-"}
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex justify-center space-x-2">
-                          <Link
-                            to={`/catalogs/status/edit/${s.id_service_status}`}
-                            className="p-1.5 bg-white text-[#002057] rounded hover:bg-gray-100 transition-colors"
-                            title="Edit"
-                          >
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                            </svg>
-                          </Link>
-                          <button
-                            onClick={() => confirmDelete(s.id_service_status, s.status_name)}
-                            disabled={deletingStatus}
-                            className="p-1.5 bg-[#e6001f] text-white rounded hover:bg-red-700 transition-colors disabled:opacity-50"
-                            title="Delete"
-                          >
-                            {deletingStatus ? (
-                              <div className="w-5 h-5 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
-                            ) : (
+                  statuses
+                    .filter((s) =>
+                      (s.status_name || "")
+                        .toLowerCase()
+                        .includes(search.trim().toLowerCase())
+                    )
+                    .map((s) => (
+                      <tr key={s.id_service_status} className="hover:bg-[#1E2A45] transition-colors">
+                        <td className="px-4 py-3 text-white font-medium">{s.status_name}</td>
+                        <td className="px-4 py-3 text-white">{s.whonew ? s.whonew : "-"}</td>
+                        <td className="px-4 py-3 text-white">
+                          {s.create_at ? new Date(s.create_at).toLocaleString() : "-"}
+                        </td>
+                        <td className="px-4 py-3 text-white">
+                          {s.updated_at ? new Date(s.updated_at).toLocaleString() : "-"}
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="flex justify-center space-x-2">
+                            <Link
+                              to={`/catalogs/status/edit/${s.id_service_status}`}
+                              className="p-1.5 bg-white text-[#002057] rounded hover:bg-gray-100 transition-colors"
+                              title="Edit"
+                            >
                               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                               </svg>
-                            )}
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
+                            </Link>
+                            <button
+                              onClick={() => confirmDelete(s.id_service_status, s.status_name)}
+                              disabled={deletingStatus}
+                              className="p-1.5 bg-[#e6001f] text-white rounded hover:bg-red-700 transition-colors disabled:opacity-50"
+                              title="Delete"
+                            >
+                              {deletingStatus ? (
+                                <div className="w-5 h-5 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+                              ) : (
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                              )}
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
                 )}
               </tbody>
             </table>

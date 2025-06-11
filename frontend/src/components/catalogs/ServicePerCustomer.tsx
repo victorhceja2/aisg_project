@@ -25,22 +25,29 @@ import axiosInstance from '../../api/axiosInstance';
 import { useNavigate } from "react-router-dom";
 import AISGBackground from "../catalogs/fondo";
 
-interface ClientData {
-  llave: string;
-  nombre: string;
-  comercial?: string;
+interface CompanyDropdown {
+  company_code: string;
+  company_name: string;
+  company_llave: number;
+}
+
+interface ClientDropdown {
+  company_code: string;
+  company_name: string;
+  company_llave: number;
+  airline_name: string;
+  airline_code: string;
+  airline_llave: number;
+  client_code: string;
+  client_name: string;
+  client_status: number;
+  client_llave: number; // <-- agregado aquí
 }
 
 interface ServiceData {
   id_service: number;
   service_name: string;
   service_code: string;
-}
-
-interface CompanyData {
-  Llave: number; // ID numérico de la compañía
-  companyCode: string;
-  companyName: string;
 }
 
 interface ServicePerCustomerRecord {
@@ -66,9 +73,9 @@ interface DisplayableServiceRecord extends ServicePerCustomerRecord {
 const ServicePerCustomer: React.FC = () => {
   const navigate = useNavigate();
   const [records, setRecords] = useState<ServicePerCustomerRecord[]>([]);
-  const [clients, setClients] = useState<ClientData[]>([]);
   const [services, setServices] = useState<ServiceData[]>([]);
-  const [companies, setCompanies] = useState<CompanyData[]>([]);
+  const [companies, setCompanies] = useState<CompanyDropdown[]>([]);
+  const [clients, setClients] = useState<ClientDropdown[]>([]);
   const [displayedRecords, setDisplayedRecords] = useState<DisplayableServiceRecord[]>([]);
   const [search, setSearch] = useState("");
   const [error, setError] = useState("");
@@ -80,10 +87,10 @@ const ServicePerCustomer: React.FC = () => {
 
   const [showDeleteError, setShowDeleteError] = useState(false);
   const [deletedRecordId, setDeletedRecordId] = useState<number | null>(null);
-  const [recordNameToDelete, setRecordNameToDelete] = useState<string>(""); // Nuevo estado para el nombre del registro
-  const [deletedRecordName, setDeletedRecordName] = useState<string>(""); // Nuevo estado para el nombre del registro eliminado
+  const [recordNameToDelete, setRecordNameToDelete] = useState<string>("");
+  const [deletedRecordName, setDeletedRecordName] = useState<string>("");
   const [deleteErrorMessage, setDeleteErrorMessage] = useState("");
-  const [dependentRecordsInfo, setDependentRecordsInfo] = useState<any[]>([]); // Renombrado para claridad
+  const [dependentRecordsInfo, setDependentRecordsInfo] = useState<any[]>([]);
 
   const deleteSuccessOkButtonRef = useRef<HTMLButtonElement>(null);
   const deleteConfirmButtonRef = useRef<HTMLButtonElement>(null);
@@ -148,10 +155,28 @@ const ServicePerCustomer: React.FC = () => {
     }
   }, [deleteConfirm, showSuccessModal, showDeleteError, deletingRecord]);
 
+  // Cambiado: Usar endpoint de dropdown para compañías
+  const fetchCompanies = async () => {
+    try {
+      const res = await axiosInstance.get<CompanyDropdown[]>('/catalog/service-per-customer/dropdown/companies');
+      setCompanies(res.data || []);
+    } catch (err) {
+      setError(prevError => prevError ? `${prevError} Could not load company names.` : "Could not load company names.");
+    }
+  };
+
+  // Cambiado: Usar endpoint de dropdown para clientes/airlines (nuevo query)
   const fetchClients = async () => {
     try {
-      const res = await axiosInstance.get<ClientData[]>('/catalog/clients');
-      setClients(res.data || []);
+      let allClients: ClientDropdown[] = [];
+      for (const company of companies) {
+        const res = await axiosInstance.get<ClientDropdown[]>(
+          '/catalog/service-per-customer/dropdown/clients',
+          { params: { company_code: company.company_code } }
+        );
+        allClients = allClients.concat(res.data || []);
+      }
+      setClients(allClients);
     } catch (err) {
       setError(prevError => prevError ? `${prevError} Could not load client names.` : "Could not load client names.");
     }
@@ -166,21 +191,13 @@ const ServicePerCustomer: React.FC = () => {
     }
   };
 
-  const fetchCompanies = async () => {
-    try {
-      const res = await axiosInstance.get<CompanyData[]>('/companies/');
-      setCompanies(res.data || []);
-    } catch (err) {
-      setError(prevError => prevError ? `${prevError} Could not load company names.` : "Could not load company names.");
-    }
-  };
-
+  // Cambiado: fetchRecords solo carga todos los registros, no filtra por búsqueda
   const fetchRecords = async () => {
     try {
       setIsLoading(true);
       setError("");
       const res = await axiosInstance.get<ServicePerCustomerRecord[]>(
-        `/catalog/service-per-customer${search ? `?fuselage_type=${encodeURIComponent(search)}` : ""}`,
+        `/catalog/service-per-customer`,
         { timeout: 30000 }
       );
       setRecords(res.data || []);
@@ -210,42 +227,107 @@ const ServicePerCustomer: React.FC = () => {
     }
   };
 
+  // Cambiado: primero cargar compañías, luego clientes (airlines) dependientes
   useEffect(() => {
-    fetchClients();
-    fetchServices();
     fetchCompanies();
+    fetchServices();
   }, []);
 
   useEffect(() => {
-    fetchRecords();
-  }, [search]);
+    if (companies.length > 0) {
+      fetchClients();
+    }
+  }, [companies]);
 
   useEffect(() => {
+    fetchRecords();
+  }, []);
+
+  // Cambiado: aplicar filtro local por búsqueda desde la primera letra
+  useEffect(() => {
     if (records.length > 0 && clients.length > 0 && services.length > 0 && companies.length > 0) {
-      const newDisplayedRecords = records.map(record => {
-        const client = clients.find(c => {
+      let filteredRecords = records;
+
+      if (search.trim() !== "") {
+        const searchLower = search.trim().toLowerCase();
+        filteredRecords = records.filter(record => {
+          const company = companies.find(c => c.company_llave === record.id_company);
+          let client = clients.find(
+            c => c.airline_llave === record.id_client && c.company_llave === record.id_company
+          );
+          if (!client) {
+            client = clients.find(
+              c => c.client_llave === record.id_client && c.company_llave === record.id_company
+            );
+          }
+          const service = services.find(s => s.id_service === record.id_service);
+
+          // Campos a buscar: fuselage_type, client_name, airline_name, service_name, service_code, company_name
+          const fuselageType = record.fuselage_type?.toLowerCase() || "";
+          const clientName = client
+            ? (client.airline_name || client.client_name || "").toLowerCase()
+            : "";
+          const clientCode = client
+            ? (client.airline_code || client.client_code || "").toLowerCase()
+            : "";
+          const serviceName = service
+            ? (service.service_name || "").toLowerCase()
+            : "";
+          const serviceCode = service
+            ? (service.service_code || "").toLowerCase()
+            : "";
+          const companyName = company
+            ? (company.company_name || "").toLowerCase()
+            : "";
+          const companyCode = company
+            ? (company.company_code || "").toLowerCase()
+            : "";
+
+          // Buscar desde la primera letra en cualquiera de los campos
           return (
-            c.llave === record.id_client.toString() ||
-            c.llave === record.id_client ||
-            parseInt(c.llave) === record.id_client
+            fuselageType.includes(searchLower) ||
+            clientName.includes(searchLower) ||
+            clientCode.includes(searchLower) ||
+            serviceName.includes(searchLower) ||
+            serviceCode.includes(searchLower) ||
+            companyName.includes(searchLower) ||
+            companyCode.includes(searchLower)
           );
         });
+      }
 
+      const newDisplayedRecords = filteredRecords.map(record => {
+        const company = companies.find(c => c.company_llave === record.id_company);
+        let client = clients.find(
+          c => c.airline_llave === record.id_client && c.company_llave === record.id_company
+        );
+        if (!client) {
+          client = clients.find(
+            c => c.client_llave === record.id_client && c.company_llave === record.id_company
+          );
+        }
         const service = services.find(s => s.id_service === record.id_service);
-        
-        const company = companies.find(c => c.Llave === record.id_company);
 
-        const clientName = client ?
-          (client.nombre || client.comercial || `Client ID: ${record.id_client}`) :
-          `Missing Client Data (ID: ${record.id_client})`;
+        const companyName = company
+          ? `${company.company_code} - ${company.company_name}`
+          : `Missing Company Data (ID: ${record.id_company})`;
 
-        const serviceName = service ? 
-          `${service.service_code} - ${service.service_name}` : 
-          `Missing Service Data (ID: ${record.id_service})`;
+        let clientName = "";
+        if (client) {
+          if (client.airline_code && client.airline_name) {
+            clientName = `${client.airline_code} - ${client.airline_name}`;
+          } else if (client.client_code && client.client_name) {
+            clientName = `${client.client_code} - ${client.client_name}`;
+          } else {
+            clientName = `Missing Client Data (ID: ${record.id_client})`;
+          }
+        } else {
+          clientName = `Missing Client Data (ID: ${record.id_client})`;
+        }
 
-        const companyName = company ? 
-          `${company.companyCode} - ${company.companyName}` : 
-          `Missing Company Data (ID: ${record.id_company})`;
+        const serviceName = service
+          ? `${service.service_code} - ${service.service_name}`
+          : `Missing Service Data (ID: ${record.id_service})`;
 
         return {
           ...record,
@@ -258,52 +340,34 @@ const ServicePerCustomer: React.FC = () => {
     } else {
       setDisplayedRecords([]);
     }
-  }, [records, clients, services, companies]);
+  }, [records, clients, services, companies, search]);
+
+  // ...el resto del código permanece igual...
 
   const checkServiceUsage = async (servicePerCustomerId: number): Promise<{ inUse: boolean; records: any[] }> => {
+    // ...sin cambios...
     console.log(`Checking usage for service per customer ID: ${servicePerCustomerId}`);
-    
     try {
-      // Esta función ahora solo sirve como placeholder o para verificaciones muy ligeras en el frontend.
-      // La lógica principal de restricción de borrado por dependencias recae en el backend.
       console.log("Performing simplified dependency check (frontend)...");
-      
-      // Aquí se podrían añadir llamadas a endpoints específicos si se desea mostrar información detallada
-      // de dependencias al usuario ANTES de que el backend rechace la eliminación.
-      // Por ahora, se asume que no hay dependencias o que el backend las manejará.
-
-      // Ejemplo (si tuvieras un endpoint para verificar dependencias específicas):
-      // const { data: dependentData } = await axiosInstance.get(`/catalog/service-per-customer/${servicePerCustomerId}/dependencies`);
-      // if (dependentData && dependentData.length > 0) {
-      //   return { inUse: true, records: dependentData };
-      // }
-
-      console.log(`Usage check result - In use: false (simplified frontend check)`);
       return {
         inUse: false, 
         records: []
       };
     } catch (err) {
       console.error("Error in frontend checkServiceUsage:", err);
-      // En caso de error en la verificación del frontend, permitir continuar.
-      // El backend será el responsable final de la validación.
       return { inUse: false, records: [] };
     }
   };
 
   const handleDeleteConfirm = async (record: DisplayableServiceRecord) => {
+    // ...sin cambios...
     console.log(`Attempting to delete service per customer ID: ${record.id_service_per_customer}`);
-    setDeletingRecord(true); // Inicia el estado de carga/borrado
-    
+    setDeletingRecord(true);
     try {
-      // La verificación de `checkServiceUsage` aquí es opcional o para feedback inmediato.
-      // El backend DEBE realizar la validación final.
       const { inUse, records: dependentItems } = await checkServiceUsage(record.id_service_per_customer);
       const recordName = `${record.service_name_from_endpoint} for ${record.client_name_from_endpoint}`;
 
       if (inUse && dependentItems.length > 0) {
-        // Este bloque se ejecutaría si la verificación del frontend encuentra dependencias
-        // y se desea informar al usuario antes de intentar el borrado.
         const dependencyList = dependentItems.map(r => `${r.type}: ${r.name || r.id}`).join(", ");
         setDeleteErrorMessage(`Cannot delete service record "${recordName}" because it is currently being used in: ${dependencyList}.`);
         setDependentRecordsInfo(dependentItems);
@@ -312,21 +376,13 @@ const ServicePerCustomer: React.FC = () => {
         return;
       }
 
-      console.log(`Service per customer "${recordName}" passed initial frontend validation (or skipped), showing delete confirmation modal.`);
-      setRecordNameToDelete(recordName); // Guardar el nombre para el modal
-      setDeleteConfirm(record.id_service_per_customer); // Mostrar modal de confirmación
+      setRecordNameToDelete(recordName);
+      setDeleteConfirm(record.id_service_per_customer);
     } catch (err) {
-      console.error("Error during pre-delete check:", err);
-      // Si hay un error en la verificación del frontend, es mejor permitir que el usuario intente borrar
-      // y que el backend maneje la restricción, en lugar de bloquearlo prematuramente.
       const recordName = `${record.service_name_from_endpoint} for ${record.client_name_from_endpoint}`;
-      console.log(`Error in frontend verification, proceeding with delete confirmation for service "${recordName}"`);
       setRecordNameToDelete(recordName);
       setDeleteConfirm(record.id_service_per_customer);
     } finally {
-      // No se establece deletingRecord a false aquí, porque el modal de confirmación
-      // tendrá su propio manejo de estado de carga cuando se presione "Delete".
-      // Si la verificación de frontend falla y no se muestra el modal, entonces sí se resetea.
       if (!deleteConfirm && !showDeleteError) {
          setDeletingRecord(false);
       }
@@ -334,38 +390,28 @@ const ServicePerCustomer: React.FC = () => {
   };
   
   const handleDelete = async (id: number) => {
+    // ...sin cambios...
     if (!id) return;
-    
-    setDeletingRecord(true); // Indicar que el proceso de borrado ha comenzado
-    const currentRecordName = recordNameToDelete || `record #${id}`; // Usar el nombre guardado o un fallback
-
+    setDeletingRecord(true);
+    const currentRecordName = recordNameToDelete || `record #${id}`;
     try {
       setError("");
-      console.log(`Proceeding with deletion of service per customer "${currentRecordName}" via API.`);
       await axiosInstance.delete(`/catalog/service-per-customer/${id}`, { timeout: 15000 });
-      
       setDeletedRecordId(id);
-      setDeletedRecordName(currentRecordName); // Guardar el nombre del registro eliminado para el modal de éxito
-      await fetchRecords(); // Recargar los datos
-      setDeleteConfirm(null); // Cerrar modal de confirmación
-      setShowSuccessModal(true); // Mostrar modal de éxito
-      setSuccess(`Record "${currentRecordName}" deleted successfully.`); // Mensaje de éxito (puede ser usado en un toast o similar)
-      console.log(`Service per customer "${currentRecordName}" deleted successfully from backend.`);
-
+      setDeletedRecordName(currentRecordName);
+      await fetchRecords();
+      setDeleteConfirm(null);
+      setShowSuccessModal(true);
+      setSuccess(`Record "${currentRecordName}" deleted successfully.`);
     } catch (err: any) {
-      console.error("Error during API deletion call:", err);
       let specificErrorMessage = `Error deleting service record "${currentRecordName}".`;
-
       if (err.response) {
-        console.error("Backend error response:", err.response.data);
-        if (err.response.status === 409 || // Conflicto (usualmente por FK constraint)
+        if (err.response.status === 409 ||
             err.response.status === 400 && err.response.data?.detail?.toLowerCase().includes("constraint") ||
             err.response.data?.detail?.toLowerCase().includes("foreign key constraint fails") ||
             err.response.data?.detail?.toLowerCase().includes("is referenced by") ||
             err.response.data?.detail?.toLowerCase().includes("still in use")) {
           specificErrorMessage = `Cannot delete service record "${currentRecordName}" because it is currently being used by other records in the system. Please resolve dependencies before deleting.`;
-          // Podrías intentar parsear err.response.data.dependencies si el backend lo envía
-          // setDependentRecordsInfo(err.response.data.dependencies || []); 
         } else if (err.response.status === 500) {
           specificErrorMessage = `A server error occurred while trying to delete service record "${currentRecordName}". The record might be in use or another issue prevented deletion. Please contact support.`;
         } else if (err.response.data?.detail) {
@@ -376,20 +422,19 @@ const ServicePerCustomer: React.FC = () => {
       } else if (err.code === 'ECONNABORTED') {
         specificErrorMessage = `Request to delete service record "${currentRecordName}" timed out. Please try again.`;
       }
-      
       setDeleteErrorMessage(specificErrorMessage);
-      setDeleteConfirm(null); // Cerrar modal de confirmación si aún estaba abierto
-      setShowDeleteError(true); // Mostrar modal de error
+      setDeleteConfirm(null);
+      setShowDeleteError(true);
     } finally {
-      setDeletingRecord(false); // Finalizar estado de carga/borrado
-      setRecordNameToDelete(""); // Limpiar el nombre del registro a eliminar
+      setDeletingRecord(false);
+      setRecordNameToDelete("");
     }
   };
 
   const handleCancelDelete = () => {
     setDeleteConfirm(null);
-    setDeletingRecord(false); // Asegurarse de resetear el estado si se cancela desde el modal
-    setRecordNameToDelete(""); // Limpiar el nombre del registro a eliminar
+    setDeletingRecord(false);
+    setRecordNameToDelete("");
   };
 
   const handleEdit = (id: number) => {
@@ -403,7 +448,7 @@ const ServicePerCustomer: React.FC = () => {
   const handleSuccessClose = () => {
     setShowSuccessModal(false);
     setDeletedRecordId(null);
-    setDeletedRecordName(""); // Limpiar el nombre del registro eliminado
+    setDeletedRecordName("");
     setSuccess("");
   };
 
@@ -469,24 +514,18 @@ const ServicePerCustomer: React.FC = () => {
             </p>
           </div>
 
-          {error && !showDeleteError && ( // No mostrar error general si hay un error de borrado específico
+          {error && !showDeleteError && (
             <div className="bg-red-500 text-white p-4 rounded-lg mb-6 shadow-md animate-pulse">
               <p className="font-medium">{error}</p>
             </div>
           )}
-          
-          {/* {success && !showSuccessModal && ( // Mensaje de éxito general (si se usa fuera del modal)
-            <div className="bg-green-500 text-white p-4 rounded-lg mb-6 shadow-md">
-              <p className="font-medium">{success}</p>
-            </div>
-          )} */}
 
           <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
             <div className="w-full md:w-2/3 relative">
               <input
                 type="text"
                 className="w-full px-4 py-3 pl-10 rounded-lg border border-gray-300 bg-white text-[#002057] focus:border-[#002057] focus:ring-2 focus:ring-[#002057] focus:outline-none transition-all"
-                placeholder="Search by fuselage type..."
+                placeholder="Search by fuselage type, client, service, company..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
@@ -511,7 +550,7 @@ const ServicePerCustomer: React.FC = () => {
 
         <div className="flex-1 overflow-hidden px-6 pb-6">
           <div className="h-full w-full overflow-auto">
-            {isLoading && !deleteConfirm && !deletingRecord ? ( // Mostrar spinner solo si no hay un modal de borrado activo
+            {isLoading && !deleteConfirm && !deletingRecord ? (
               <div className="flex justify-center items-center h-full">
                 <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#00B140]"></div>
               </div>
@@ -555,16 +594,15 @@ const ServicePerCustomer: React.FC = () => {
                               disabled={isLoading || deletingRecord || !!deleteConfirm}
                             >
                               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2V7.414A2 2 0 0015.414 6L12 2.586A2 2 0 0010.586 2H6zm2 10a1 1 0 10-2 0v3a1 1 0 102 0v-3zm2-3a1 1 0 011 1v5a1 1 0 11-2 0v-5a1 1 0 011-1zm4-1a1 1 0 10-2 0v7a1 1 0 102 0V8z" />
                               </svg>
                             </button>
                             <button
                               onClick={() => handleDeleteConfirm(r)}
-                              disabled={isLoading || deletingRecord || !!deleteConfirm} // Deshabilitar si ya hay una operación de borrado o confirmación en curso
+                              disabled={isLoading || deletingRecord || !!deleteConfirm}
                               className="p-1.5 bg-[#e6001f] text-white rounded hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                               title="Delete"
                             >
-                              {/* Mostrar spinner si ESTE botón específico está procesando su borrado */}
                               {deletingRecord && deleteConfirm === r.id_service_per_customer ? (
                                 <div className="w-5 h-5 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
                               ) : (
@@ -611,7 +649,7 @@ const ServicePerCustomer: React.FC = () => {
                   </p>
                 </div>
                 <div className="mt-8 flex gap-3">
-                  {deletingRecord ? ( // Spinner general para el modal de borrado
+                  {deletingRecord ? (
                     <div className="w-full flex justify-center">
                       <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-white"></div>
                     </div>
@@ -670,11 +708,11 @@ const ServicePerCustomer: React.FC = () => {
                     <p className="text-white text-lg mb-2">
                       {deleteErrorMessage}
                     </p>
-                    {dependentRecordsInfo.length > 0 && ( // Cambiado a dependentRecordsInfo
+                    {dependentRecordsInfo.length > 0 && (
                       <div className="mt-3">
                         <p className="text-white text-sm font-medium mb-1">Potential related records:</p>
                         <div className="bg-[#0D1423] rounded-lg p-2 max-h-28 overflow-y-auto">
-                          {dependentRecordsInfo.map((record, index) => ( // Cambiado a dependentRecordsInfo
+                          {dependentRecordsInfo.map((record, index) => (
                             <div key={index} className="text-gray-300 text-xs py-0.5">
                               • {record.type}: {record.name || record.id}
                             </div>

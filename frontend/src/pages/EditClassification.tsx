@@ -142,7 +142,10 @@ const EditClassification: React.FC = () => {
       }
 
       // Obtener el usuario que está actualizando
-      const currentUser = sessionStorage.getItem("userName") || "admin";
+      let currentUser = sessionStorage.getItem("userName");
+      if (!currentUser || currentUser === "undefined") {
+        currentUser = "admin";
+      }
 
       console.log("Current user updating record:", currentUser);
 

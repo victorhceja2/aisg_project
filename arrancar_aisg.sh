@@ -24,17 +24,13 @@ BACKEND_PID=$!
 echo "Backend iniciado con PID: $BACKEND_PID"
 cd ..
 
-# Construir frontend siempre
+# Levanta frontend en modo desarrollo (hot reload)
 cd frontend
 echo "Instalando dependencias de frontend..."
 npm install
 
-echo "Compilando frontend (build)..."
-npm run build
-
-# Levanta frontend (Vite Preview) con nohup para mantenerlo en ejecución
-echo "Activando frontend (Vite Preview)..."
-nohup npm run preview -- --host --port 5100 > frontend.log 2>&1 &
+echo "Levantando frontend (Vite Dev Server) con hot reload..."
+nohup npm run dev -- --host --port 5100 > frontend.log 2>&1 &
 FRONTEND_PID=$!
 echo "Frontend iniciado con PID: $FRONTEND_PID"
 cd ..

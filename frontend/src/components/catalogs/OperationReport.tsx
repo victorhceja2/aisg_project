@@ -7,33 +7,36 @@ import autoTable from 'jspdf-autotable';
 
 // Definir las interfaces según el schema del backend OperationReportV2Response
 interface OperationReportData {
-    COMPANY: string;
-    LLAVE: number | null; // Campo agregado para búsqueda, NO se muestra en la tabla
-    AIRLINE: string;
-    DATE: string | number; // Puede ser "YYYY-MM-DD", "YYYYMMDD" (string), o un número de días (ej. TO_DAYS)
-    STATION: string;
-    AC_REG: string;
-    FLIGTH: string;
-    DEST: string;
-    LOG_BOOK: string;
-    AC_TYPE: string;
-    START_TIME: string;
-    END_TIME: string;
-    SERV_PR: string;
-    ON_GND: string;
-    SERV1: string;
-    SERV2: string;
-    SERV3: string;
-    SERV4: string;
-    SERV5: string;
-    SERV6: string;
-    REMARKS: string;
-    TECHNICIAN: string;
+    COMPANY: string | null;
+    // LLAVE: number | null; // Campo ELIMINADO: No es provisto por el endpoint /operation-reports-v2
+    AIRLINE: string | null;
+    DATE: string | null; // Puede ser "YYYY-MM-DD" (string), o null
+    STATION: string | null;
+    AC_REG: string | null;
+    FLIGTH: string | null; // Typo mantenido por consistencia con backend
+    DEST: string | null;
+    LOG_BOOK: string | null;
+    AC_TYPE: string | null;
+    START_TIME: string | null; // Formato HH:MM:SS o null
+    END_TIME: string | null;   // Formato HH:MM:SS o null
+    SERV_PR: string | null;
+    // ON_GND: string; // Campo REEMPLAZADO por TOTAL_TECHNICIAN_TIME
+    TOTAL_TECHNICIAN_TIME: string | null; // NUEVO CAMPO (equivalente a ON_GND)
+    ASSISTANT_TYPE: string | null;      // NUEVO CAMPO
+    AOG: string | null;                 // NUEVO CAMPO
+    SERV1: string | null;
+    SERV2: string | null;
+    SERV3: string | null;
+    SERV4: string | null;
+    SERV5: string | null;
+    SERV6: string | null;
+    REMARKS: string | null;
+    TECHNICIAN: string | null;
 }
 
 // Interfaces para las opciones de los dropdowns derivadas de OperationReportData
 interface CompanyOption {
-    llave: number;
+    llave: number; // TODO: Revisar cómo se poblará esta 'llave' si OperationReportData.LLAVE ya no existe.
     name: string; // COMPANY (companyCode)
 }
 
@@ -45,104 +48,137 @@ const parseReportDateStringToDate = (dateValue: string | number | null): Date | 
     if (dateValue === null || dateValue === undefined) return null;
 
     if (typeof dateValue === 'number') {
-        // Assuming dateValue is days since 0001-01-01 (like .NET ToOADate() or SQL Server date integer).
-        // The Unix epoch (1970-01-01) is 719163 days after 0000-00-00.
-        // The .NET epoch (0001-01-01) is 1 day after 0000-00-00.
-        // So, Unix epoch is 719163 - 1 = 719162 days after .NET epoch (0001-01-01).
-        // Or, more directly:
-        // Days from 0001-01-01 to 1970-01-01 (Unix epoch):
-        // Excel/OADate considers 1900-01-01 as day 1 (with a bug for 1900 being a leap year).
-        // .NET DateTime.ToOADate() uses 1899-12-30 as day 0.
-        // SQL Server integer for date often means days since 1900-01-01.
-        // Given the example 739423 -> 22-jun-2025, this implies days from 0001-01-01.
-        // Number of days from 0001-01-01 to 1970-01-01 is 719162.
-        // (Year 0 doesn't exist in Gregorian calendar, starts with year 1)
-        // (1969 years * 365 days/year) + (number of leap years between 1 and 1969)
-        // Number of leap years: floor(1969/4) - floor(1969/100) + floor(1969/400) = 492 - 19 + 4 = 477
-        // Total days = 1969 * 365 + 477 = 718685 + 477 = 719162
-        
-        // So, if dateValue is days since 0001-01-01:
-        // dateValue = 739423 (example for June 22, 2025)
-        // daysSinceUnixEpoch = dateValue - 719162 (days from 0001-01-01 to 1970-01-01)
         const daysSinceUnixEpoch = dateValue - 719162;
         const millisecondsSinceUnixEpoch = daysSinceUnixEpoch * 24 * 60 * 60 * 1000;
         const date = new Date(millisecondsSinceUnixEpoch);
-        
         if (!isNaN(date.getTime())) {
-            // The Date object created from a timestamp is inherently UTC.
             return date;
         }
-        return null; // Invalid number or calculation resulted in NaN
+        return null;
     }
 
-    // If it's a string, proceed with existing string parsing logic
-    const dateString = String(dateValue); // Ensure dateValue is treated as a string
+    const dateString = String(dateValue);
 
-    // Attempt 1: Standard ISO parsing (handles "YYYY-MM-DD", "YYYY-MM-DDTHH:mm:ssZ", etc.)
-    // "YYYY-MM-DD" is parsed as UTC midnight by new Date().
     let date = new Date(dateString);
     if (!isNaN(date.getTime())) {
         return date;
     }
 
-    // Attempt 2: Parse "YYYYMMDD" string
     if (dateString.length === 8 && /^\d{8}$/.test(dateString)) {
         const year = parseInt(dateString.substring(0, 4), 10);
-        const month = parseInt(dateString.substring(4, 6), 10) - 1; // Month is 0-indexed in JS Date
+        const month = parseInt(dateString.substring(4, 6), 10) - 1;
         const day = parseInt(dateString.substring(6, 8), 10);
-        
-        // Construct as UTC date
         const utcDate = new Date(Date.UTC(year, month, day));
-        // Validate if the constructed date is correct
         if (utcDate.getUTCFullYear() === year && utcDate.getUTCMonth() === month && utcDate.getUTCDate() === day) {
             return utcDate;
         }
     }
-    return null; // Return null if parsing failed
+    return null;
 };
 
 // Helper function to format date value (from report.DATE) for display
 const formatDateForDisplay = (dateValue: string | number | null): string => {
     const date = parseReportDateStringToDate(dateValue);
     if (date) {
-        // Using Intl.DateTimeFormat for a localized format
-        return new Intl.DateTimeFormat('en-US', { // Changed to 'en-US'
+        return new Intl.DateTimeFormat('en-US', {
             year: 'numeric',
-            month: 'long', // 'long' for full month name e.g., "June"
+            month: 'long',
             day: '2-digit',
-            timeZone: 'UTC' // Important to format the UTC date components as is
+            timeZone: 'UTC'
         }).format(date);
     }
-    // Fallback to original string representation or N/A if null/undefined
     if (dateValue === null || dateValue === undefined) return "N/A";
     return String(dateValue); 
 };
 
+// Función de ordenamiento alfabético personalizado mejorada
+const customAlphabeticalSort = (a: string, b: string) => {
+    const aUpper = a.toUpperCase();
+    const bUpper = b.toUpperCase();
+    const aStartsWithNumber = /^[0-9]/.test(aUpper);
+    const bStartsWithNumber = /^[0-9]/.test(bUpper);
+    if (aStartsWithNumber && !bStartsWithNumber) return -1;
+    if (!aStartsWithNumber && bStartsWithNumber) return 1;
+    return aUpper.localeCompare(bUpper, 'en', { numeric: true });
+};
+
+// === NUEVAS FUNCIONES PARA MOSTRAR LOS VALORES COMO TEXTO ===
+const getAOGDisplay = (aog: string | null | undefined): string => {
+    if (aog === "1") return "SI";
+    if (aog === "2") return "NO";
+    return aog ?? "";
+};
+
+const getAssistantTypeDisplay = (type: string | null | undefined): string => {
+    if (type === "1") return "on call";
+    if (type === "3") return "Routine";
+    return type ?? "";
+};
+// ===========================================================
+
+// Constantes para encabezados de exportación
+const EXPORT_HEADERS_EXCEL_CSV = [
+    'COMPANY', 'AIRLINE', 'DATE', 'STATION', 'AC REG', 'FLIGTH', 'DEST',
+    'LOG BOOK', 'A/C TYPE', 'SERV PR', 'ASSISTANT TYPE', 'AOG', 'START TIME', 'END TIME', 
+    'TOTAL TECHNICIAN TIME', 'SERV1', 'SERV2', 'SERV3', 'SERV4', 'SERV5', 'SERV6', 'REMARKS', 'TECHNICIAN'
+];
+
+const EXPORT_HEADERS_PDF = [
+    'COMPANY', 'AIRLINE', 'DATE', 'STATION', 'AC REG', 'FLIGTH', 'DEST',
+    'LOG BOOK', 'A/C TYPE', 'SERV PR', 'ASSISTANT TYPE', 'AOG', 'START TIME', 'END TIME',
+    'TOTAL TECH TIME', 'SERV1', 'SERV2', 'SERV3', 'SERV4', 'SERV5', 'SERV6', 'REMARKS', 'TECHNICIAN'
+];
+
+// Helper para sanitizar campos para exportación
+const getSanitizedReportField = (fieldValue: string | null | undefined): string => {
+    return fieldValue === null || fieldValue === undefined ? '' : String(fieldValue);
+};
+
+// Helper para obtener una fila de reporte formateada para exportación
+const getExportableReportRow = (report: OperationReportData): string[] => [
+    getSanitizedReportField(report.COMPANY),
+    getSanitizedReportField(report.AIRLINE),
+    formatDateForDisplay(report.DATE),
+    getSanitizedReportField(report.STATION),
+    getSanitizedReportField(report.AC_REG),
+    getSanitizedReportField(report.FLIGTH),
+    getSanitizedReportField(report.DEST),
+    getSanitizedReportField(report.LOG_BOOK),
+    getSanitizedReportField(report.AC_TYPE),
+    getSanitizedReportField(report.SERV_PR),
+    getAssistantTypeDisplay(report.ASSISTANT_TYPE), // <--- CAMBIO
+    getAOGDisplay(report.AOG), // <--- CAMBIO
+    getSanitizedReportField(report.START_TIME),
+    getSanitizedReportField(report.END_TIME),
+    getSanitizedReportField(report.TOTAL_TECHNICIAN_TIME),
+    getSanitizedReportField(report.SERV1),
+    getSanitizedReportField(report.SERV2),
+    getSanitizedReportField(report.SERV3),
+    getSanitizedReportField(report.SERV4),
+    getSanitizedReportField(report.SERV5),
+    getSanitizedReportField(report.SERV6),
+    getSanitizedReportField(report.REMARKS),
+    getSanitizedReportField(report.TECHNICIAN)
+];
 
 const OperationReport: React.FC = () => {
     const [filters, setFilters] = useState({
-        company: "all", // "all" o LLAVE (string)
-        airline: "all", // "all" o nombre de la aerolínea (string)
-        station: "all", // "all" o nombre de la estación (string)
+        company: "all",
+        airline: "all",
+        station: "all",
         startDate: "",
         endDate: "",
     });
 
     const [reports, setReports] = useState<OperationReportData[]>([]);
     const [allReports, setAllReports] = useState<OperationReportData[]>([]);
-    const [loading, setLoading] = useState(true); // Estado de carga general
+    const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [dateError, setDateError] = useState<string | null>(null);
-
-    // Estados para las opciones de los dropdowns
-    const [companyOptions, setCompanyOptions] = useState<CompanyOption[]>([]);
-    const [airlineOptions, setAirlineOptions] = useState<string[]>([]);
-    const [stationOptions, setStationOptions] = useState<string[]>([]);
 
     // Función para validar fechas
     const validateDates = (startDate: string, endDate: string): boolean => {
         if (startDate && endDate) {
-            // Input dates are "YYYY-MM-DD". new Date() parses them as UTC midnight.
             const start = new Date(startDate);
             const end = new Date(endDate);
             if (start > end) {
@@ -154,83 +190,32 @@ const OperationReport: React.FC = () => {
         return true;
     };
 
-    // Función de ordenamiento alfabético personalizado mejorada
-    const customAlphabeticalSort = (a: string, b: string) => {
-        const aUpper = a.toUpperCase();
-        const bUpper = b.toUpperCase();
-        const aStartsWithNumber = /^[0-9]/.test(aUpper);
-        const bStartsWithNumber = /^[0-9]/.test(bUpper);
-        if (aStartsWithNumber && !bStartsWithNumber) return -1;
-        if (!aStartsWithNumber && bStartsWithNumber) return 1;
-        return aUpper.localeCompare(bUpper, 'en', { numeric: true });
-    };
-
     // Cargar todos los reportes al inicio
     useEffect(() => {
         loadAllReports();
     }, []);
-
-    // Cuando allReports cambia, poblar las opciones de compañía
-    useEffect(() => {
+    
+    // Opciones para dropdowns calculadas con useMemo
+    const companyOptions = useMemo<CompanyOption[]>(() => {
         if (allReports.length > 0) {
-            // Poblar Compañías
-            const uniqueCompaniesMap = new Map<number, string>();
+            const uniqueCompanyNames = new Set<string>();
             allReports.forEach(report => {
-                if (report.LLAVE !== null && report.COMPANY) {
-                    uniqueCompaniesMap.set(report.LLAVE, report.COMPANY);
+                if (report.COMPANY) {
+                    uniqueCompanyNames.add(report.COMPANY);
                 }
             });
-            const companies = Array.from(uniqueCompaniesMap, ([llave, name]) => ({ llave, name }))
-                .sort((a, b) => customAlphabeticalSort(a.name, b.name));
-            setCompanyOptions(companies);
-        } else {
-            setCompanyOptions([]);
-            setAirlineOptions([]); // Resetear si no hay reportes
-            setStationOptions([]); // Resetear si no hay reportes
+            return Array.from(uniqueCompanyNames)
+                .sort(customAlphabeticalSort)
+                .map((name, index) => ({ llave: index, name }));
         }
+        return [];
     }, [allReports]);
 
-
-    // Cuando filters.company cambia, o allReports/companyOptions se actualizan,
-    // actualizar las opciones de aerolíneas y estaciones.
-    useEffect(() => {
-        if (allReports.length > 0 && companyOptions.length > 0) {
-            updateAirlineOptions(filters.company, allReports, companyOptions);
-            updateStationOptions(filters.company, allReports);
-
-            // Si la aerolínea seleccionada ya no está en las nuevas opciones (excepto "all"), resetearla
-            const currentFilteredAirlines = getFilteredAirlines(filters.company, allReports, companyOptions);
-            if (filters.airline !== "all" && !currentFilteredAirlines.includes(filters.airline)) {
-                 setFilters(prev => ({ ...prev, airline: "all" }));
-            }
-
-            // Si la estación seleccionada ya no está en las nuevas opciones (excepto "all"), resetearla
-            const currentFilteredStations = getFilteredStations(filters.company, allReports);
-            if (filters.station !== "all" && !currentFilteredStations.includes(filters.station)) {
-                 setFilters(prev => ({ ...prev, station: "all" }));
-            }
-        } else if (allReports.length === 0) { // Si no hay reportes, limpiar opciones
-            setAirlineOptions([]);
-            setStationOptions([]);
-        }
-    }, [filters.company, allReports, companyOptions]);
-
-
-    // Aplicar filtros automáticamente cuando cambian los datos o filtros (excepto para la carga inicial de allReports)
-    useEffect(() => {
-        if (!loading) { // Solo aplicar filtros si no estamos en la carga inicial
-            applyFilters();
-        }
-    }, [filters, allReports, loading]); // allReports se incluye por si acaso, aunque el filtrado es sobre él
-
-
-    const getFilteredAirlines = (selectedCompanyLlave: string, currentAllReports: OperationReportData[], currentCompanyOptions: CompanyOption[]): string[] => {
+    const getFilteredAirlines = (selectedCompanyValue: string, currentAllReports: OperationReportData[]): string[] => {
         let reportsForAirlineExtraction = currentAllReports;
-        if (selectedCompanyLlave !== "all") {
-            const companyLlaveNum = Number(selectedCompanyLlave);
-            reportsForAirlineExtraction = currentAllReports.filter(report => report.LLAVE === companyLlaveNum);
+        if (selectedCompanyValue !== "all") {
+            reportsForAirlineExtraction = currentAllReports.filter(report => report.COMPANY === selectedCompanyValue);
         }
-
         const uniqueAirlinesSet = new Set<string>();
         reportsForAirlineExtraction.forEach(report => {
             if (report.AIRLINE) {
@@ -240,17 +225,15 @@ const OperationReport: React.FC = () => {
         return Array.from(uniqueAirlinesSet).sort(customAlphabeticalSort);
     };
 
-    const updateAirlineOptions = (selectedCompanyLlave: string, currentAllReports: OperationReportData[], currentCompanyOptions: CompanyOption[]) => {
-        setAirlineOptions(getFilteredAirlines(selectedCompanyLlave, currentAllReports, currentCompanyOptions));
-    };
+    const airlineOptions = useMemo<string[]>(() => {
+        return getFilteredAirlines(filters.company, allReports);
+    }, [filters.company, allReports]);
 
-    const getFilteredStations = (selectedCompanyLlave: string, currentAllReports: OperationReportData[]): string[] => {
+    const getFilteredStations = (selectedCompanyValue: string, currentAllReports: OperationReportData[]): string[] => {
         let reportsForStationExtraction = currentAllReports;
-        if (selectedCompanyLlave !== "all") {
-            const companyLlaveNum = Number(selectedCompanyLlave);
-            reportsForStationExtraction = currentAllReports.filter(report => report.LLAVE === companyLlaveNum);
+        if (selectedCompanyValue !== "all") {
+            reportsForStationExtraction = currentAllReports.filter(report => report.COMPANY === selectedCompanyValue);
         }
-
         const uniqueStationsSet = new Set<string>();
         reportsForStationExtraction.forEach(report => {
             if (report.STATION) {
@@ -260,10 +243,67 @@ const OperationReport: React.FC = () => {
         return Array.from(uniqueStationsSet).sort(customAlphabeticalSort);
     };
 
-    const updateStationOptions = (selectedCompanyLlave: string, currentAllReports: OperationReportData[]) => {
-        setStationOptions(getFilteredStations(selectedCompanyLlave, currentAllReports));
+    const stationOptions = useMemo<string[]>(() => {
+        return getFilteredStations(filters.company, allReports);
+    }, [filters.company, allReports]);
+
+    useEffect(() => {
+        if (filters.airline !== "all" && airlineOptions.length > 0 && !airlineOptions.includes(filters.airline)) {
+            setFilters(prev => ({ ...prev, airline: "all" }));
+        }
+        else if (filters.airline !== "all" && airlineOptions.length === 0 && allReports.length > 0) {
+             setFilters(prev => ({ ...prev, airline: "all" }));
+        }
+    }, [filters.airline, airlineOptions, allReports.length]);
+
+    useEffect(() => {
+        if (filters.station !== "all" && stationOptions.length > 0 && !stationOptions.includes(filters.station)) {
+            setFilters(prev => ({ ...prev, station: "all" }));
+        }
+        else if (filters.station !== "all" && stationOptions.length === 0 && allReports.length > 0) {
+            setFilters(prev => ({ ...prev, station: "all" }));
+        }
+    }, [filters.station, stationOptions, allReports.length]);
+
+    // ORDENAMIENTO DE LOS DATOS SEGÚN LAS COLUMNAS SOLICITADAS
+    const sortReports = (data: OperationReportData[]): OperationReportData[] => {
+        return [...data].sort((a, b) => {
+            // Ordenar por: COMPANY, AIRLINE, DATE, STATION, AC_REG, FLIGTH, DEST, LOG_BOOK, AC_TYPE, SERV_PR, ASSISTANT_TYPE, AOG, START_TIME, END_TIME, TOTAL_TECHNICIAN_TIME, SERV1, SERV2, SERV3, SERV4, SERV5, SERV6, REMARKS, TECHNICIAN
+            const fields: (keyof OperationReportData)[] = [
+                "COMPANY", "AIRLINE", "DATE", "STATION", "AC_REG", "FLIGTH", "DEST", "LOG_BOOK", "AC_TYPE", "SERV_PR",
+                "ASSISTANT_TYPE", "AOG", "START_TIME", "END_TIME", "TOTAL_TECHNICIAN_TIME", "SERV1", "SERV2", "SERV3",
+                "SERV4", "SERV5", "SERV6", "REMARKS", "TECHNICIAN"
+            ];
+            for (const field of fields) {
+                let aValue = a[field] ?? "";
+                let bValue = b[field] ?? "";
+                // Para la fecha, comparar como fecha real
+                if (field === "DATE") {
+                    const aDate = parseReportDateStringToDate(aValue);
+                    const bDate = parseReportDateStringToDate(bValue);
+                    if (aDate && bDate) {
+                        if (aDate < bDate) return -1;
+                        if (aDate > bDate) return 1;
+                    } else if (aDate && !bDate) {
+                        return -1;
+                    } else if (!aDate && bDate) {
+                        return 1;
+                    }
+                } else {
+                    const cmp = customAlphabeticalSort(String(aValue), String(bValue));
+                    if (cmp !== 0) return cmp;
+                }
+            }
+            return 0;
+        });
     };
 
+    // Aplicar filtros automáticamente cuando cambian los datos o filtros (excepto para la carga inicial de allReports)
+    useEffect(() => {
+        if (!loading) {
+            applyFilters();
+        }
+    }, [filters, allReports, loading]);
 
     // Función para cargar todos los datos del backend (sin parámetros)
     const loadAllReports = async () => {
@@ -271,8 +311,7 @@ const OperationReport: React.FC = () => {
         setError(null);
         try {
             const response = await axiosInstance.get('/reports/operation-reports-v2');
-            setAllReports(response.data || []); // Asegurar que sea un array
-            // Los filtros se aplicarán a través del useEffect [filters, allReports]
+            setAllReports(response.data || []);
         } catch (err) {
             setError("Could not load operation reports. Please try again.");
             setReports([]);
@@ -291,15 +330,10 @@ const OperationReport: React.FC = () => {
 
         let filteredReports = [...allReports];
 
-        // Aplicar filtro de compañía usando LLAVE
         if (filters.company && filters.company !== "all") {
-            const selectedCompanyLlaveNum = Number(filters.company);
-            filteredReports = filteredReports.filter(report =>
-                report.LLAVE === selectedCompanyLlaveNum
-            );
+            filteredReports = filteredReports.filter(report => report.COMPANY === filters.company);
         }
 
-        // Aplicar filtro de aerolínea usando el nombre de la aerolínea
         if (filters.airline && filters.airline !== "all") {
             const airlineName = filters.airline;
             filteredReports = filteredReports.filter(report =>
@@ -307,39 +341,30 @@ const OperationReport: React.FC = () => {
             );
         }
 
-        // Aplicar filtro de estación
         if (filters.station && filters.station !== "all") {
             filteredReports = filteredReports.filter(report =>
                 report.STATION && report.STATION.toLowerCase() === filters.station.toLowerCase()
             );
         }
 
-        // Aplicar filtro de fecha de inicio
         if (filters.startDate) {
-            const startDateFilter = new Date(filters.startDate); // Parsed as UTC from "YYYY-MM-DD"
+            const startDateFilter = new Date(filters.startDate);
             filteredReports = filteredReports.filter(report => {
                 const reportDate = parseReportDateStringToDate(report.DATE);
                 return reportDate && reportDate >= startDateFilter;
             });
         }
 
-        // Aplicar filtro de fecha de fin
         if (filters.endDate) {
-            const endDateFilter = new Date(filters.endDate); // Parsed as UTC from "YYYY-MM-DD"
+            const endDateFilter = new Date(filters.endDate);
             filteredReports = filteredReports.filter(report => {
                 const reportDate = parseReportDateStringToDate(report.DATE);
                 return reportDate && reportDate <= endDateFilter;
             });
         }
-        setReports(filteredReports);
-    };
 
-    // Función manual de búsqueda (para el botón)
-    const searchReports = () => {
-        if (!validateDates(filters.startDate, filters.endDate)) {
-            return;
-        }
-        applyFilters(); // Los filtros ya se aplican en useEffect, pero esto asegura la aplicación al hacer clic
+        // ORDENAR LOS DATOS ANTES DE MOSTRAR
+        setReports(sortReports(filteredReports));
     };
 
     // Función para manejar cambio de fecha de inicio
@@ -347,7 +372,7 @@ const OperationReport: React.FC = () => {
         setFilters(prev => {
             const newFilters = { ...prev, startDate: value };
             if (prev.endDate && value && new Date(value) > new Date(prev.endDate)) {
-                newFilters.endDate = ""; // Resetear endDate si startDate es posterior
+                newFilters.endDate = "";
             }
             return newFilters;
         });
@@ -358,39 +383,13 @@ const OperationReport: React.FC = () => {
         setFilters({ ...filters, endDate: value });
     };
 
-    // Función para exportar a Excel (NO incluye LLAVE)
+    // Función para exportar a Excel
     const exportToExcel = () => {
-        const headers = [
-            'COMPANY', 'AIRLINE', 'DATE', 'STATION', 'AC REG', 'FLIGTH', 'DEST',
-            'LOG BOOK', 'A/C TYPE', 'START TIME', 'END TIME', 'SERV PR', 'ON GND',
-            'SERV1', 'SERV2', 'SERV3', 'SERV4', 'SERV5', 'SERV6', 'REMARKS', 'TECHNICIAN'
-        ];
+        const dataToExport = reports.length > 0 
+            ? reports.map(getExportableReportRow)
+            : [['No data available']];
 
-        const data = reports.length > 0 ? reports.map(report => [
-            report.COMPANY, 
-            report.AIRLINE,
-            formatDateForDisplay(report.DATE), // Formatear fecha para exportación
-            report.STATION,
-            report.AC_REG,
-            report.FLIGTH,
-            report.DEST,
-            report.LOG_BOOK,
-            report.AC_TYPE,
-            report.START_TIME,
-            report.END_TIME,
-            report.SERV_PR,
-            report.ON_GND,
-            report.SERV1,
-            report.SERV2,
-            report.SERV3,
-            report.SERV4,
-            report.SERV5,
-            report.SERV6,
-            report.REMARKS,
-            report.TECHNICIAN
-        ]) : [['No data available']];
-
-        const ws = XLSX.utils.aoa_to_sheet([headers, ...data]);
+        const ws = XLSX.utils.aoa_to_sheet([EXPORT_HEADERS_EXCEL_CSV, ...dataToExport]);
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, 'Operations Report');
 
@@ -398,40 +397,14 @@ const OperationReport: React.FC = () => {
         XLSX.writeFile(wb, fileName);
     };
 
-    // Función para exportar a CSV (NO incluye LLAVE)
+    // Función para exportar a CSV
     const exportToCSV = () => {
-        const headers = [
-            'COMPANY', 'AIRLINE', 'DATE', 'STATION', 'AC REG', 'FLIGTH', 'DEST',
-            'LOG BOOK', 'A/C TYPE', 'START TIME', 'END TIME', 'SERV PR', 'ON GND',
-            'SERV1', 'SERV2', 'SERV3', 'SERV4', 'SERV5', 'SERV6', 'REMARKS', 'TECHNICIAN'
-        ];
+        const dataToExport = reports.length > 0
+            ? reports.map(getExportableReportRow)
+            : [['No data available']];
 
-        const csvData = reports.length > 0 ? reports.map(report => [
-            report.COMPANY, 
-            report.AIRLINE,
-            formatDateForDisplay(report.DATE), // Formatear fecha para exportación
-            report.STATION,
-            report.AC_REG,
-            report.FLIGTH,
-            report.DEST,
-            report.LOG_BOOK,
-            report.AC_TYPE,
-            report.START_TIME,
-            report.END_TIME,
-            report.SERV_PR,
-            report.ON_GND,
-            report.SERV1,
-            report.SERV2,
-            report.SERV3,
-            report.SERV4,
-            report.SERV5,
-            report.SERV6,
-            report.REMARKS,
-            report.TECHNICIAN
-        ]) : [['No data available']];
-
-        const csvContent = [headers, ...csvData]
-            .map(row => row.map(field => `"${String(field === null || field === undefined ? '' : field).replace(/"/g, '""')}"`).join(','))
+        const csvContent = [EXPORT_HEADERS_EXCEL_CSV, ...dataToExport]
+            .map(row => row.map(field => `"${String(field).replace(/"/g, '""')}"`).join(','))
             .join('\n');
 
         const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -445,14 +418,13 @@ const OperationReport: React.FC = () => {
         document.body.removeChild(link);
     };
 
-    // Función para exportar a PDF (NO incluye LLAVE)
+    // Función para exportar a PDF
     const exportToPDF = () => {
         try {
             const doc = new jsPDF('l', 'mm', 'a4');
             doc.setFontSize(16);
             doc.text('Operations Report', 14, 15);
             doc.setFontSize(10);
-            // Format "Generated on" date to American English
             const generatedDate = new Intl.DateTimeFormat('en-US', {
                 year: 'numeric',
                 month: 'long',
@@ -460,75 +432,51 @@ const OperationReport: React.FC = () => {
             }).format(new Date());
             doc.text(`Generated on: ${generatedDate}`, 14, 25);
 
-            const columns = [
-                'COMPANY', 'AIRLINE', 'DATE', 'STATION', 'AC REG', 'FLIGTH', 'DEST',
-                'LOG BOOK', 'A/C TYPE', 'START TIME', 'END TIME', 'SERV PR', 'ON GND',
-                'SERV1', 'SERV2', 'SERV3', 'SERV4', 'SERV5', 'SERV6', 'REMARKS', 'TECHNICIAN'
-            ];
-
-            const tableData = reports.length > 0 ? reports.map(report => [
-                report.COMPANY || '', 
-                report.AIRLINE || '',
-                formatDateForDisplay(report.DATE), // Formatear fecha para exportación
-                report.STATION || '',
-                report.AC_REG || '',
-                report.FLIGTH || '',
-                report.DEST || '',
-                report.LOG_BOOK || '',
-                report.AC_TYPE || '',
-                report.START_TIME || '',
-                report.END_TIME || '',
-                report.SERV_PR || '',
-                report.ON_GND || '',
-                report.SERV1 || '',
-                report.SERV2 || '',
-                report.SERV3 || '',
-                report.SERV4 || '',
-                report.SERV5 || '',
-                report.SERV6 || '',
-                report.REMARKS || '',
-                report.TECHNICIAN || ''
-            ]) : [['No data available', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '']];
+            const tableData = reports.length > 0 
+                ? reports.map(getExportableReportRow)
+                : [Array(EXPORT_HEADERS_PDF.length).fill('No data available')];
 
             autoTable(doc, {
-                head: [columns],
+                head: [EXPORT_HEADERS_PDF],
                 body: tableData,
                 startY: 35,
                 styles: {
-                    fontSize: 6,
+                    fontSize: 5, 
                     cellPadding: 1,
-                    overflow: 'linebreak',
-                    cellWidth: 'wrap'
+                    overflow: 'linebreak', 
                 },
                 headStyles: {
                     fillColor: [0, 33, 87],
                     textColor: [255, 255, 255],
                     fontStyle: 'bold'
                 },
-                margin: { top: 35, left: 14, right: 14 },
+                margin: { top: 35, left: 10, right: 10 }, 
                 theme: 'striped',
-                columnStyles: {
-                    0: { cellWidth: 15 },
-                    1: { cellWidth: 15 },
-                    2: { cellWidth: 18 }, // DATE column adjusted for new format
-                    3: { cellWidth: 10 },
-                    4: { cellWidth: 12 },
-                    5: { cellWidth: 10 },
-                    6: { cellWidth: 10 },
-                    7: { cellWidth: 12 },
-                    8: { cellWidth: 12 },
-                    9: { cellWidth: 12 },
-                    10: { cellWidth: 12 },
-                    11: { cellWidth: 10 },
-                    12: { cellWidth: 10 },
-                    13: { cellWidth: 8 },
-                    14: { cellWidth: 8 },
-                    15: { cellWidth: 8 },
-                    16: { cellWidth: 8 },
-                    17: { cellWidth: 8 },
-                    18: { cellWidth: 8 },
-                    19: { cellWidth: 15 },
-                    20: { cellWidth: 12 },
+                columnStyles: { 
+                    0: { cellWidth: 12 }, 
+                    1: { cellWidth: 12 }, 
+                    2: { cellWidth: 15 }, 
+                    3: { cellWidth: 10 }, 
+                    4: { cellWidth: 10 }, 
+                    5: { cellWidth: 10 }, 
+                    6: { cellWidth: 10 }, 
+                    7: { cellWidth: 10 }, 
+                    8: { cellWidth: 10 }, 
+                    9: { cellWidth: 10 }, 
+                    10: { cellWidth: 12 }, 
+                    11: { cellWidth: 7 },  
+                    12: { cellWidth: 10 }, 
+                    13: { cellWidth: 10 }, 
+                    14: { cellWidth: 12 }, 
+                    15: { cellWidth: 10 }, 
+                    16: { cellWidth: 7 },  
+                    17: { cellWidth: 7 },  
+                    18: { cellWidth: 7 },  
+                    19: { cellWidth: 7 },  
+                    20: { cellWidth: 7 },  
+                    21: { cellWidth: 7 },  
+                    22: { cellWidth: 15 }, 
+                    23: { cellWidth: 12 }  
                 }
             });
 
@@ -540,14 +488,10 @@ const OperationReport: React.FC = () => {
             docFallback.setFontSize(20);
             docFallback.text('Operations Report', 14, 22);
             docFallback.setFontSize(12);
-            // Format "Generated on" date to American English for fallback PDF
             const generatedDateFallback = new Intl.DateTimeFormat('en-US', {
-                year: 'numeric',
-                month: 'long',
-                day: '2-digit'
+                year: 'numeric', month: 'long', day: '2-digit'
             }).format(new Date());
             docFallback.text(`Generated on: ${generatedDateFallback}`, 14, 35);
-
             let yPosition = 50;
             docFallback.setFontSize(10);
 
@@ -556,19 +500,17 @@ const OperationReport: React.FC = () => {
             } else {
                 docFallback.text('COMPANY | AIRLINE | DATE | STATION | FLIGTH', 14, yPosition);
                 yPosition += 10;
-
-                reports.forEach((report) => {
-                    const companyDisplay = report.COMPANY; 
-                    const line = `${companyDisplay || 'N/A'} | ${report.AIRLINE || 'N/A'} | ${formatDateForDisplay(report.DATE)} | ${report.STATION || 'N/A'} | ${report.FLIGTH || 'N/A'}`;
+                reports.slice(0, 15).forEach((report) => {
+                    const rowData = getExportableReportRow(report);
+                    const line = `${rowData[0]} | ${rowData[1]} | ${rowData[2]} | ${rowData[3]} | ${rowData[5]}`;
                     docFallback.text(line, 14, yPosition);
                     yPosition += 8;
-                    if (yPosition > 180) {
-                        docFallback.addPage();
-                        yPosition = 20;
+                    if (yPosition > 180) { 
+                        docFallback.addPage(); 
+                        yPosition = 20; 
                     }
                 });
             }
-
             const fileNameFallback = `operations_report_fallback_${new Date().toISOString().split('T')[0]}.pdf`;
             docFallback.save(fileNameFallback);
         }
@@ -610,15 +552,15 @@ const OperationReport: React.FC = () => {
                                 ) : (
                                     <select
                                         className="w-full bg-[#1E2A45] text-white px-3 py-2 rounded-md border border-gray-700 focus:border-[#00B140] focus:ring-2 focus:ring-[#00B140] focus:outline-none"
-                                        value={filters.company}
+                                        value={filters.company} 
                                         onChange={(e) => {
-                                            setFilters({ ...filters, company: e.target.value, airline: "all", station: "all" }); // Reset airline and station when company changes
+                                            setFilters({ ...filters, company: e.target.value, airline: "all", station: "all" });
                                         }}
                                     >
                                         <option value="all">All Companies</option>
                                         {companyOptions.map((company) => (
-                                            <option key={company.llave} value={String(company.llave)}>
-                                                {company.name} {/* Muestra el código de compañía (COMPANY) */}
+                                            <option key={company.name} value={company.name}> 
+                                                {company.name}
                                             </option>
                                         ))}
                                     </select>
@@ -628,7 +570,7 @@ const OperationReport: React.FC = () => {
                             {/* Airline Dropdown */}
                             <div>
                                 <label className="block text-sm font-medium text-gray-300 mb-1">Airline</label>
-                                {loading && airlineOptions.length === 0 && filters.company === "all" ? (
+                                {(loading && airlineOptions.length === 0 && filters.company === "all" && allReports.length === 0) ? (
                                     <div className="w-full bg-[#1E2A45] text-white px-3 py-2 rounded-md border border-gray-700 animate-pulse text-center">
                                         Loading...
                                     </div>
@@ -637,12 +579,12 @@ const OperationReport: React.FC = () => {
                                         className="w-full bg-[#1E2A45] text-white px-3 py-2 rounded-md border border-gray-700 focus:border-[#00B140] focus:ring-2 focus:ring-[#00B140] focus:outline-none"
                                         value={filters.airline}
                                         onChange={(e) => setFilters({ ...filters, airline: e.target.value })}
-                                        disabled={loading && airlineOptions.length === 0 && filters.company === "all"}
+                                        disabled={loading && airlineOptions.length === 0 && filters.company === "all" && allReports.length === 0}
                                     >
                                         <option value="all">All Airlines</option>
                                         {airlineOptions.map((airlineName) => (
                                             <option key={airlineName} value={airlineName}>
-                                                {airlineName} {/* Muestra el nombre de la aerolínea (AIRLINE) */}
+                                                {airlineName}
                                             </option>
                                         ))}
                                     </select>
@@ -652,7 +594,7 @@ const OperationReport: React.FC = () => {
                             {/* Station Dropdown */}
                             <div>
                                 <label className="block text-sm font-medium text-gray-300 mb-1">Station</label>
-                                {loading && stationOptions.length === 0 && filters.company === "all" ? (
+                                {(loading && stationOptions.length === 0 && filters.company === "all" && allReports.length === 0) ? (
                                     <div className="w-full bg-[#1E2A45] text-white px-3 py-2 rounded-md border border-gray-700 animate-pulse text-center">
                                         Loading...
                                     </div>
@@ -661,7 +603,7 @@ const OperationReport: React.FC = () => {
                                         className="w-full bg-[#1E2A45] text-white px-3 py-2 rounded-md border border-gray-700 focus:border-[#00B140] focus:ring-2 focus:ring-[#00B140] focus:outline-none"
                                         value={filters.station}
                                         onChange={(e) => setFilters({ ...filters, station: e.target.value })}
-                                        disabled={loading && stationOptions.length === 0 && filters.company === "all"}
+                                        disabled={loading && stationOptions.length === 0 && filters.company === "all" && allReports.length === 0}
                                     >
                                         <option value="all">All Stations</option>
                                         {stationOptions.map((stationName) => (
@@ -734,18 +676,7 @@ const OperationReport: React.FC = () => {
                                     Export CSV
                                 </button>
                             </div>
-
-                            <button
-                                className={`${
-                                    dateError || loading
-                                        ? 'bg-gray-500 cursor-not-allowed' 
-                                        : 'bg-[#00B140] hover:bg-[#009935]'
-                                } text-white font-medium py-2 px-6 rounded-md shadow-md transition-all duration-200`}
-                                onClick={searchReports} // La búsqueda ahora solo re-aplica filtros, no llama a API
-                                disabled={loading || !!dateError}
-                            >
-                                {loading ? 'Loading Data...' : 'Search'}
-                            </button>
+                            {/* Botón de búsqueda eliminado porque la búsqueda es automática */}
                         </div>
                     </div>
                     
@@ -765,59 +696,26 @@ const OperationReport: React.FC = () => {
                         <table className="border-collapse text-xs text-white" style={{ minWidth: 'max-content' }}>
                             <thead className="sticky top-0 z-10">
                                 <tr className="bg-white text-[#002057]">
-                                    <th className="px-3 py-4 text-left font-semibold border border-[#cccccc] text-xs whitespace-nowrap">COMPANY</th>
-                                    <th className="px-3 py-4 text-left font-semibold border border-[#cccccc] text-xs whitespace-nowrap">AIRLINE</th>
-                                    <th className="px-3 py-4 text-left font-semibold border border-[#cccccc] text-xs whitespace-nowrap">DATE</th>
-                                    <th className="px-3 py-4 text-left font-semibold border border-[#cccccc] text-xs whitespace-nowrap">STATION</th>
-                                    <th className="px-3 py-4 text-left font-semibold border border-[#cccccc] text-xs whitespace-nowrap">AC REG</th>
-                                    <th className="px-3 py-4 text-left font-semibold border border-[#cccccc] text-xs whitespace-nowrap">FLIGTH</th>
-                                    <th className="px-3 py-4 text-left font-semibold border border-[#cccccc] text-xs whitespace-nowrap">DEST</th>
-                                    <th className="px-3 py-4 text-left font-semibold border border-[#cccccc] text-xs whitespace-nowrap">LOG BOOK</th>
-                                    <th className="px-3 py-4 text-left font-semibold border border-[#cccccc] text-xs whitespace-nowrap">A/C TYPE</th>
-                                    <th className="px-3 py-4 text-left font-semibold border border-[#cccccc] text-xs whitespace-nowrap">START TIME</th>
-                                    <th className="px-3 py-4 text-left font-semibold border border-[#cccccc] text-xs whitespace-nowrap">END TIME</th>
-                                    <th className="px-3 py-4 text-left font-semibold border border-[#cccccc] text-xs whitespace-nowrap">SERV PR</th>
-                                    <th className="px-3 py-4 text-left font-semibold border border-[#cccccc] text-xs whitespace-nowrap">ON GND</th>
-                                    <th className="px-3 py-4 text-left font-semibold border border-[#cccccc] text-xs whitespace-nowrap">SERV1</th>
-                                    <th className="px-3 py-4 text-left font-semibold border border-[#cccccc] text-xs whitespace-nowrap">SERV2</th>
-                                    <th className="px-3 py-4 text-left font-semibold border border-[#cccccc] text-xs whitespace-nowrap">SERV3</th>
-                                    <th className="px-3 py-4 text-left font-semibold border border-[#cccccc] text-xs whitespace-nowrap">SERV4</th>
-                                    <th className="px-3 py-4 text-left font-semibold border border-[#cccccc] text-xs whitespace-nowrap">SERV5</th>
-                                    <th className="px-3 py-4 text-left font-semibold border border-[#cccccc] text-xs whitespace-nowrap">SERV6</th>
-                                    <th className="px-3 py-4 text-left font-semibold border border-[#cccccc] text-xs whitespace-nowrap">REMARKS</th>
-                                    <th className="px-3 py-4 text-left font-semibold border border-[#cccccc] text-xs whitespace-nowrap">TECHNICIAN</th>
+                                    {EXPORT_HEADERS_EXCEL_CSV.map(header => (
+                                        <th key={header} className="px-3 py-4 text-left font-semibold border border-[#cccccc] text-xs whitespace-nowrap">{header}</th>
+                                    ))}
                                 </tr>
                             </thead>
                             <tbody className="bg-transparent">
                                 {reports.length > 0 ? (
-                                    reports.map((item, index) => (
-                                        <tr key={`${item.LLAVE}-${String(item.DATE)}-${item.FLIGTH}-${index}`} className="bg-transparent hover:bg-[#1E2A45] transition-colors">
-                                            <td className="px-3 py-4 border border-[#1e3462] text-white text-xs whitespace-nowrap">{item.COMPANY}</td>
-                                            <td className="px-3 py-4 border border-[#1e3462] text-white text-xs whitespace-nowrap">{item.AIRLINE}</td>
-                                            <td className="px-3 py-4 border border-[#1e3462] text-white text-xs whitespace-nowrap">{formatDateForDisplay(item.DATE)}</td>
-                                            <td className="px-3 py-4 border border-[#1e3462] text-white text-xs whitespace-nowrap">{item.STATION}</td>
-                                            <td className="px-3 py-4 border border-[#1e3462] text-white text-xs whitespace-nowrap">{item.AC_REG}</td>
-                                            <td className="px-3 py-4 border border-[#1e3462] text-white text-xs whitespace-nowrap">{item.FLIGTH}</td>
-                                            <td className="px-3 py-4 border border-[#1e3462] text-white text-xs whitespace-nowrap">{item.DEST}</td>
-                                            <td className="px-3 py-4 border border-[#1e3462] text-white text-xs whitespace-nowrap">{item.LOG_BOOK}</td>
-                                            <td className="px-3 py-4 border border-[#1e3462] text-white text-xs whitespace-nowrap">{item.AC_TYPE}</td>
-                                            <td className="px-3 py-4 border border-[#1e3462] text-white text-xs whitespace-nowrap">{item.START_TIME}</td>
-                                            <td className="px-3 py-4 border border-[#1e3462] text-white text-xs whitespace-nowrap">{item.END_TIME}</td>
-                                            <td className="px-3 py-4 border border-[#1e3462] text-white text-xs whitespace-nowrap">{item.SERV_PR}</td>
-                                            <td className="px-3 py-4 border border-[#1e3462] text-white text-xs whitespace-nowrap">{item.ON_GND}</td>
-                                            <td className="px-3 py-4 border border-[#1e3462] text-white text-xs whitespace-nowrap">{item.SERV1}</td>
-                                            <td className="px-3 py-4 border border-[#1e3462] text-white text-xs whitespace-nowrap">{item.SERV2}</td>
-                                            <td className="px-3 py-4 border border-[#1e3462] text-white text-xs whitespace-nowrap">{item.SERV3}</td>
-                                            <td className="px-3 py-4 border border-[#1e3462] text-white text-xs whitespace-nowrap">{item.SERV4}</td>
-                                            <td className="px-3 py-4 border border-[#1e3462] text-white text-xs whitespace-nowrap">{item.SERV5}</td>
-                                            <td className="px-3 py-4 border border-[#1e3462] text-white text-xs whitespace-nowrap">{item.SERV6}</td>
-                                            <td className="px-3 py-4 border border-[#1e3462] text-white text-xs whitespace-nowrap">{item.REMARKS}</td>
-                                            <td className="px-3 py-4 border border-[#1e3462] text-white text-xs whitespace-nowrap">{item.TECHNICIAN}</td>
-                                        </tr>
-                                    ))
+                                    reports.map((item, index) => {
+                                        const rowData = getExportableReportRow(item);
+                                        return (
+                                            <tr key={`${item.COMPANY || 'comp'}-${item.AIRLINE || 'air'}-${String(item.DATE)}-${item.FLIGTH || 'flt'}-${index}`} className="bg-transparent hover:bg-[#1E2A45] transition-colors">
+                                                {rowData.map((cellData, cellIndex) => (
+                                                    <td key={cellIndex} className="px-3 py-4 border border-[#1e3462] text-white text-xs whitespace-nowrap">{cellData}</td>
+                                                ))}
+                                            </tr>
+                                        );
+                                    })
                                 ) : (
                                     <tr>
-                                        <td colSpan={21} className="px-3 py-4 border border-[#1e3462] text-white text-xs whitespace-nowrap text-center">
+                                        <td colSpan={EXPORT_HEADERS_EXCEL_CSV.length} className="px-3 py-4 border border-[#1e3462] text-white text-xs whitespace-nowrap text-center">
                                             {loading ? 'Loading data...' :
                                               (allReports.length === 0 && !error) ? 'No operation reports available.' : 
                                               'No operation reports match the current filters.'

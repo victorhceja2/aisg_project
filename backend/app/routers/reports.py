@@ -391,39 +391,64 @@ async def get_services_reports(db: Session = Depends(get_db)):
         sql_query = """
 SELECT
     cc.companyCode                              AS COMPANY,
-    cc.llave                                    AS LLAVE_COMPANY, -- Renombrado para evitar colisión si se usa dict()
+    cc.llave                                    AS LLAVE, -- Campo LLAVE añadido
     ac.nombre                                   AS AIRLINE,
     se.fecha                                    AS DATE,
     sv.station                                  AS STATION,
     sv.matricula                                AS AC_REG,
     sv.vuelo                                    AS FLIGHT,
     sv.avion                                    AS AC_TYPE,
+    sv.claveProducto                            AS [ASSISTANT TYPE], 
+    sv.aog                                      AS [AOG], 
     se.horaInicio                               AS START_TIME,
     se.horaFin                                  AS END_TIME,
-    (se.horaFin - se.horaInicio)                AS ON_GND, -- Esto podría ser un intervalo/número
+    (se.horaFin - se.horaInicio)                AS [TOTAL TECHNICIAN TIME], -- Usado para ON_GND
     cs.service_name                             AS SERVICE,
-    sv.workOrderNumero                          AS WORK_REFERENCE,
+    essa.work_reference                         AS WORK_REFERENCE,
     CONCAT(te.paterno, ' ', te.materno, ' ',
-           te.primerNombre, ' ',
-           ISNULL(te.segundoNombre, ''))        AS TECHNICIAN
-    FROM aisgProduction.dbo.ExtraServiceSaleAssignment     AS essa
-    INNER JOIN aisgProduction.dbo.ServicePerCustomer       AS spc
-        ON essa.id_service_per_customer = spc.id_service_per_customer
-    INNER JOIN aisgProduction.dbo.CatalogServices          AS cs
-        ON spc.id_service = cs.id_service
-    INNER JOIN aisgProduction.dbo.DBTableEstCompanyCode    AS cc
-        ON spc.id_company = cc.llave
-    INNER JOIN aisgProduction.dbo.DBSaleEmpleado           AS se
-        ON essa.id_sale_employee = se.llave
-    INNER JOIN aisgProduction.dbo.DBTableEmployee          AS te
-        ON se.empleado = te.numeroNomina
-    INNER JOIN aisgProduction.dbo.DBSaleVuelo              AS sv
-        ON essa.id_sale_flight = sv.llave
-    INNER JOIN aisgProduction.dbo.DBTableDtClienteHeader   AS ch
-        ON spc.id_client = ch.llave
-    INNER JOIN aisgProduction.dbo.DBTableAirlineCode       AS ac
-        ON ch.noCliente = ac.linea
-    WHERE cs.service_name IS NOT NULL;
+        te.primerNombre, ' ',
+        ISNULL(te.segundoNombre, ''))           AS TECHNICIAN
+
+FROM aisgProduction.dbo.ExtraServiceSaleAssignment     AS essa
+INNER JOIN aisgProduction.dbo.ServicePerCustomer       AS spc
+    ON essa.id_service_per_customer = spc.id_service_per_customer
+INNER JOIN aisgProduction.dbo.CatalogServices          AS cs
+    ON spc.id_service = cs.id_service
+INNER JOIN aisgProduction.dbo.DBTableEstCompanyCode    AS cc
+    ON spc.id_company = cc.llave
+INNER JOIN aisgProduction.dbo.DBSaleEmpleado           AS se
+    ON essa.id_sale_employee = se.llave
+INNER JOIN aisgProduction.dbo.DBTableEmployee          AS te
+    ON se.empleado = te.numeroNomina
+INNER JOIN aisgProduction.dbo.DBSaleVuelo              AS sv
+    ON essa.id_sale_flight = sv.llave
+INNER JOIN aisgProduction.dbo.DBTableDtClienteHeader   AS ch
+    ON spc.id_client = ch.llave
+INNER JOIN aisgProduction.dbo.DBTableAirlineCode       AS ac
+    ON ch.noCliente = ac.linea
+
+WHERE cs.service_name IS NOT NULL
+
+GROUP BY
+    cc.companyCode,
+    cc.llave,
+    ac.nombre,
+    se.fecha,
+    sv.station,
+    sv.matricula,
+    sv.vuelo,
+    sv.avion,
+    sv.claveProducto,
+    sv.aog,
+    se.horaInicio,
+    se.horaFin,
+    cs.service_name,
+    essa.work_reference,
+    te.paterno,
+    te.materno,
+    te.primerNombre,
+    te.segundoNombre;
+
         """
         result_proxy = db.execute(text(sql_query)).fetchall()
         reports = []
@@ -432,16 +457,18 @@ SELECT
             row = dict(row_data._mapping)
             report_data = {
                 "COMPANY": row.get("COMPANY"),
-                # "LLAVE" no está en ServicesReportResponse, se omite. row.get("LLAVE_COMPANY") si fuera necesario.
+                "LLAVE": row.get("LLAVE"), # Campo LLAVE añadido al mapeo
                 "AIRLINE": row.get("AIRLINE"),
                 "DATE": _process_date_value(row.get("DATE")),
                 "STATION": row.get("STATION"),
                 "AC_REG": row.get("AC_REG"),
                 "FLIGHT": row.get("FLIGHT"),
                 "AC_TYPE": row.get("AC_TYPE"),
+                "ASSISTANT_TYPE": row.get("ASSISTANT TYPE"), # Comentado ya que no está en ServicesReportResponse
+                "AOG": row.get("AOG"), # Comentado ya que no está en ServicesReportResponse
                 "START_TIME": _process_time_value(row.get("START_TIME")),
                 "END_TIME": _process_time_value(row.get("END_TIME")),
-                "ON_GND": _process_timedelta_or_int_as_duration(row.get("ON_GND")),
+                "ON_GND": _process_timedelta_or_int_as_duration(row.get("TOTAL TECHNICIAN TIME")), # Corregido para usar TOTAL TECHNICIAN TIME
                 "SERVICE": row.get("SERVICE"),
                 "WORK_REFERENCE": row.get("WORK_REFERENCE"),
                 "TECHNICIAN": row.get("TECHNICIAN"),

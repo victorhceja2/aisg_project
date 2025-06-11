@@ -6,6 +6,7 @@ import AISGBackground from "./fondo"; // Import from fondo.tsx
 
 const CatalogClassif: React.FC = () => {
   const [classifications, setClassifications] = useState<any[]>([]);
+  const [allClassifications, setAllClassifications] = useState<any[]>([]);
   const [search, setSearch] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -57,13 +58,12 @@ const CatalogClassif: React.FC = () => {
     }
   }, [showDeleteErrorPopup]);
 
+  // Obtener todas las clasificaciones solo una vez
   const fetchClassifications = useCallback(async () => {
     setLoading(true);
     try {
-      const url = search
-        ? `/catalog/service-classification?search=${encodeURIComponent(search)}`
-        : `/catalog/service-classification`;
-      const res = await axiosInstance.get(url);
+      const res = await axiosInstance.get(`/catalog/service-classification`);
+      setAllClassifications(res.data);
       setClassifications(res.data);
       setError(null);
     } catch (err: any) {
@@ -71,7 +71,22 @@ const CatalogClassif: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [search]); // axiosInstance y setters son estables
+  }, []);
+
+  // Filtro en frontend desde la primera letra
+  useEffect(() => {
+    if (search.trim() === "") {
+      setClassifications(allClassifications);
+    } else {
+      setClassifications(
+        allClassifications.filter(c =>
+          (c.service_classification_name || "")
+            .toLowerCase()
+            .includes(search.trim().toLowerCase())
+        )
+      );
+    }
+  }, [search, allClassifications]);
 
   const checkClassificationUsage = useCallback(async (classificationId: number): Promise<{ inUse: boolean; records: any[] }> => {
     const allDependentRecords: any[] = [];
@@ -328,7 +343,7 @@ const CatalogClassif: React.FC = () => {
                         {classifications.map((c) => (
                           <tr key={c.id_service_classification} className="bg-transparent">
                             <td className="px-4 py-3 border border-[#1e3462] font-medium text-white">{c.service_classification_name}</td>
-                            <td className="px-4 py-3 border border-[#1e3462] text-white">{c.whonew || "-"}</td>
+                            <td className="px-4 py-3 border border-[#1e3462] text-white">{c.whonew ? c.whonew : "-"}</td>
                             <td className="px-4 py-3 border border-[#1e3462] text-white">
                               {c.create_at ? new Date(c.create_at).toLocaleString() : "-"}
                             </td>
@@ -378,7 +393,7 @@ const CatalogClassif: React.FC = () => {
                         </div>
                         <div className="mb-2">
                           <strong className="text-gray-300 block text-sm">Created/Modified By:</strong>
-                          <span>{c.whonew || "-"}</span>
+                          <span>{c.whonew ? c.whonew : "-"}</span>
                         </div>
                         <div className="mb-2">
                           <strong className="text-gray-300 block text-sm">Created At:</strong>

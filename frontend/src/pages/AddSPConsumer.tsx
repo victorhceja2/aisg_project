@@ -4,7 +4,7 @@
  * Esta página permite a los usuarios agregar una nueva configuración de Servicio por Cliente.
  * Implementa un sistema de dropdowns en cascada donde:
  * 1. El selector de Compañía tiene un valor por defecto (primera compañía)
- * 2. El selector de Aerolínea muestra solo aerolíneas (tipoCliente = 1) filtradas por la compañía seleccionada y ordenadas alfabéticamente.
+ * 2. El selector de Aerolínea muestra solo aerolíneas filtradas por la compañía seleccionada y ordenadas alfabéticamente.
  * 3. El selector de Servicio muestra servicios disponibles para la aerolínea seleccionada
  * 4. El selector de Fuselage Type obtiene datos de la tabla DBTableAvion
  * 
@@ -17,12 +17,19 @@ import axiosInstance from '../api/axiosInstance';
 import { useNavigate } from "react-router-dom";
 import AISGBackground from "../components/catalogs/fondo";
 
-interface Client {
-  llave: number;
-  nombre: string;
-  comercial: string;
-  razonSocial: string;
-  mote?: string; // Añadido para las tres letras iniciales (código de aerolínea)
+interface Company {
+  company_code: string;
+  company_name: string;
+  company_llave?: string;
+}
+
+interface AirlineClient {
+  company_code: string;
+  company_name: string;
+  company_llave?: string;
+  airline_name: string;
+  airline_code: string;
+  airline_llave?: string;
 }
 
 interface Service {
@@ -31,46 +38,16 @@ interface Service {
   service_code: string;
 }
 
-interface Company {
-  Llave: number; // ID numérico de la compañía, según el backend
-  companyCode: string;
-  companyName: string;
-}
-
 interface FuselageType {
   fuselage_type: string;
 }
 
-// Función helper para obtener el nombre a mostrar del cliente
-const getClientDisplayName = (client: Client): string => {
-  let displayName = `Airline #${client.llave}`; // Fallback
-  const hasMote = client.mote && client.mote.trim() !== "";
-  const hasNombre = client.nombre && client.nombre.trim() !== "";
-  const hasComercial = client.comercial && client.comercial.trim() !== "";
-
-  if (hasMote) {
-    if (hasNombre) {
-      displayName = `${client.mote} - ${client.nombre}`;
-    } else if (hasComercial) {
-      displayName = `${client.mote} - ${client.comercial}`;
-    } else {
-      displayName = client.mote!; // Solo mote si no hay nombre ni comercial
-    }
-  } else if (hasComercial) {
-    displayName = client.comercial!;
-  } else if (hasNombre) {
-    displayName = client.nombre!;
-  }
-  return displayName;
-};
-
-
 const AddSPConsumer: React.FC = () => {
   const navigate = useNavigate();
 
-  const [clients, setClients] = useState<Client[]>([]);
-  const [services, setServices] = useState<Service[]>([]);
   const [companies, setCompanies] = useState<Company[]>([]);
+  const [clients, setClients] = useState<AirlineClient[]>([]);
+  const [services, setServices] = useState<Service[]>([]);
   const [fuselageTypes, setFuselageTypes] = useState<FuselageType[]>([]);
 
   const [companiesLoading, setCompaniesLoading] = useState(true);
@@ -78,8 +55,8 @@ const AddSPConsumer: React.FC = () => {
   const [servicesLoading, setServicesLoading] = useState(false);
   const [fuselageTypesLoading, setFuselageTypesLoading] = useState(false);
 
-  const [selectedCompanyId, setSelectedCompanyId] = useState<string>("");
-  const [selectedClient, setSelectedClient] = useState<string>("");
+  const [selectedCompanyCode, setSelectedCompanyCode] = useState<string>("");
+  const [selectedClientCode, setSelectedClientCode] = useState<string>("");
   const [selectedService, setSelectedService] = useState<string>("");
 
   const [validationErrors, setValidationErrors] = useState<{ [key: string]: string }>({});
@@ -87,7 +64,7 @@ const AddSPConsumer: React.FC = () => {
   const [form, setForm] = useState({
     id_service: "",
     id_client: "",
-    id_company: 0, // Ahora será directamente el ID numérico
+    id_company: "",
     minutes_included: 0,
     minutes_minimum: 0,
     fuselage_type: "",
@@ -104,179 +81,193 @@ const AddSPConsumer: React.FC = () => {
   const duplicateOkButtonRef = useRef<HTMLButtonElement>(null);
   const companySelectRef = useRef<HTMLSelectElement>(null);
 
+  // ----------- VALIDACIÓN Y LIMPIEZA DE ERRORES -----------
+
+  // MODIFICADO: isFormValid ahora revisa los valores actuales del formulario, no los selects auxiliares
   const isFormValid = () => {
-    return form.id_service !== "" &&
+    return (
+      form.id_service !== "" &&
       form.id_client !== "" &&
-      form.id_company > 0 &&
+      form.id_company !== "" &&
       form.fuselage_type.trim() !== "" &&
-      form.minutes_included >= 0 &&
-      form.minutes_minimum >= 0 &&
-      form.technicians_included >= 0;
+      !isNaN(Number(form.minutes_included)) && Number(form.minutes_included) >= 0 &&
+      !isNaN(Number(form.minutes_minimum)) && Number(form.minutes_minimum) >= 0 &&
+      !isNaN(Number(form.technicians_included)) && Number(form.technicians_included) >= 0
+    );
+  };
+
+  const clearFieldError = (field: string) => {
+    setValidationErrors((prev) => {
+      const { [field]: _, ...rest } = prev;
+      return rest;
+    });
   };
 
   const validateField = (fieldName: string, value: any) => {
-    const errors = { ...validationErrors };
-
-    switch (fieldName) {
-      case 'id_company':
-        if (!value || Number(value) <= 0) {
-          errors[fieldName] = 'Company is required';
-        } else {
-          delete errors[fieldName];
-        }
-        break;
-      case 'id_client':
-        if (!value || value === "" || value.toString().trim() === "") {
-          errors[fieldName] = 'Client is required';
-        } else {
-          delete errors[fieldName];
-        }
-        break;
-      case 'id_service':
-        if (!value || value === "" || value.toString().trim() === "") {
-          errors[fieldName] = 'Service is required';
-        } else {
-          delete errors[fieldName];
-        }
-        break;
-      case 'minutes_included':
-        const minutesIncluded = typeof value === 'string' ? parseFloat(value) : value;
-        if (isNaN(minutesIncluded) || minutesIncluded < 0) {
-          errors[fieldName] = 'Minutes included must be 0 or greater';
-        } else {
-          delete errors[fieldName];
-        }
-        break;
-      case 'minutes_minimum':
-        const minutesMinimum = typeof value === 'string' ? parseFloat(value) : value;
-        if (isNaN(minutesMinimum) || minutesMinimum < 0) {
-          errors[fieldName] = 'Minimum minutes must be 0 or greater';
-        } else {
-          delete errors[fieldName];
-        }
-        break;
-      case 'technicians_included':
-        const techniciansIncluded = typeof value === 'string' ? parseFloat(value) : value;
-        if (isNaN(techniciansIncluded) || techniciansIncluded < 0) {
-          errors[fieldName] = 'Technicians included must be 0 or greater';
-        } else {
-          delete errors[fieldName];
-        }
-        break;
-    }
-
-    setValidationErrors(errors);
+    setValidationErrors((prev) => {
+      const errors = { ...prev };
+      switch (fieldName) {
+        case 'id_company':
+          if (!value || value === "") {
+            errors[fieldName] = 'Company is required';
+          } else {
+            delete errors[fieldName];
+          }
+          break;
+        case 'id_client':
+          if (!value || value === "" || value.toString().trim() === "") {
+            errors[fieldName] = 'Client is required';
+          } else {
+            delete errors[fieldName];
+          }
+          break;
+        case 'id_service':
+          if (!value || value === "" || value.toString().trim() === "") {
+            errors[fieldName] = 'Service is required';
+          } else {
+            delete errors[fieldName];
+          }
+          break;
+        case 'minutes_included':
+          {
+            const minutesIncluded = typeof value === 'string' ? parseFloat(value) : value;
+            if (isNaN(minutesIncluded) || minutesIncluded < 0) {
+              errors[fieldName] = 'Minutes included must be 0 or greater';
+            } else {
+              delete errors[fieldName];
+            }
+          }
+          break;
+        case 'minutes_minimum':
+          {
+            const minutesMinimum = typeof value === 'string' ? parseFloat(value) : value;
+            if (isNaN(minutesMinimum) || minutesMinimum < 0) {
+              errors[fieldName] = 'Minimum minutes must be 0 or greater';
+            } else {
+              delete errors[fieldName];
+            }
+          }
+          break;
+        case 'technicians_included':
+          {
+            const techniciansIncluded = typeof value === 'string' ? parseFloat(value) : value;
+            if (isNaN(techniciansIncluded) || techniciansIncluded < 0) {
+              errors[fieldName] = 'Technicians included must be 0 or greater';
+            } else {
+              delete errors[fieldName];
+            }
+          }
+          break;
+        case 'fuselage_type':
+          if (!value || value.trim() === "") {
+            errors[fieldName] = 'Fuselage type is required';
+          } else {
+            delete errors[fieldName];
+          }
+          break;
+      }
+      return errors;
+    });
   };
 
   const validateAllFields = () => {
     const errors: { [key: string]: string } = {};
 
-    if (!form.id_company || form.id_company <= 0) {
+    if (!form.id_company || form.id_company === "") {
       errors.id_company = 'Company is required';
     }
-
     if (!form.id_client || form.id_client.toString().trim() === "") {
       errors.id_client = 'Client is required';
     }
-
     if (!form.id_service || form.id_service.toString().trim() === "") {
       errors.id_service = 'Service is required';
     }
-
-    if (isNaN(form.minutes_included) || form.minutes_included < 0) {
+    if (isNaN(Number(form.minutes_included)) || Number(form.minutes_included) < 0) {
       errors.minutes_included = 'Minutes included must be 0 or greater';
     }
-
-    if (isNaN(form.minutes_minimum) || form.minutes_minimum < 0) {
+    if (isNaN(Number(form.minutes_minimum)) || Number(form.minutes_minimum) < 0) {
       errors.minutes_minimum = 'Minimum minutes must be 0 or greater';
     }
-
-    if (isNaN(form.technicians_included) || form.technicians_included < 0) {
+    if (isNaN(Number(form.technicians_included)) || Number(form.technicians_included) < 0) {
       errors.technicians_included = 'Technicians included must be 0 or greater';
+    }
+    if (!form.fuselage_type || form.fuselage_type.trim() === "") {
+      errors.fuselage_type = 'Fuselage type is required';
     }
 
     setValidationErrors(errors);
     return Object.keys(errors).length === 0;
   };
 
-  const fetchClientsByCompany = async (companyId: number) => {
+  // ----------- FETCH DE DATOS -----------
+
+  const fetchCompanies = async () => {
+    try {
+      setCompaniesLoading(true);
+      const res = await axiosInstance.get('/catalog/service-per-customer/dropdown/companies');
+      setCompanies(res.data || []);
+    } catch (err) {
+      setCompanies([]);
+      setError("Error loading company data. Please refresh the page.");
+    } finally {
+      setCompaniesLoading(false);
+    }
+  };
+
+  const fetchClientsByCompany = async (companyCode: string) => {
     try {
       setClientsLoading(true);
       setClients([]);
       setServices([]);
-      setSelectedClient("");
+      setSelectedClientCode("");
       setSelectedService("");
-
       setForm(prevForm => ({
         ...prevForm,
         id_client: "",
         id_service: ""
       }));
+      clearFieldError('id_client');
+      clearFieldError('id_service');
 
-      if (!companyId || companyId <= 0) {
+      if (!companyCode) {
         setClientsLoading(false);
         return;
       }
 
-      console.log("Fetching clients for company ID:", companyId);
-
-      const res = await axiosInstance.get(`/catalog/clients?company_id=${companyId}&tipoCliente=1`);
-      console.log("Clients response:", res.data);
-      
-      const rawClients: Client[] = res.data || [];
-      const sortedClients = rawClients.sort((a, b) => {
-          const nameA = getClientDisplayName(a).toLowerCase();
-          const nameB = getClientDisplayName(b).toLowerCase();
-          if (nameA < nameB) return -1;
-          if (nameA > nameB) return 1;
-          return 0;
-      });
+      const res = await axiosInstance.get(`/catalog/service-per-customer/dropdown/clients?company_code=${encodeURIComponent(companyCode)}`);
+      const sortedClients = (res.data || []).sort((a: AirlineClient, b: AirlineClient) =>
+        a.airline_name.localeCompare(b.airline_name)
+      );
       setClients(sortedClients);
-
-    } catch (err: any) {
-      console.error("Error loading clients:", err);
-      if (err.response) {
-        console.error("Error response:", err.response.data);
-        setError(`Error loading client data: ${err.response.status} - ${err.response.data.detail || 'Unknown error'}`);
-      } else {
-        setError("Error loading client data. Please check your connection.");
-      }
+    } catch (err) {
       setClients([]);
+      setError("Error loading client data. Please check your connection.");
     } finally {
       setClientsLoading(false);
     }
   };
 
-  const fetchServicesByClient = async (clientId: string) => {
+  const fetchServicesByClient = async (clientCode: string) => {
     try {
       setServicesLoading(true);
       setServices([]);
       setSelectedService("");
-
       setForm(prevForm => ({
         ...prevForm,
         id_service: ""
       }));
+      clearFieldError('id_service');
 
-      if (!clientId) {
+      if (!clientCode) {
         setServicesLoading(false);
         return;
       }
 
-      console.log("Fetching services for client ID:", clientId);
-      
-      const res = await axiosInstance.get(`/catalog/services?client_id=${encodeURIComponent(clientId)}`);
-      console.log("Services response:", res.data);
+      const res = await axiosInstance.get(`/catalog/services?client_id=${encodeURIComponent(clientCode)}`);
       setServices(res.data || []);
-    } catch (err: any) {
-      console.error("Error loading services:", err);
-      if (err.response) {
-        console.error("Error response:", err.response.data);
-        setError(`Error loading service data: ${err.response.status} - ${err.response.data.detail || 'Unknown error'}`);
-      } else {
-        setError("Error loading service data. Please check your connection.");
-      }
+    } catch (err) {
       setServices([]);
+      setError("Error loading service data. Please check your connection.");
     } finally {
       setServicesLoading(false);
     }
@@ -286,64 +277,42 @@ const AddSPConsumer: React.FC = () => {
     try {
       setFuselageTypesLoading(true);
       const res = await axiosInstance.get('/aircraft-models/');
-
       const uniqueFuselages = [...new Set(
         res.data
           .map((aircraft: any) => aircraft.fuselaje)
           .filter((fuselaje: string) => fuselaje && fuselaje.trim())
       )];
-
       const fuselageTypes = uniqueFuselages.map(fuselaje => ({
         fuselage_type: fuselaje
       }));
-
       setFuselageTypes(fuselageTypes);
     } catch (err) {
-      console.error("Error loading fuselage types:", err);
       setError("Error loading fuselage type data.");
     } finally {
       setFuselageTypesLoading(false);
     }
   };
 
-  const handleCompanyChange = (companyIdStr: string) => {
-    const companyId = parseInt(companyIdStr, 10);
-    setSelectedCompanyId(companyIdStr);
+  // ----------- EFECTOS DE SINCRONIZACIÓN -----------
 
-    setForm(prevForm => ({
-      ...prevForm,
-      id_company: companyId,
-      id_client: "",
-      id_service: ""
-    }));
+  // Sincroniza el valor por defecto de compañía y carga clientes al inicio
+  useEffect(() => {
+    if (!companiesLoading && companies.length > 0) {
+      setSelectedCompanyCode(companies[0].company_code);
+      setForm((prevForm) => ({
+        ...prevForm,
+        id_company: companies[0].company_llave || "",
+      }));
+      clearFieldError('id_company');
+      fetchClientsByCompany(companies[0].company_code);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [companiesLoading, companies.length]);
 
-    validateField('id_company', companyId);
-    fetchClientsByCompany(companyId);
-  };
-
-  const handleClientChange = (clientId: string) => {
-    setSelectedClient(clientId);
-
-    setForm(prevForm => ({
-      ...prevForm,
-      id_client: clientId,
-      id_service: ""
-    }));
-
-    validateField('id_client', clientId);
-    fetchServicesByClient(clientId);
-  };
-
-  const handleServiceChange = (serviceId: string) => {
-    setSelectedService(serviceId);
-
-    setForm(prevForm => ({
-      ...prevForm,
-      id_service: serviceId
-    }));
-
-    validateField('id_service', serviceId);
-  };
+  useEffect(() => {
+    fetchCompanies();
+    fetchFuselageTypes();
+  }, []);
 
   useEffect(() => {
     if (!companiesLoading && companySelectRef.current) {
@@ -369,6 +338,52 @@ const AddSPConsumer: React.FC = () => {
     }
   }, [showDuplicateWarningPopup]);
 
+  // ----------- HANDLERS DE CAMBIO -----------
+
+  const handleCompanyChange = async (companyCode: string) => {
+    setSelectedCompanyCode(companyCode);
+    const company = companies.find(c => c.company_code === companyCode);
+    setForm(prevForm => ({
+      ...prevForm,
+      id_company: company?.company_llave || "",
+      id_client: "",
+      id_service: ""
+    }));
+    clearFieldError('id_company');
+    clearFieldError('id_client');
+    clearFieldError('id_service');
+    await fetchClientsByCompany(companyCode);
+  };
+
+  const handleClientChange = (clientCode: string) => {
+    setSelectedClientCode(clientCode);
+    const client = clients.find(c => c.airline_code === clientCode);
+    setForm(prevForm => ({
+      ...prevForm,
+      id_client: client?.airline_llave || "",
+      id_service: ""
+    }));
+    clearFieldError('id_client');
+    clearFieldError('id_service');
+    fetchServicesByClient(clientCode);
+  };
+
+  const handleServiceChange = (serviceId: string) => {
+    setSelectedService(serviceId);
+    setForm(prevForm => ({
+      ...prevForm,
+      id_service: serviceId
+    }));
+    clearFieldError('id_service');
+  };
+
+  const handleFuselageChange = (value: string) => {
+    setForm(prevForm => ({ ...prevForm, fuselage_type: value }));
+    clearFieldError('fuselage_type');
+  };
+
+  // ----------- HANDLER DE NÚMEROS -----------
+
   const handleNumericChange = (field: string, value: string) => {
     let numericValue: number;
 
@@ -377,52 +392,19 @@ const AddSPConsumer: React.FC = () => {
     } else {
       numericValue = parseFloat(value);
       if (isNaN(numericValue) || numericValue < 0) {
+        setValidationErrors((prev) => ({
+          ...prev,
+          [field]: 'Value must be 0 or greater'
+        }));
         return;
       }
     }
 
     setForm(prevForm => ({ ...prevForm, [field]: numericValue }));
-    validateField(field, numericValue);
+    clearFieldError(field);
   };
 
-  useEffect(() => {
-    const fetchInitialData = async () => {
-      try {
-        setCompaniesLoading(true);
-
-        // Cargar compañías
-        const companiesResponse = await axiosInstance.get('/companies/');
-        setCompanies(companiesResponse.data);
-
-        // Seleccionar automáticamente la primera compañía si hay alguna
-        if (companiesResponse.data && companiesResponse.data.length > 0) {
-          const firstCompany = companiesResponse.data[0];
-          setSelectedCompanyId(firstCompany.Llave.toString());
-
-          setForm(prevForm => ({
-            ...prevForm,
-            id_company: firstCompany.Llave
-          }));
-
-          validateField('id_company', firstCompany.Llave);
-
-          // Cargar clientes para la primera compañía
-          await fetchClientsByCompany(firstCompany.Llave);
-        }
-
-        // Cargar tipos de fuselaje
-        fetchFuselageTypes();
-
-      } catch (err: any) {
-        console.error("Error fetching companies:", err);
-        setError("Error loading company data. Please refresh the page.");
-      } finally {
-        setCompaniesLoading(false);
-      }
-    };
-
-    fetchInitialData();
-  }, []);
+  // ----------- DUPLICADOS -----------
 
   const checkDuplicateServicePerCustomer = async () => {
     try {
@@ -430,13 +412,14 @@ const AddSPConsumer: React.FC = () => {
       return res.data.some((item: any) =>
         item.id_service.toString() === form.id_service &&
         item.id_client.toString() === form.id_client &&
-        item.id_company.toString() === form.id_company.toString()
+        item.id_company.toString() === form.id_company
       );
     } catch (err) {
-      console.error("Error checking for duplicate service per customer", err);
       return false;
     }
   };
+
+  // ----------- SUBMIT -----------
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -453,7 +436,6 @@ const AddSPConsumer: React.FC = () => {
     setLoading(true);
 
     try {
-      // Verificar si ya existe un registro duplicado
       const isDuplicate = await checkDuplicateServicePerCustomer();
       if (isDuplicate) {
         setShowDuplicateWarningPopup(true);
@@ -466,35 +448,17 @@ const AddSPConsumer: React.FC = () => {
       const data = {
         id_service: parseInt(form.id_service),
         id_client: parseInt(form.id_client),
-        id_company: form.id_company, // Ya es numérico
-        minutes_included: Math.max(0, Math.floor(form.minutes_included)),
-        minutes_minimum: Math.max(0, Math.floor(form.minutes_minimum)),
+        id_company: parseInt(form.id_company),
+        minutes_included: Math.max(0, Math.floor(Number(form.minutes_included))),
+        minutes_minimum: Math.max(0, Math.floor(Number(form.minutes_minimum))),
         fuselage_type: form.fuselage_type.trim() || "",
-        technicians_included: Math.max(0, Math.floor(form.technicians_included)),
+        technicians_included: Math.max(0, Math.floor(Number(form.technicians_included))),
         whonew
       };
-
-      console.log("Sending data:", data);
-      console.log("Data types:", {
-        id_service: typeof data.id_service,
-        id_client: typeof data.id_client,
-        id_company: typeof data.id_company,
-        minutes_included: typeof data.minutes_included,
-        minutes_minimum: typeof data.minutes_minimum,
-        fuselage_type: typeof data.fuselage_type,
-        technicians_included: typeof data.technicians_included,
-        whonew: typeof data.whonew
-      });
 
       await axiosInstance.post(`/catalog/service-per-customer`, data);
       setShowSuccessPopup(true);
     } catch (err: any) {
-      console.error("Error:", err);
-
-      console.error("Error response:", err.response);
-      console.error("Error response data:", err.response?.data);
-      console.error("Error response status:", err.response?.status);
-
       if (err.response && err.response.data) {
         if (err.response.data.detail) {
           if (Array.isArray(err.response.data.detail)) {
@@ -523,6 +487,8 @@ const AddSPConsumer: React.FC = () => {
     }
   };
 
+  // ----------- CANCELAR Y POPUPS -----------
+
   const handleCancel = () => {
     navigate("/catalogs/customer");
   };
@@ -535,6 +501,8 @@ const AddSPConsumer: React.FC = () => {
   const closeDuplicateWarningPopup = () => {
     setShowDuplicateWarningPopup(false);
   };
+
+  // ----------- RENDER -----------
 
   return (
     <AISGBackground>
@@ -570,14 +538,14 @@ const AddSPConsumer: React.FC = () => {
                           ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
                           : 'border-[#cccccc] focus:border-[#00B140] focus:ring-[#00B140]'
                         } focus:ring-2 focus:outline-none transition-all`}
-                      value={selectedCompanyId}
-                      onChange={(e) => handleCompanyChange(e.target.value)}
+                      value={selectedCompanyCode}
+                      onChange={async (e) => await handleCompanyChange(e.target.value)}
                       required
                     >
                       <option value="">Select a Company</option>
                       {companies.map((company) => (
-                        <option key={company.Llave} value={company.Llave.toString()}>
-                          {company.companyCode} - {company.companyName}
+                        <option key={company.company_code} value={company.company_code}>
+                          {company.company_code} - {company.company_name}
                         </option>
                       ))}
                     </select>
@@ -600,18 +568,18 @@ const AddSPConsumer: React.FC = () => {
                       className={`w-full px-4 py-3 rounded-lg bg-white text-[#002057] border ${validationErrors.id_client
                           ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
                           : 'border-[#cccccc] focus:border-[#00B140] focus:ring-[#00B140]'
-                        } focus:ring-2 focus:outline-none transition-all ${!selectedCompanyId ? 'opacity-50 cursor-not-allowed' : ''}`}
-                      value={selectedClient}
+                        } focus:ring-2 focus:outline-none transition-all ${!selectedCompanyCode ? 'opacity-50 cursor-not-allowed' : ''}`}
+                      value={selectedClientCode}
                       onChange={(e) => handleClientChange(e.target.value)}
-                      disabled={!selectedCompanyId || clientsLoading}
+                      disabled={!selectedCompanyCode || clientsLoading}
                       required
                     >
                       <option value="">
-                        {!selectedCompanyId ? "Select a company first" : "Select a Client"}
+                        {!selectedCompanyCode ? "Select a company first" : "Select a Client"}
                       </option>
                       {clients.map((client) => (
-                        <option key={client.llave} value={client.llave.toString()}>
-                          {getClientDisplayName(client)}
+                        <option key={client.airline_code} value={client.airline_code}>
+                          {client.airline_name}
                         </option>
                       ))}
                     </select>
@@ -634,14 +602,14 @@ const AddSPConsumer: React.FC = () => {
                       className={`w-full px-4 py-3 rounded-lg bg-white text-[#002057] border ${validationErrors.id_service
                           ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
                           : 'border-[#cccccc] focus:border-[#00B140] focus:ring-[#00B140]'
-                        } focus:ring-2 focus:outline-none transition-all ${!selectedClient ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        } focus:ring-2 focus:outline-none transition-all ${!form.id_client ? 'opacity-50 cursor-not-allowed' : ''}`}
                       value={selectedService}
                       onChange={(e) => handleServiceChange(e.target.value)}
-                      disabled={!selectedClient || servicesLoading}
+                      disabled={!form.id_client || servicesLoading}
                       required
                     >
                       <option value="">
-                        {!selectedClient ? "Select a client first" : "Select a service"}
+                        {!form.id_client ? "Select a client first" : "Select a service"}
                       </option>
                       {services.map((service) => (
                         <option key={service.id_service} value={service.id_service.toString()}>
@@ -670,7 +638,7 @@ const AddSPConsumer: React.FC = () => {
                     type="number"
                     min="0"
                     step="1"
-                    value={form.minutes_included || 0}
+                    value={form.minutes_included}
                     onChange={(e) => handleNumericChange('minutes_included', e.target.value)}
                     onKeyDown={(e) => {
                       if (e.key === '-' || e.key === 'e' || e.key === 'E') {
@@ -696,7 +664,7 @@ const AddSPConsumer: React.FC = () => {
                     type="number"
                     min="0"
                     step="1"
-                    value={form.minutes_minimum || 0}
+                    value={form.minutes_minimum}
                     onChange={(e) => handleNumericChange('minutes_minimum', e.target.value)}
                     onKeyDown={(e) => {
                       if (e.key === '-' || e.key === 'e' || e.key === 'E') {
@@ -722,7 +690,7 @@ const AddSPConsumer: React.FC = () => {
                     type="number"
                     min="0"
                     step="1"
-                    value={form.technicians_included || 0}
+                    value={form.technicians_included}
                     onChange={(e) => handleNumericChange('technicians_included', e.target.value)}
                     onKeyDown={(e) => {
                       if (e.key === '-' || e.key === 'e' || e.key === 'E') {
@@ -750,10 +718,7 @@ const AddSPConsumer: React.FC = () => {
                           : 'border-[#cccccc] focus:border-[#00B140] focus:ring-[#00B140]'
                         } focus:ring-2 focus:outline-none transition-all`}
                       value={form.fuselage_type}
-                      onChange={(e) => {
-                        setForm(prevForm => ({ ...prevForm, fuselage_type: e.target.value }));
-                        validateField('fuselage_type', e.target.value);
-                      }}
+                      onChange={(e) => handleFuselageChange(e.target.value)}
                       required
                     >
                       <option value="">Select a Fuselage Type</option>
@@ -763,6 +728,9 @@ const AddSPConsumer: React.FC = () => {
                         </option>
                       ))}
                     </select>
+                  )}
+                  {validationErrors.fuselage_type && (
+                    <p className="mt-1 text-sm text-red-400">{validationErrors.fuselage_type}</p>
                   )}
                 </div>
               </div>
