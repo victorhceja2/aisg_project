@@ -41,7 +41,6 @@ class OperationReportResponse(BaseModel):
 # Nuevo schema para el reporte de operación v2 basado en el query exacto
 class OperationReportV2Response(BaseModel):
     COMPANY: Optional[str] = None
-    LLAVE: Optional[int] = None
     AIRLINE: Optional[str] = None
     DATE: Optional[str] = None # Convertido a str en el endpoint
     STATION: Optional[str] = None
@@ -50,10 +49,12 @@ class OperationReportV2Response(BaseModel):
     DEST: Optional[str] = None
     LOG_BOOK: Optional[str] = None
     AC_TYPE: Optional[str] = None
+    SERV_PR: Optional[str] = None
+    ASSISTANT_TYPE: Optional[str] = None # Añadido
+    AOG: Optional[str] = None # Añadido
     START_TIME: Optional[str] = None # Convertido a str en el endpoint
     END_TIME: Optional[str] = None # Convertido a str en el endpoint
-    SERV_PR: Optional[str] = None
-    ON_GND: Optional[str] = None # Convertido a str "HH:MM:SS" en el endpoint
+    TOTAL_TECHNICIAN_TIME: Optional[str] = None # Añadido
     SERV1: Optional[str] = None
     SERV2: Optional[str] = None
     SERV3: Optional[str] = None
@@ -69,7 +70,7 @@ class OperationReportV2Response(BaseModel):
 # Nuevo schema para el reporte de servicios
 class ServicesReportResponse(BaseModel):
     COMPANY: Optional[str] = None
-    LLAVE: Optional[int] = None
+    # LLAVE: Optional[int] = None # Eliminado: Se omite explícitamente en el mapeo de get_services_reports
     AIRLINE: Optional[str] = None
     DATE: Optional[str] = None # Convertido a str en el endpoint
     STATION: Optional[str] = None
