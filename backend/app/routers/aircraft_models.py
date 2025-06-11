@@ -12,14 +12,10 @@ router = APIRouter(
 @router.get("/")
 def get_aircraft_models(db: Session = Depends(get_db)):
     try:
-        # Como la tabla no tiene PK real, usamos una consulta directa
-        result = db.execute(text("SELECT modelo, fuselaje FROM DBTableAvion WHERE fuselaje IS NOT NULL AND fuselaje != ''"))
-        aircraft_models = []
-        for row in result:
-            aircraft_models.append({
-                "modelo": row.modelo,
-                "fuselaje": row.fuselaje
-            })
-        return aircraft_models
+        result = db.execute(
+            text("SELECT modelo, fuselaje FROM DBTableAvion WHERE fuselaje IS NOT NULL AND fuselaje != ''")
+        )
+        # List comprehension para mayor eficiencia y brevedad
+        return [{"modelo": row.modelo, "fuselaje": row.fuselaje} for row in result]
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error fetching aircraft models: {str(e)}")

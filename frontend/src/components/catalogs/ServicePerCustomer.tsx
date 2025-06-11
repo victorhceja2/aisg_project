@@ -1,27 +1,22 @@
 /**
- * ServicePerCustomer - Componente para gestionar la relación entre servicios y aerolíneas
+ * ServicePerCustomer - Gestión de servicios asignados a aerolíneas/clientes.
  * 
- * Este componente implementa una interfaz de usuario para administrar los servicios específicos
- * asignados a cada cliente/aerolínea, incluyendo las siguientes funcionalidades:
+ * Permite visualizar, buscar, agregar, editar y eliminar servicios específicos por cliente/aerolínea.
+ * - Consulta y muestra servicios por cliente en tabla.
+ * - Obtiene nombres de clientes y compañías desde endpoints.
+ * - Búsqueda por tipo de fuselaje, cliente, servicio o compañía.
+ * - Añade, edita y elimina servicios con validación de dependencias.
+ * - Maneja errores y feedback visual con modales accesibles.
  * 
- * - Visualización de servicios por cliente en una tabla con múltiples columnas
- * - Obtención y presentación de nombres de clientes desde el endpoint /catalog/clients
- * - Búsqueda de servicios por tipo de fuselaje
- * - Adición de nuevos servicios por cliente
- * - Edición de servicios existentes
- * - Eliminación de servicios con validación de dependencias
- * - Gestión de errores y feedback visual
- * 
- * El componente hace uso de múltiples endpoints:
- * - /catalog/service-per-customer: para obtener y gestionar los registros de servicios
- * - /catalog/clients: para obtener los nombres de los clientes
- * 
- * Incluye modales para confirmación de eliminación, notificación de éxito y errores
- * con accesibilidad mediante teclado integrada.
+ * Endpoints usados:
+ * - /catalog/service-per-customer: CRUD de servicios por cliente.
+ * - /catalog/clients: nombres de clientes.
+ * - /catalog/services: nombres de servicios.
+ * - /catalog/service-per-customer/dropdown/companies y /clients: para dropdowns.
  */
+
 import React, { useEffect, useState, useRef } from "react";
 import axiosInstance from '../../api/axiosInstance';
-
 import { useNavigate } from "react-router-dom";
 import AISGBackground from "../catalogs/fondo";
 
@@ -30,7 +25,6 @@ interface CompanyDropdown {
   company_name: string;
   company_llave: number;
 }
-
 interface ClientDropdown {
   company_code: string;
   company_name: string;
@@ -41,15 +35,13 @@ interface ClientDropdown {
   client_code: string;
   client_name: string;
   client_status: number;
-  client_llave: number; // <-- agregado aquí
+  client_llave: number;
 }
-
 interface ServiceData {
   id_service: number;
   service_name: string;
   service_code: string;
 }
-
 interface ServicePerCustomerRecord {
   id_service_per_customer: number;
   id_service: number;
@@ -63,7 +55,6 @@ interface ServicePerCustomerRecord {
   create_at: string;
   updated_at: string;
 }
-
 interface DisplayableServiceRecord extends ServicePerCustomerRecord {
   client_name_from_endpoint: string;
   service_name_from_endpoint: string;
@@ -84,7 +75,6 @@ const ServicePerCustomer: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [deletingRecord, setDeletingRecord] = useState(false);
-
   const [showDeleteError, setShowDeleteError] = useState(false);
   const [deletedRecordId, setDeletedRecordId] = useState<number | null>(null);
   const [recordNameToDelete, setRecordNameToDelete] = useState<string>("");
@@ -96,76 +86,39 @@ const ServicePerCustomer: React.FC = () => {
   const deleteConfirmButtonRef = useRef<HTMLButtonElement>(null);
   const deleteErrorOkButtonRef = useRef<HTMLButtonElement>(null);
 
-  useEffect(() => {
-    if (showSuccessModal && deleteSuccessOkButtonRef.current) {
-      setTimeout(() => {
-        deleteSuccessOkButtonRef.current?.focus();
-      }, 100);
-    }
-  }, [showSuccessModal]);
+  // Accesibilidad: enfocar botones de modales
+  useEffect(() => { if (showSuccessModal) setTimeout(() => deleteSuccessOkButtonRef.current?.focus(), 100); }, [showSuccessModal]);
+  useEffect(() => { if (deleteConfirm) setTimeout(() => deleteConfirmButtonRef.current?.focus(), 100); }, [deleteConfirm]);
+  useEffect(() => { if (showDeleteError) setTimeout(() => deleteErrorOkButtonRef.current?.focus(), 100); }, [showDeleteError]);
 
-  useEffect(() => {
-    if (deleteConfirm && deleteConfirmButtonRef.current) {
-      setTimeout(() => {
-        deleteConfirmButtonRef.current?.focus();
-      }, 100);
-    }
-  }, [deleteConfirm]);
-
-  useEffect(() => {
-    if (showDeleteError && deleteErrorOkButtonRef.current) {
-      setTimeout(() => {
-        deleteErrorOkButtonRef.current?.focus();
-      }, 100);
-    }
-  }, [showDeleteError]);
-
+  // Accesibilidad: manejo de teclado en modales
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Enter') {
-        if (showSuccessModal) {
-          e.preventDefault();
-          handleSuccessClose();
-        } else if (deleteConfirm && !deletingRecord) {
-          e.preventDefault();
-          handleDelete(deleteConfirm);
-        } else if (showDeleteError) {
-          e.preventDefault();
-          closeDeleteErrorModal();
-        }
+        if (showSuccessModal) { e.preventDefault(); handleSuccessClose(); }
+        else if (deleteConfirm && !deletingRecord) { e.preventDefault(); handleDelete(deleteConfirm); }
+        else if (showDeleteError) { e.preventDefault(); closeDeleteErrorModal(); }
       } else if (e.key === 'Escape') {
-        if (deleteConfirm && !deletingRecord) {
-          e.preventDefault();
-          handleCancelDelete();
-        } else if (showSuccessModal) {
-          e.preventDefault();
-          handleSuccessClose();
-        } else if (showDeleteError) {
-          e.preventDefault();
-          closeDeleteErrorModal();
-        }
+        if (deleteConfirm && !deletingRecord) { e.preventDefault(); handleCancelDelete(); }
+        else if (showSuccessModal) { e.preventDefault(); handleSuccessClose(); }
+        else if (showDeleteError) { e.preventDefault(); closeDeleteErrorModal(); }
       }
     };
-
     if (deleteConfirm || showSuccessModal || showDeleteError) {
       document.addEventListener('keydown', handleKeyDown);
-      return () => {
-        document.removeEventListener('keydown', handleKeyDown);
-      };
+      return () => document.removeEventListener('keydown', handleKeyDown);
     }
   }, [deleteConfirm, showSuccessModal, showDeleteError, deletingRecord]);
 
-  // Cambiado: Usar endpoint de dropdown para compañías
+  // Fetchs
   const fetchCompanies = async () => {
     try {
       const res = await axiosInstance.get<CompanyDropdown[]>('/catalog/service-per-customer/dropdown/companies');
       setCompanies(res.data || []);
-    } catch (err) {
-      setError(prevError => prevError ? `${prevError} Could not load company names.` : "Could not load company names.");
+    } catch {
+      setError(e => e ? `${e} Could not load company names.` : "Could not load company names.");
     }
   };
-
-  // Cambiado: Usar endpoint de dropdown para clientes/airlines (nuevo query)
   const fetchClients = async () => {
     try {
       let allClients: ClientDropdown[] = [];
@@ -177,220 +130,117 @@ const ServicePerCustomer: React.FC = () => {
         allClients = allClients.concat(res.data || []);
       }
       setClients(allClients);
-    } catch (err) {
-      setError(prevError => prevError ? `${prevError} Could not load client names.` : "Could not load client names.");
+    } catch {
+      setError(e => e ? `${e} Could not load client names.` : "Could not load client names.");
     }
   };
-
   const fetchServices = async () => {
     try {
       const res = await axiosInstance.get<ServiceData[]>('/catalog/services');
       setServices(res.data || []);
-    } catch (err) {
-      setError(prevError => prevError ? `${prevError} Could not load service names.` : "Could not load service names.");
+    } catch {
+      setError(e => e ? `${e} Could not load service names.` : "Could not load service names.");
     }
   };
-
-  // Cambiado: fetchRecords solo carga todos los registros, no filtra por búsqueda
   const fetchRecords = async () => {
     try {
-      setIsLoading(true);
-      setError("");
+      setIsLoading(true); setError("");
       const res = await axiosInstance.get<ServicePerCustomerRecord[]>(
-        `/catalog/service-per-customer`,
-        { timeout: 30000 }
+        `/catalog/service-per-customer`, { timeout: 30000 }
       );
       setRecords(res.data || []);
-      setIsLoading(false);
     } catch (err: any) {
       let errorMessage = "Could not load data. Please try again.";
-
       if (err.response) {
-        if (err.response.status === 500) {
-          errorMessage = "Server error: The server encountered an internal error. Please contact the administrator.";
-        } else {
-          errorMessage = `Server error: ${err.response.status} - ${err.response.statusText}`;
-        }
-      } else if (err.request) {
-        errorMessage = "No response received from server. Please check your connection.";
-      } else {
-        errorMessage = `Request error: ${err.message}`;
-      }
-
-      if (err.code === 'ECONNABORTED') {
-        errorMessage = "Request timeout. The server took too long to respond.";
-      }
-
-      setError(errorMessage);
-      setRecords([]);
-      setIsLoading(false);
-    }
+        if (err.response.status === 500) errorMessage = "Server error: The server encountered an internal error. Please contact the administrator.";
+        else errorMessage = `Server error: ${err.response.status} - ${err.response.statusText}`;
+      } else if (err.request) errorMessage = "No response received from server. Please check your connection.";
+      else errorMessage = `Request error: ${err.message}`;
+      if (err.code === 'ECONNABORTED') errorMessage = "Request timeout. The server took too long to respond.";
+      setError(errorMessage); setRecords([]);
+    } finally { setIsLoading(false); }
   };
 
-  // Cambiado: primero cargar compañías, luego clientes (airlines) dependientes
+  useEffect(() => { fetchCompanies(); fetchServices(); }, []);
+  useEffect(() => { if (companies.length > 0) fetchClients(); }, [companies]);
+  useEffect(() => { fetchRecords(); }, []);
+
+  // Filtro y mapeo de registros para mostrar
   useEffect(() => {
-    fetchCompanies();
-    fetchServices();
-  }, []);
-
-  useEffect(() => {
-    if (companies.length > 0) {
-      fetchClients();
-    }
-  }, [companies]);
-
-  useEffect(() => {
-    fetchRecords();
-  }, []);
-
-  // Cambiado: aplicar filtro local por búsqueda desde la primera letra
-  useEffect(() => {
-    if (records.length > 0 && clients.length > 0 && services.length > 0 && companies.length > 0) {
-      let filteredRecords = records;
-
-      if (search.trim() !== "") {
-        const searchLower = search.trim().toLowerCase();
-        filteredRecords = records.filter(record => {
-          const company = companies.find(c => c.company_llave === record.id_company);
-          let client = clients.find(
-            c => c.airline_llave === record.id_client && c.company_llave === record.id_company
-          );
-          if (!client) {
-            client = clients.find(
-              c => c.client_llave === record.id_client && c.company_llave === record.id_company
-            );
-          }
-          const service = services.find(s => s.id_service === record.id_service);
-
-          // Campos a buscar: fuselage_type, client_name, airline_name, service_name, service_code, company_name
-          const fuselageType = record.fuselage_type?.toLowerCase() || "";
-          const clientName = client
-            ? (client.airline_name || client.client_name || "").toLowerCase()
-            : "";
-          const clientCode = client
-            ? (client.airline_code || client.client_code || "").toLowerCase()
-            : "";
-          const serviceName = service
-            ? (service.service_name || "").toLowerCase()
-            : "";
-          const serviceCode = service
-            ? (service.service_code || "").toLowerCase()
-            : "";
-          const companyName = company
-            ? (company.company_name || "").toLowerCase()
-            : "";
-          const companyCode = company
-            ? (company.company_code || "").toLowerCase()
-            : "";
-
-          // Buscar desde la primera letra en cualquiera de los campos
-          return (
-            fuselageType.includes(searchLower) ||
-            clientName.includes(searchLower) ||
-            clientCode.includes(searchLower) ||
-            serviceName.includes(searchLower) ||
-            serviceCode.includes(searchLower) ||
-            companyName.includes(searchLower) ||
-            companyCode.includes(searchLower)
-          );
-        });
-      }
-
-      const newDisplayedRecords = filteredRecords.map(record => {
+    if (records.length && clients.length && services.length && companies.length) {
+      const searchLower = search.trim().toLowerCase();
+      const filtered = searchLower
+        ? records.filter(record => {
+            const company = companies.find(c => c.company_llave === record.id_company);
+            let client = clients.find(c => c.airline_llave === record.id_client && c.company_llave === record.id_company)
+              || clients.find(c => c.client_llave === record.id_client && c.company_llave === record.id_company);
+            const service = services.find(s => s.id_service === record.id_service);
+            return [
+              record.fuselage_type,
+              client?.airline_name, client?.client_name,
+              client?.airline_code, client?.client_code,
+              service?.service_name, service?.service_code,
+              company?.company_name, company?.company_code
+            ].some(val => (val || "").toLowerCase().includes(searchLower));
+          })
+        : records;
+      setDisplayedRecords(filtered.map(record => {
         const company = companies.find(c => c.company_llave === record.id_company);
-        let client = clients.find(
-          c => c.airline_llave === record.id_client && c.company_llave === record.id_company
-        );
-        if (!client) {
-          client = clients.find(
-            c => c.client_llave === record.id_client && c.company_llave === record.id_company
-          );
-        }
+        let client = clients.find(c => c.airline_llave === record.id_client && c.company_llave === record.id_company)
+          || clients.find(c => c.client_llave === record.id_client && c.company_llave === record.id_company);
         const service = services.find(s => s.id_service === record.id_service);
-
-        const companyName = company
-          ? `${company.company_code} - ${company.company_name}`
-          : `Missing Company Data (ID: ${record.id_company})`;
-
-        let clientName = "";
-        if (client) {
-          if (client.airline_code && client.airline_name) {
-            clientName = `${client.airline_code} - ${client.airline_name}`;
-          } else if (client.client_code && client.client_name) {
-            clientName = `${client.client_code} - ${client.client_name}`;
-          } else {
-            clientName = `Missing Client Data (ID: ${record.id_client})`;
-          }
-        } else {
-          clientName = `Missing Client Data (ID: ${record.id_client})`;
-        }
-
-        const serviceName = service
-          ? `${service.service_code} - ${service.service_name}`
-          : `Missing Service Data (ID: ${record.id_service})`;
-
         return {
           ...record,
-          client_name_from_endpoint: clientName,
-          service_name_from_endpoint: serviceName,
-          company_name_from_endpoint: companyName
+          client_name_from_endpoint: client
+            ? (client.airline_code && client.airline_name
+                ? `${client.airline_code} - ${client.airline_name}`
+                : client.client_code && client.client_name
+                  ? `${client.client_code} - ${client.client_name}`
+                  : `Missing Client Data (ID: ${record.id_client})`)
+            : `Missing Client Data (ID: ${record.id_client})`,
+          service_name_from_endpoint: service
+            ? `${service.service_code} - ${service.service_name}`
+            : `Missing Service Data (ID: ${record.id_service})`,
+          company_name_from_endpoint: company
+            ? `${company.company_code} - ${company.company_name}`
+            : `Missing Company Data (ID: ${record.id_company})`
         };
-      });
-      setDisplayedRecords(newDisplayedRecords);
-    } else {
-      setDisplayedRecords([]);
-    }
+      }));
+    } else setDisplayedRecords([]);
   }, [records, clients, services, companies, search]);
 
-  // ...el resto del código permanece igual...
-
-  const checkServiceUsage = async (servicePerCustomerId: number): Promise<{ inUse: boolean; records: any[] }> => {
-    // ...sin cambios...
-    console.log(`Checking usage for service per customer ID: ${servicePerCustomerId}`);
+  // Eliminar: validación de dependencias (mock simplificado)
+  const checkServiceUsage = async (servicePerCustomerId: number) => {
     try {
-      console.log("Performing simplified dependency check (frontend)...");
-      return {
-        inUse: false, 
-        records: []
-      };
-    } catch (err) {
-      console.error("Error in frontend checkServiceUsage:", err);
+      return { inUse: false, records: [] };
+    } catch {
       return { inUse: false, records: [] };
     }
   };
 
   const handleDeleteConfirm = async (record: DisplayableServiceRecord) => {
-    // ...sin cambios...
-    console.log(`Attempting to delete service per customer ID: ${record.id_service_per_customer}`);
     setDeletingRecord(true);
     try {
       const { inUse, records: dependentItems } = await checkServiceUsage(record.id_service_per_customer);
       const recordName = `${record.service_name_from_endpoint} for ${record.client_name_from_endpoint}`;
-
       if (inUse && dependentItems.length > 0) {
-        const dependencyList = dependentItems.map(r => `${r.type}: ${r.name || r.id}`).join(", ");
-        setDeleteErrorMessage(`Cannot delete service record "${recordName}" because it is currently being used in: ${dependencyList}.`);
+        setDeleteErrorMessage(`Cannot delete service record "${recordName}" because it is currently being used in: ${dependentItems.map(r => `${r.type}: ${r.name || r.id}`).join(", ")}.`);
         setDependentRecordsInfo(dependentItems);
         setShowDeleteError(true);
         setDeletingRecord(false);
         return;
       }
-
       setRecordNameToDelete(recordName);
       setDeleteConfirm(record.id_service_per_customer);
-    } catch (err) {
-      const recordName = `${record.service_name_from_endpoint} for ${record.client_name_from_endpoint}`;
-      setRecordNameToDelete(recordName);
+    } catch {
+      setRecordNameToDelete(`${record.service_name_from_endpoint} for ${record.client_name_from_endpoint}`);
       setDeleteConfirm(record.id_service_per_customer);
     } finally {
-      if (!deleteConfirm && !showDeleteError) {
-         setDeletingRecord(false);
-      }
+      if (!deleteConfirm && !showDeleteError) setDeletingRecord(false);
     }
   };
-  
+
   const handleDelete = async (id: number) => {
-    // ...sin cambios...
     if (!id) return;
     setDeletingRecord(true);
     const currentRecordName = recordNameToDelete || `record #${id}`;
@@ -437,21 +287,14 @@ const ServicePerCustomer: React.FC = () => {
     setRecordNameToDelete("");
   };
 
-  const handleEdit = (id: number) => {
-    navigate(`/catalogs/customer/edit/${id}`);
-  };
-
-  const handleAdd = () => {
-    navigate("/catalogs/customer/add");
-  };
-
+  const handleEdit = (id: number) => navigate(`/catalogs/customer/edit/${id}`);
+  const handleAdd = () => navigate("/catalogs/customer/add");
   const handleSuccessClose = () => {
     setShowSuccessModal(false);
     setDeletedRecordId(null);
     setDeletedRecordName("");
     setSuccess("");
   };
-
   const closeDeleteErrorModal = () => {
     setShowDeleteError(false);
     setDeleteErrorMessage("");
@@ -462,12 +305,9 @@ const ServicePerCustomer: React.FC = () => {
     <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
       <div className="w-full max-w-md overflow-hidden rounded-lg shadow-xl">
         <div className="bg-white py-4 px-6">
-          <h2 className="text-2xl font-bold text-center text-[#002057]">
-            Success
-          </h2>
+          <h2 className="text-2xl font-bold text-center text-[#002057]">Success</h2>
           <div className="mt-1 w-24 h-1 bg-[#e6001f] mx-auto"></div>
         </div>
-
         <div className="bg-[#1E2A45] py-8 px-6">
           <div className="flex items-center gap-3">
             <div className="bg-green-500 rounded-full p-2 flex-shrink-0">
@@ -479,21 +319,13 @@ const ServicePerCustomer: React.FC = () => {
               Service record "{deletedRecordName}" has been successfully deleted!
             </p>
           </div>
-
           <div className="mt-8">
             <button
               ref={deleteSuccessOkButtonRef}
               onClick={handleSuccessClose}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault();
-                  handleSuccessClose();
-                }
-              }}
+              onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleSuccessClose(); } }}
               className="w-full bg-green-500 hover:bg-green-600 text-white font-medium py-3 px-4 rounded transition-all"
-            >
-              OK
-            </button>
+            >OK</button>
           </div>
         </div>
       </div>
@@ -503,7 +335,6 @@ const ServicePerCustomer: React.FC = () => {
   return (
     <AISGBackground>
       {showSuccessModal && <SuccessAlert />}
-
       <div className="flex flex-col h-screen w-full font-['Montserrat']">
         <div className="flex-shrink-0 p-6">
           <div className="text-center mb-8">
@@ -513,13 +344,11 @@ const ServicePerCustomer: React.FC = () => {
               Manage the relationship between services and airlines with specific parameters
             </p>
           </div>
-
           {error && !showDeleteError && (
             <div className="bg-red-500 text-white p-4 rounded-lg mb-6 shadow-md animate-pulse">
               <p className="font-medium">{error}</p>
             </div>
           )}
-
           <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
             <div className="w-full md:w-2/3 relative">
               <input
@@ -527,7 +356,7 @@ const ServicePerCustomer: React.FC = () => {
                 className="w-full px-4 py-3 pl-10 rounded-lg border border-gray-300 bg-white text-[#002057] focus:border-[#002057] focus:ring-2 focus:ring-[#002057] focus:outline-none transition-all"
                 placeholder="Search by fuselage type, client, service, company..."
                 value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                onChange={e => setSearch(e.target.value)}
               />
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                 <svg className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -547,7 +376,6 @@ const ServicePerCustomer: React.FC = () => {
             </button>
           </div>
         </div>
-
         <div className="flex-1 overflow-hidden px-6 pb-6">
           <div className="h-full w-full overflow-auto">
             {isLoading && !deleteConfirm && !deletingRecord ? (
@@ -573,7 +401,7 @@ const ServicePerCustomer: React.FC = () => {
                 </thead>
                 <tbody className="bg-transparent">
                   {displayedRecords.length > 0 ? (
-                    displayedRecords.map((r) => (
+                    displayedRecords.map(r => (
                       <tr key={r.id_service_per_customer} className="bg-transparent hover:bg-[#1E2A45] transition-colors">
                         <td className="px-3 py-4 border border-[#1e3462] text-white text-sm whitespace-nowrap">{r.service_name_from_endpoint}</td>
                         <td className="px-3 py-4 border border-[#1e3462] text-white text-sm whitespace-nowrap">{r.client_name_from_endpoint}</td>
@@ -627,14 +455,11 @@ const ServicePerCustomer: React.FC = () => {
             )}
           </div>
         </div>
-
         {deleteConfirm && (
           <div className="fixed inset-0 z-50 overflow-auto bg-black bg-opacity-50 flex items-center justify-center p-4">
             <div className="w-full max-w-md overflow-hidden rounded-lg shadow-xl">
               <div className="bg-white py-4 px-6">
-                <h2 className="text-2xl font-bold text-center text-[#002057]">
-                  Confirm Deletion
-                </h2>
+                <h2 className="text-2xl font-bold text-center text-[#002057]">Confirm Deletion</h2>
                 <div className="mt-1 w-24 h-1 bg-[#e6001f] mx-auto"></div>
               </div>
               <div className="bg-[#1E2A45] py-8 px-6">
@@ -657,29 +482,15 @@ const ServicePerCustomer: React.FC = () => {
                     <>
                       <button
                         onClick={handleCancelDelete}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') {
-                            e.preventDefault();
-                            handleCancelDelete();
-                          }
-                        }}
+                        onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleCancelDelete(); } }}
                         className="w-1/2 bg-[#4D70B8] hover:bg-[#3A5A9F] text-white font-medium py-3 px-4 rounded transition-all"
-                      >
-                        Cancel
-                      </button>
+                      >Cancel</button>
                       <button
                         ref={deleteConfirmButtonRef}
                         onClick={() => handleDelete(deleteConfirm!)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') {
-                            e.preventDefault();
-                            handleDelete(deleteConfirm!);
-                          }
-                        }}
+                        onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleDelete(deleteConfirm!); } }}
                         className="w-1/2 bg-[#e6001f] hover:bg-red-700 text-white font-medium py-3 px-4 rounded transition-all"
-                      >
-                        Delete
-                      </button>
+                      >Delete</button>
                     </>
                   )}
                 </div>
@@ -687,14 +498,11 @@ const ServicePerCustomer: React.FC = () => {
             </div>
           </div>
         )}
-
         {showDeleteError && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div className="overflow-hidden max-w-lg w-full mx-4 rounded-lg shadow-xl">
               <div className="bg-white rounded-t-lg px-6 py-4 shadow-lg">
-                <h2 className="text-2xl font-bold text-center text-[#002057]">
-                  Cannot Delete Service Record
-                </h2>
+                <h2 className="text-2xl font-bold text-center text-[#002057]">Cannot Delete Service Record</h2>
                 <div className="mt-2 w-20 h-1 bg-[#e6001f] mx-auto rounded"></div>
               </div>
               <div className="bg-[#1E2A45] rounded-b-lg shadow-lg px-8 py-8">
@@ -705,9 +513,7 @@ const ServicePerCustomer: React.FC = () => {
                     </svg>
                   </div>
                   <div className="flex-1">
-                    <p className="text-white text-lg mb-2">
-                      {deleteErrorMessage}
-                    </p>
+                    <p className="text-white text-lg mb-2">{deleteErrorMessage}</p>
                     {dependentRecordsInfo.length > 0 && (
                       <div className="mt-3">
                         <p className="text-white text-sm font-medium mb-1">Potential related records:</p>
@@ -727,9 +533,7 @@ const ServicePerCustomer: React.FC = () => {
                     ref={deleteErrorOkButtonRef}
                     onClick={closeDeleteErrorModal}
                     className="w-full bg-[#f59e0b] hover:bg-[#d97706] text-white font-medium py-3 px-4 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg"
-                  >
-                    Understood
-                  </button>
+                  >Understood</button>
                 </div>
               </div>
             </div>

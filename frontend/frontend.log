@@ -45,3 +45,20 @@
 3:28:33 PM [vite] (client) hmr update /src/pages/Login.tsx, /src/index.css
 3:28:35 PM [vite] (client) hmr update /src/pages/Login.tsx, /src/index.css
 3:28:37 PM [vite] (client) hmr update /src/pages/Login.tsx, /src/index.css
+4:18:22 PM [vite] (client) hmr update /src/index.css, /src/pages/Login.tsx, /src/pages/EditClassification.tsx, /src/pages/AddService.tsx, /src/pages/EditService.tsx, /src/pages/AddClassification.tsx, /src/pages/EditStatus.tsx, /src/pages/EditExtraService.tsx, /src/pages/AddCompany.tsx, /src/pages/EditCompany.tsx, /src/pages/AddStatus.tsx, /src/pages/AddSPC.tsx, /src/pages/EditSPC.tsx, /src/pages/AddSPConsumer.tsx, /src/pages/AddCSI.tsx, /src/pages/EditSPConsumer.tsx, /src/pages/AddExtraService.tsx, /src/pages/EditCSI.tsx, /src/pages/AddCSC.tsx, /src/pages/EditCSC.tsx, /src/components/catalogs/CatalogServices.tsx, /src/components/catalogs/CatalogClassifications.tsx, /src/components/catalogs/CatalogStatus.tsx, /src/components/catalogs/CatalogClassif.tsx, /src/components/catalogs/CatalogServiceType.tsx, /src/components/catalogs/CatalogServiceinclude.tsx, /src/components/catalogs/ServicePerCustomer.tsx, /src/components/catalogs/ExtraServiceSaleAssignment.tsx, /src/components/catalogs/ExtraCompanyConfiguration.tsx, /src/components/catalogs/OperationReport.tsx, /src/components/catalogs/OperationService.tsx, /src/components/catalogs/CatalogServiceCategory.tsx
+4:22:44 PM [vite] (client) hmr update /src/index.css, /src/pages/Login.tsx, /src/pages/EditClassification.tsx, /src/pages/AddService.tsx, /src/pages/EditService.tsx, /src/pages/AddClassification.tsx, /src/pages/EditStatus.tsx, /src/pages/EditExtraService.tsx, /src/pages/AddCompany.tsx, /src/pages/EditCompany.tsx, /src/pages/AddStatus.tsx, /src/pages/AddSPC.tsx, /src/pages/EditSPC.tsx, /src/pages/AddSPConsumer.tsx, /src/pages/AddCSI.tsx, /src/pages/EditSPConsumer.tsx, /src/pages/AddExtraService.tsx, /src/pages/EditCSI.tsx, /src/pages/AddCSC.tsx, /src/pages/EditCSC.tsx, /src/components/catalogs/CatalogServices.tsx, /src/components/catalogs/CatalogClassifications.tsx, /src/components/catalogs/CatalogStatus.tsx, /src/components/catalogs/CatalogClassif.tsx, /src/components/catalogs/CatalogServiceType.tsx, /src/components/catalogs/CatalogServiceinclude.tsx, /src/components/catalogs/ServicePerCustomer.tsx, /src/components/catalogs/ExtraServiceSaleAssignment.tsx, /src/components/catalogs/ExtraCompanyConfiguration.tsx, /src/components/catalogs/OperationReport.tsx, /src/components/catalogs/OperationService.tsx, /src/components/catalogs/CatalogServiceCategory.tsx
+4:29:54 PM [vite] (client) page reload src/components/catalogs/CatalogScreens.tsx
+4:31:48 PM [vite] (client) hmr update /src/components/catalogs/CatalogServiceCategory.tsx, /src/index.css
+4:34:10 PM [vite] (client) hmr update /src/components/catalogs/CatalogServiceinclude.tsx, /src/index.css
+4:37:51 PM [vite] (client) hmr update /src/components/catalogs/CatalogServices.tsx, /src/index.css
+4:40:45 PM [vite] (client) hmr update /src/components/catalogs/CatalogServiceType.tsx, /src/index.css
+4:43:54 PM [vite] (client) page reload src/components/catalogs/ConfigsScreens.tsx
+4:46:43 PM [vite] (client) hmr update /src/components/catalogs/OperationReport.tsx, /src/index.css
+4:50:07 PM [vite] (client) hmr update /src/components/catalogs/OperationService.tsx, /src/index.css
+4:51:55 PM [vite] (client) hmr update /src/components/catalogs/Reports.tsx, /src/index.css
+4:53:46 PM [vite] (client) hmr update /src/components/catalogs/ServicePerCustomer.tsx, /src/index.css
+4:56:11 PM [vite] (client) hmr update /src/pages/EditSPConsumer.tsx, /src/index.css
+5:00:32 PM [vite] (client) hmr update /src/pages/EditSPConsumer.tsx, /src/index.css
+5:05:05 PM [vite] (client) hmr update /src/pages/EditSPConsumer.tsx, /src/index.css
+5:09:06 PM [vite] (client) hmr update /src/pages/Login.tsx, /src/index.css
+5:09:09 PM [vite] (client) hmr update /src/pages/Login.tsx, /src/index.css

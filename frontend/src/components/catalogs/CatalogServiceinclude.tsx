@@ -1,6 +1,12 @@
+/**
+ * Catálogo de "Service Include" para AISG.
+ * Permite listar, buscar, editar y eliminar tipos de "service include".
+ * Incluye validación de dependencias antes de eliminar, mostrando modales de confirmación, éxito o error.
+ * Utiliza React, axiosInstance y TailwindCSS para la UI y lógica de negocio.
+ */
+
 import React, { useState, useEffect, useRef } from "react";
 import axiosInstance from '../../api/axiosInstance';
-
 import { Link, useNavigate } from "react-router-dom";
 import AISGBackground from "../catalogs/fondo";
 
@@ -10,88 +16,46 @@ const CatalogServiceInclude: React.FC = () => {
   const [search, setSearch] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  
-  // Estados para modales
+
+  // Estados para modales y eliminación
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
   const [showDeleteSuccess, setShowDeleteSuccess] = useState(false);
   const [showDeleteError, setShowDeleteError] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<{id: number, name: string} | null>(null);
   const [deletedItemName, setDeletedItemName] = useState("");
   const [deleteErrorMessage, setDeleteErrorMessage] = useState("");
-  const [dependentRecords, setDependentRecords] = useState<any[]>([]);
   const [isDeleting, setIsDeleting] = useState(false);
-  
-  const navigate = useNavigate();
 
-  // Referencias para manejar el foco
+  // Referencias para foco en modales
   const deleteSuccessOkButtonRef = useRef<HTMLButtonElement>(null);
   const deleteConfirmButtonRef = useRef<HTMLButtonElement>(null);
   const deleteErrorOkButtonRef = useRef<HTMLButtonElement>(null);
 
-  // Efecto para enfocar el botón OK del popup de éxito de eliminación
-  useEffect(() => {
-    if (showDeleteSuccess && deleteSuccessOkButtonRef.current) {
-      setTimeout(() => {
-        deleteSuccessOkButtonRef.current?.focus();
-      }, 100);
-    }
-  }, [showDeleteSuccess]);
+  // Efectos para foco en botones de modales
+  useEffect(() => { if (showDeleteSuccess) setTimeout(() => deleteSuccessOkButtonRef.current?.focus(), 100); }, [showDeleteSuccess]);
+  useEffect(() => { if (showDeleteConfirmation) setTimeout(() => deleteConfirmButtonRef.current?.focus(), 100); }, [showDeleteConfirmation]);
+  useEffect(() => { if (showDeleteError) setTimeout(() => deleteErrorOkButtonRef.current?.focus(), 100); }, [showDeleteError]);
 
-  // Efecto para enfocar el botón Delete del popup de confirmación
-  useEffect(() => {
-    if (showDeleteConfirmation && deleteConfirmButtonRef.current) {
-      setTimeout(() => {
-        deleteConfirmButtonRef.current?.focus();
-      }, 100);
-    }
-  }, [showDeleteConfirmation]);
-
-  // Efecto para enfocar el botón OK del popup de error
-  useEffect(() => {
-    if (showDeleteError && deleteErrorOkButtonRef.current) {
-      setTimeout(() => {
-        deleteErrorOkButtonRef.current?.focus();
-      }, 100);
-    }
-  }, [showDeleteError]);
-
-  // Efecto para manejar Enter en los popups
+  // Efecto para manejar teclas en modales
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Enter') {
-        if (showDeleteSuccess) {
-          e.preventDefault();
-          closeSuccessModal();
-        } else if (showDeleteConfirmation && !isDeleting) {
-          e.preventDefault();
-          confirmDelete();
-        } else if (showDeleteError) {
-          e.preventDefault();
-          closeDeleteErrorModal();
-        }
+        if (showDeleteSuccess) { e.preventDefault(); closeSuccessModal(); }
+        else if (showDeleteConfirmation && !isDeleting) { e.preventDefault(); confirmDelete(); }
+        else if (showDeleteError) { e.preventDefault(); closeDeleteErrorModal(); }
       } else if (e.key === 'Escape') {
-        if (showDeleteConfirmation && !isDeleting) {
-          e.preventDefault();
-          cancelDelete();
-        } else if (showDeleteSuccess) {
-          e.preventDefault();
-          closeSuccessModal();
-        } else if (showDeleteError) {
-          e.preventDefault();
-          closeDeleteErrorModal();
-        }
+        if (showDeleteConfirmation && !isDeleting) { e.preventDefault(); cancelDelete(); }
+        else if (showDeleteSuccess) { e.preventDefault(); closeSuccessModal(); }
+        else if (showDeleteError) { e.preventDefault(); closeDeleteErrorModal(); }
       }
     };
-
     if (showDeleteConfirmation || showDeleteSuccess || showDeleteError) {
       document.addEventListener('keydown', handleKeyDown);
-      return () => {
-        document.removeEventListener('keydown', handleKeyDown);
-      };
+      return () => document.removeEventListener('keydown', handleKeyDown);
     }
   }, [showDeleteConfirmation, showDeleteSuccess, showDeleteError, isDeleting]);
 
-  // Obtener todos los includes solo una vez
+  // Obtener todos los includes
   const fetchIncludes = async () => {
     setLoading(true);
     try {
@@ -99,201 +63,66 @@ const CatalogServiceInclude: React.FC = () => {
       setAllIncludes(res.data);
       setIncludes(res.data);
       setError(null);
-    } catch (err) {
-      console.error("Error fetching service includes:", err);
+    } catch {
       setError("Could not load service includes. Please try again.");
     } finally {
       setLoading(false);
     }
   };
 
-  // Filtro en frontend desde la primera letra
+  // Filtro frontend
   useEffect(() => {
-    if (search.trim() === "") {
-      setIncludes(allIncludes);
-    } else {
-      setIncludes(
-        allIncludes.filter(inc =>
-          (inc.service_include || "")
-            .toLowerCase()
-            .includes(search.trim().toLowerCase())
-        )
-      );
-    }
+    setIncludes(
+      search.trim() === ""
+        ? allIncludes
+        : allIncludes.filter(inc =>
+            (inc.service_include || "")
+              .toLowerCase()
+              .includes(search.trim().toLowerCase())
+          )
+    );
   }, [search, allIncludes]);
 
-  // Verificar si un service include está siendo utilizado por diferentes módulos
-  const checkServiceIncludeUsage = async (includeId: number): Promise<{ inUse: boolean; records: any[] }> => {
+  // Verificar dependencias antes de eliminar
+  const checkServiceIncludeUsage = async (includeId: number) => {
     try {
-      const allDependentRecords: any[] = [];
-
-      // Verificar en servicios
-      try {
-        const servicesRes = await axiosInstance.get('/catalog/services');
-        const servicesUsingInclude = servicesRes.data.filter((service: any) => 
-          service.id_service_include === includeId
-        );
-        allDependentRecords.push(
-          ...servicesUsingInclude.map((service: any) => ({
-            type: 'Service',
-            name: `${service.service_code} - ${service.service_name}`,
-            id: service.id_service
-          }))
-        );
-      } catch (err) {
-        console.warn("Error checking services:", err);
+      const endpoints = [
+        { url: '/catalog/services', key: 'id_service_include', label: 'Service', name: (s: any) => `${s.service_code} - ${s.service_name}`, id: (s: any) => s.id_service },
+        { url: '/components', key: 'id_service_include', label: 'Component', name: (c: any) => `Component: ${c.component_name || c.component_number || c.id}`, id: (c: any) => c.id },
+        { url: '/components', key: 'include_id', label: 'Component', name: (c: any) => `Component: ${c.component_name || c.component_number || c.id}`, id: (c: any) => c.id },
+        { url: '/catalog/service-per-customer', key: 'service_include_id', label: 'Customer Service', name: (cs: any) => `Customer ID: ${cs.id_customer} - Service: ${cs.service_name || cs.id_service}`, id: (cs: any) => cs.id_service_per_customer },
+        { url: '/work-orders', key: 'service_include_id', label: 'Work Order', name: (wo: any) => `Work Order: ${wo.work_order_number || wo.id}`, id: (wo: any) => wo.id },
+        { url: '/quotes', key: 'service_include_id', label: 'Quote', name: (q: any) => `Quote: ${q.quote_number || q.id}`, id: (q: any) => q.id },
+        { url: '/reports/operation-report', key: 'include_id', label: 'Operation Report', name: (r: any) => `Report: ${r.cliente} - ${r.servicio_principal}`, id: (r: any) => r.id },
+        { url: '/reports/service-executions', key: 'include_id', label: 'Service Execution', name: (e: any) => `Execution: Work Order ${e.work_order}`, id: (e: any) => e.id },
+        { url: '/billing/invoices', key: 'include_id', label: 'Invoice', name: (i: any) => `Invoice: ${i.invoice_number || i.id}`, id: (i: any) => i.id }
+      ];
+      let allDependentRecords: any[] = [];
+      for (const { url, key, label, name, id } of endpoints) {
+        try {
+          const res = await axiosInstance.get(url);
+          allDependentRecords.push(
+            ...res.data.filter((item: any) => item[key] === includeId)
+              .map((item: any) => ({ type: label, name: name(item), id: id(item) }))
+          );
+        } catch {}
       }
-
-      // Verificar en componentes (módulo principal que utiliza includes)
-      try {
-        const componentsRes = await axiosInstance.get('/components');
-        const componentsUsingInclude = componentsRes.data.filter((comp: any) => 
-          comp.id_service_include === includeId ||
-          comp.include_id === includeId
-        );
-        allDependentRecords.push(
-          ...componentsUsingInclude.map((comp: any) => ({
-            type: 'Component',
-            name: `Component: ${comp.component_name || comp.component_number || comp.id}`,
-            id: comp.id
-          }))
-        );
-      } catch (err) {
-        console.warn("Error checking components:", err);
-      }
-
-      // Verificar en customer services
-      try {
-        const customerServicesRes = await axiosInstance.get('/catalog/service-per-customer');
-        const customerServicesUsingInclude = customerServicesRes.data.filter((cs: any) => {
-          // Verificar si el servicio del customer service usa este include
-          return cs.service_include_id === includeId;
-        });
-        allDependentRecords.push(
-          ...customerServicesUsingInclude.map((cs: any) => ({
-            type: 'Customer Service',
-            name: `Customer ID: ${cs.id_customer} - Service: ${cs.service_name || cs.id_service}`,
-            id: cs.id_service_per_customer
-          }))
-        );
-      } catch (err) {
-        console.warn("Error checking customer services:", err);
-      }
-
-      // Verificar en work orders
-      try {
-        const workOrdersRes = await axiosInstance.get('/work-orders');
-        const workOrdersUsingInclude = workOrdersRes.data.filter((wo: any) => 
-          wo.service_include_id === includeId
-        );
-        allDependentRecords.push(
-          ...workOrdersUsingInclude.map((wo: any) => ({
-            type: 'Work Order',
-            name: `Work Order: ${wo.work_order_number || wo.id}`,
-            id: wo.id
-          }))
-        );
-      } catch (err) {
-        console.warn("Error checking work orders:", err);
-      }
-
-      // Verificar en cotizaciones/quotes
-      try {
-        const quotesRes = await axiosInstance.get('/quotes');
-        const quotesUsingInclude = quotesRes.data.filter((quote: any) => 
-          quote.service_include_id === includeId
-        );
-        allDependentRecords.push(
-          ...quotesUsingInclude.map((quote: any) => ({
-            type: 'Quote',
-            name: `Quote: ${quote.quote_number || quote.id}`,
-            id: quote.id
-          }))
-        );
-      } catch (err) {
-        console.warn("Error checking quotes:", err);
-      }
-
-      // Verificar en reportes operacionales
-      try {
-        const operationReportsRes = await axiosInstance.get('/reports/operation-report');
-        const reportsUsingInclude = operationReportsRes.data.filter((report: any) => 
-          report.include_id === includeId
-        );
-        allDependentRecords.push(
-          ...reportsUsingInclude.map((report: any) => ({
-            type: 'Operation Report',
-            name: `Report: ${report.cliente} - ${report.servicio_principal}`,
-            id: report.id
-          }))
-        );
-      } catch (err) {
-        console.warn("Error checking operation reports:", err);
-      }
-
-      // Verificar en ejecuciones de servicio
-      try {
-        const serviceExecutionsRes = await axiosInstance.get('/reports/service-executions');
-        const executionsUsingInclude = serviceExecutionsRes.data.filter((exec: any) => 
-          exec.include_id === includeId
-        );
-        allDependentRecords.push(
-          ...executionsUsingInclude.map((exec: any) => ({
-            type: 'Service Execution',
-            name: `Execution: Work Order ${exec.work_order}`,
-            id: exec.id
-          }))
-        );
-      } catch (err) {
-        console.warn("Error checking service executions:", err);
-      }
-
-      // Verificar en facturas/invoices
-      try {
-        const invoicesRes = await axiosInstance.get('/billing/invoices');
-        const invoicesUsingInclude = invoicesRes.data.filter((invoice: any) => 
-          invoice.include_id === includeId
-        );
-        allDependentRecords.push(
-          ...invoicesUsingInclude.map((invoice: any) => ({
-            type: 'Invoice',
-            name: `Invoice: ${invoice.invoice_number || invoice.id}`,
-            id: invoice.id
-          }))
-        );
-      } catch (err) {
-        console.warn("Error checking invoices:", err);
-      }
-
-      return {
-        inUse: allDependentRecords.length > 0,
-        records: allDependentRecords
-      };
-    } catch (err) {
-      console.error("Error checking service include usage:", err);
+      return { inUse: allDependentRecords.length > 0, records: allDependentRecords };
+    } catch {
       return { inUse: false, records: [] };
     }
   };
 
-  // Preparar eliminación - verifica dependencias primero
+  // Preparar eliminación
   const prepareDelete = async (id: number, name: string) => {
     setIsDeleting(true);
-    
-    // Verificar si el service include está siendo utilizado
     const { inUse } = await checkServiceIncludeUsage(id);
-    
     setIsDeleting(false);
-    
     if (inUse) {
-      // Mostrar popup de error simplificado
-      setDeleteErrorMessage(
-        `Cannot delete service include "${name}" because it is currently being used in the system.`
-      );
+      setDeleteErrorMessage(`Cannot delete service include "${name}" because it is currently being used in the system.`);
       setShowDeleteError(true);
       return;
     }
-
-    // Si no está en uso, proceder con la confirmación de eliminación
     setItemToDelete({id, name});
     setShowDeleteConfirmation(true);
   };
@@ -307,45 +136,33 @@ const CatalogServiceInclude: React.FC = () => {
   // Confirmar y proceder con la eliminación
   const confirmDelete = async () => {
     if (!itemToDelete) return;
-    
     setIsDeleting(true);
+    const { inUse } = await checkServiceIncludeUsage(itemToDelete.id);
+    if (inUse) {
+      setDeleteErrorMessage(`Cannot delete service include "${itemToDelete.name}" because it is currently being used in the system.`);
+      setShowDeleteConfirmation(false);
+      setShowDeleteError(true);
+      setItemToDelete(null);
+      setIsDeleting(false);
+      return;
+    }
     try {
-      // Verificar una vez más antes de eliminar
-      const { inUse } = await checkServiceIncludeUsage(itemToDelete.id);
-      
-      if (inUse) {
-        // Si ahora está en uso, mostrar error simplificado
-        setDeleteErrorMessage(
-          `Cannot delete service include "${itemToDelete.name}" because it is currently being used in the system.`
-        );
-        setShowDeleteConfirmation(false);
-        setShowDeleteError(true);
-        setItemToDelete(null);
-        return;
-      }
-
       await axiosInstance.delete(`/catalog/service-includes/${itemToDelete.id}`);
       setDeletedItemName(itemToDelete.name);
       setShowDeleteConfirmation(false);
       setItemToDelete(null);
-      fetchIncludes(); // Refrescamos la lista
+      fetchIncludes();
       setError(null);
-      setShowDeleteSuccess(true); // Mostrar modal de éxito
+      setShowDeleteSuccess(true);
     } catch (err: any) {
-      console.error("Error deleting service include:", err);
-      
-      // Verificar si el error es por dependencias
       if (err.response?.status === 409 || err.response?.data?.detail?.includes("constraint")) {
-        setDeleteErrorMessage(
-          `Cannot delete service include "${itemToDelete.name}" because it is currently being used in the system.`
-        );
+        setDeleteErrorMessage(`Cannot delete service include "${itemToDelete.name}" because it is currently being used in the system.`);
         setShowDeleteConfirmation(false);
         setShowDeleteError(true);
       } else {
         setError("Could not delete the service include. Please try again.");
         setShowDeleteConfirmation(false);
       }
-      
       setItemToDelete(null);
     } finally {
       setIsDeleting(false);
@@ -362,12 +179,9 @@ const CatalogServiceInclude: React.FC = () => {
   const closeDeleteErrorModal = () => {
     setShowDeleteError(false);
     setDeleteErrorMessage("");
-    setDependentRecords([]);
   };
 
-  useEffect(() => {
-    fetchIncludes();
-  }, []);
+  useEffect(() => { fetchIncludes(); }, []);
 
   return (
     <AISGBackground>
@@ -436,7 +250,7 @@ const CatalogServiceInclude: React.FC = () => {
                   includes.map((inc) => (
                     <tr key={inc.id_service_include} className="bg-transparent">
                       <td className="px-4 py-3 border border-[#1e3462] font-medium text-white">{inc.service_include}</td>
-                      <td className="px-4 py-3 border border-[#1e3462] text-white">{inc.whonew ? inc.whonew : "-"}</td>
+                      <td className="px-4 py-3 border border-[#1e3462] text-white">{inc.whonew || "-"}</td>
                       <td className="px-4 py-3 border border-[#1e3462] text-white">
                         {inc.create_at ? new Date(inc.create_at).toLocaleString() : "-"}
                       </td>
@@ -479,19 +293,14 @@ const CatalogServiceInclude: React.FC = () => {
         </div>
       </div>
 
-      {/* Diálogo de confirmación para eliminar */}
+      {/* Modal de confirmación para eliminar */}
       {showDeleteConfirmation && itemToDelete && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="overflow-hidden max-w-md w-full mx-4 rounded-lg shadow-xl">
-            {/* Encabezado blanco con texto azul */}
             <div className="bg-white rounded-t-lg px-6 py-4 shadow-lg">
-              <h2 className="text-2xl font-bold text-center text-[#002057]">
-                Confirm Deletion
-              </h2>
+              <h2 className="text-2xl font-bold text-center text-[#002057]">Confirm Deletion</h2>
               <div className="mt-2 w-20 h-1 bg-[#e6001f] mx-auto rounded"></div>
             </div>
-            
-            {/* Cuerpo con fondo azul oscuro */}
             <div className="bg-[#1E2A45] rounded-b-lg shadow-lg px-8 py-8">
               <div className="flex items-center mb-4">
                 <div className="bg-[#e6001f] rounded-full p-2 mr-4">
@@ -506,7 +315,6 @@ const CatalogServiceInclude: React.FC = () => {
                   </p>
                 </div>
               </div>
-              
               <div className="mt-6 flex justify-center space-x-4">
                 {isDeleting ? (
                   <div className="w-full flex justify-center">
@@ -516,12 +324,6 @@ const CatalogServiceInclude: React.FC = () => {
                   <>
                     <button
                       onClick={cancelDelete}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          e.preventDefault();
-                          cancelDelete();
-                        }
-                      }}
                       className="w-1/2 bg-[#4D70B8] hover:bg-[#3A5A9F] text-white font-medium py-3 px-4 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg"
                     >
                       Cancel
@@ -529,12 +331,6 @@ const CatalogServiceInclude: React.FC = () => {
                     <button
                       ref={deleteConfirmButtonRef}
                       onClick={confirmDelete}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          e.preventDefault();
-                          confirmDelete();
-                        }
-                      }}
                       className="w-1/2 bg-[#e6001f] hover:bg-red-700 text-white font-medium py-3 px-4 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg"
                     >
                       Delete
@@ -551,15 +347,10 @@ const CatalogServiceInclude: React.FC = () => {
       {showDeleteSuccess && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="overflow-hidden max-w-md w-full mx-4 rounded-lg shadow-xl">
-            {/* Encabezado blanco con texto azul */}
             <div className="bg-white rounded-t-lg px-6 py-4 shadow-lg">
-              <h2 className="text-2xl font-bold text-center text-[#002057]">
-                Success
-              </h2>
+              <h2 className="text-2xl font-bold text-center text-[#002057]">Success</h2>
               <div className="mt-2 w-20 h-1 bg-[#e6001f] mx-auto rounded"></div>
             </div>
-            
-            {/* Cuerpo con fondo azul oscuro */}
             <div className="bg-[#1E2A45] rounded-b-lg shadow-lg px-8 py-8">
               <div className="flex items-center mb-4 justify-center">
                 <div className="bg-[#00B140] rounded-full p-2 mr-4">
@@ -575,12 +366,6 @@ const CatalogServiceInclude: React.FC = () => {
                 <button
                   ref={deleteSuccessOkButtonRef}
                   onClick={closeSuccessModal}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      closeSuccessModal();
-                    }
-                  }}
                   className="w-full bg-[#00B140] hover:bg-[#009935] text-white font-medium py-3 px-4 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg"
                 >
                   OK
@@ -595,15 +380,10 @@ const CatalogServiceInclude: React.FC = () => {
       {showDeleteError && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="overflow-hidden max-w-md w-full mx-4 rounded-lg shadow-xl">
-            {/* Encabezado blanco con texto azul */}
             <div className="bg-white rounded-t-lg px-6 py-4 shadow-lg">
-              <h2 className="text-2xl font-bold text-center text-[#002057]">
-                Cannot Delete Service Include
-              </h2>
+              <h2 className="text-2xl font-bold text-center text-[#002057]">Cannot Delete Service Include</h2>
               <div className="mt-2 w-20 h-1 bg-[#e6001f] mx-auto rounded"></div>
             </div>
-            
-            {/* Cuerpo con fondo azul oscuro */}
             <div className="bg-[#1E2A45] rounded-b-lg shadow-lg px-8 py-8">
               <div className="flex items-center mb-4">
                 <div className="bg-[#f59e0b] rounded-full p-2 mr-4">
@@ -611,9 +391,7 @@ const CatalogServiceInclude: React.FC = () => {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                   </svg>
                 </div>
-                <p className="text-white text-lg">
-                  {deleteErrorMessage}
-                </p>
+                <p className="text-white text-lg">{deleteErrorMessage}</p>
               </div>
               <div className="mt-6 flex justify-center space-x-4">
                 <button

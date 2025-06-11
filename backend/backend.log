@@ -1657,3 +1657,745 @@ INFO:     200.188.103.224:50547 - "GET /catalog/service-categories HTTP/1.1" 200
 INFO:     200.188.103.224:50545 - "GET /catalog/service-categories HTTP/1.1" 200 OK
 INFO:     200.188.103.224:50545 - "GET /catalog/service-status HTTP/1.1" 200 OK
 INFO:     200.188.103.224:50547 - "GET /catalog/service-status HTTP/1.1" 200 OK
+INFO:     187.251.152.187:49398 - "GET /reports/operation-reports-v2 HTTP/1.1" 200 OK
+INFO:     187.251.152.187:49398 - "GET /reports/operation-reports-v2 HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51414 - "OPTIONS /login HTTP/1.1" 200 OK
+Login attempt for userNick: admin
+INFO:     200.188.103.224:51414 - "POST /login HTTP/1.1" 200 OK
+INFO:     187.251.152.187:21319 - "GET /reports/operation-reports-v2 HTTP/1.1" 200 OK
+INFO:     187.251.152.187:21319 - "GET /reports/operation-reports-v2 HTTP/1.1" 200 OK
+WARNING:  StatReload detected changes in 'app/routers/aircraft_models.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [73501]
+INFO:     Started server process [81007]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+WARNING:  StatReload detected changes in 'app/routers/aircraft_models.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [81007]
+INFO:     Started server process [81036]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+WARNING:  StatReload detected changes in 'app/routers/aircraft_models.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [81036]
+INFO:     Started server process [81063]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+WARNING:  StatReload detected changes in 'app/routers/service_per_customer.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [81063]
+INFO:     Started server process [81096]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+Connecting to database: aisgqa.cz0rtlegnc6d.us-east-1.rds.amazonaws.com:1433/aisgProduction
+INFO:     200.188.103.224:51479 - "GET /catalog/services HTTP/1.1" 307 Temporary Redirect
+INFO:     200.188.103.224:51483 - "GET /catalog/service-per-customer HTTP/1.1" 307 Temporary Redirect
+INFO:     200.188.103.224:51480 - "GET /catalog/service-per-customer HTTP/1.1" 307 Temporary Redirect
+INFO:     200.188.103.224:51482 - "GET /catalog/services HTTP/1.1" 307 Temporary Redirect
+INFO:     200.188.103.224:51478 - "GET /catalog/service-per-customer/dropdown/companies HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51481 - "GET /catalog/service-per-customer/dropdown/companies HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51482 - "GET /catalog/services/ HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51480 - "GET /catalog/service-per-customer/ HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51483 - "GET /catalog/service-per-customer/ HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51479 - "GET /catalog/services/ HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51483 - "GET /catalog/service-per-customer/dropdown/clients?company_code=AISG HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51480 - "GET /catalog/service-per-customer/dropdown/clients?company_code=AISG HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51483 - "GET /catalog/service-per-customer/dropdown/clients?company_code=AST HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51480 - "GET /catalog/service-per-customer/dropdown/clients?company_code=AST HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51483 - "GET /catalog/service-per-customer/dropdown/clients?company_code=SOD HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51480 - "GET /catalog/service-per-customer/dropdown/clients?company_code=SOD HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51483 - "GET /catalog/service-per-customer/dropdown/clients?company_code=SOT HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51480 - "GET /catalog/service-per-customer/dropdown/clients?company_code=SOT HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51483 - "GET /catalog/service-per-customer/dropdown/companies HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51482 - "GET /catalog/service-per-customer/dropdown/companies HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51480 - "GET /aircraft-models/ HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51479 - "GET /aircraft-models/ HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51480 - "GET /catalog/service-per-customer/dropdown/clients?company_code=AISG HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51483 - "GET /catalog/services?client_id=CSB HTTP/1.1" 307 Temporary Redirect
+INFO:     200.188.103.224:51480 - "GET /catalog/services/?client_id=CSB HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51485 - "GET /catalog/service-per-customer HTTP/1.1" 307 Temporary Redirect
+INFO:     200.188.103.224:51485 - "GET /catalog/service-per-customer/ HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51485 - "OPTIONS /catalog/service-per-customer HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51485 - "POST /catalog/service-per-customer HTTP/1.1" 307 Temporary Redirect
+INFO:     200.188.103.224:51485 - "OPTIONS /catalog/service-per-customer/ HTTP/1.1" 200 OK
+Registro creado con ID: 94
+create_at: 2025-06-11 16:28:27.380000
+updated_at: None
+INFO:     200.188.103.224:51485 - "POST /catalog/service-per-customer/ HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51485 - "GET /catalog/service-per-customer/dropdown/companies HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51486 - "GET /catalog/services HTTP/1.1" 307 Temporary Redirect
+INFO:     200.188.103.224:51487 - "GET /catalog/service-per-customer HTTP/1.1" 307 Temporary Redirect
+INFO:     200.188.103.224:51489 - "GET /catalog/services HTTP/1.1" 307 Temporary Redirect
+INFO:     200.188.103.224:51490 - "GET /catalog/service-per-customer HTTP/1.1" 307 Temporary Redirect
+INFO:     200.188.103.224:51488 - "GET /catalog/service-per-customer/dropdown/companies HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51486 - "GET /catalog/services/ HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51487 - "GET /catalog/service-per-customer/ HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51485 - "GET /catalog/service-per-customer/ HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51490 - "GET /catalog/services/ HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51489 - "GET /catalog/service-per-customer/dropdown/clients?company_code=AISG HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51488 - "GET /catalog/service-per-customer/dropdown/clients?company_code=AISG HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51489 - "GET /catalog/service-per-customer/dropdown/clients?company_code=AST HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51488 - "GET /catalog/service-per-customer/dropdown/clients?company_code=AST HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51489 - "GET /catalog/service-per-customer/dropdown/clients?company_code=SOD HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51488 - "GET /catalog/service-per-customer/dropdown/clients?company_code=SOD HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51489 - "GET /catalog/service-per-customer/dropdown/clients?company_code=SOT HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51488 - "GET /catalog/service-per-customer/dropdown/clients?company_code=SOT HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51494 - "GET /catalog/service-per-customer/dropdown/companies HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51493 - "GET /catalog/service-per-customer/dropdown/companies HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51494 - "GET /catalog/service-per-customer/94 HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51493 - "GET /catalog/service-per-customer/94 HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51494 - "GET /catalog/service-per-customer/dropdown/clients?company_code=AISG HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51493 - "GET /catalog/service-per-customer/dropdown/clients?company_code=AISG HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51494 - "GET /catalog/services?client_id=5449 HTTP/1.1" 307 Temporary Redirect
+INFO:     200.188.103.224:51493 - "GET /catalog/services?client_id=5449 HTTP/1.1" 307 Temporary Redirect
+INFO:     200.188.103.224:51494 - "GET /catalog/services/?client_id=5449 HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51493 - "GET /catalog/services/?client_id=5449 HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51494 - "GET /aircraft-models/ HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51493 - "GET /aircraft-models/ HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51494 - "OPTIONS /catalog/service-per-customer/94 HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51493 - "PUT /catalog/service-per-customer/94 HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51493 - "GET /catalog/services HTTP/1.1" 307 Temporary Redirect
+INFO:     200.188.103.224:51494 - "GET /catalog/service-per-customer/dropdown/companies HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51493 - "GET /catalog/service-per-customer HTTP/1.1" 307 Temporary Redirect
+INFO:     200.188.103.224:51497 - "GET /catalog/services HTTP/1.1" 307 Temporary Redirect
+INFO:     200.188.103.224:51498 - "GET /catalog/service-per-customer HTTP/1.1" 307 Temporary Redirect
+INFO:     200.188.103.224:51495 - "GET /catalog/service-per-customer/dropdown/companies HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51496 - "GET /catalog/services/ HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51493 - "GET /catalog/service-per-customer/ HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51498 - "GET /catalog/service-per-customer/ HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51494 - "GET /catalog/services/ HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51493 - "GET /catalog/service-per-customer/dropdown/clients?company_code=AISG HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51494 - "GET /catalog/service-per-customer/dropdown/clients?company_code=AISG HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51493 - "GET /catalog/service-per-customer/dropdown/clients?company_code=AST HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51494 - "GET /catalog/service-per-customer/dropdown/clients?company_code=AST HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51494 - "GET /catalog/service-per-customer/dropdown/clients?company_code=SOD HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51493 - "GET /catalog/service-per-customer/dropdown/clients?company_code=SOD HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51494 - "GET /catalog/service-per-customer/dropdown/clients?company_code=SOT HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51493 - "GET /catalog/service-per-customer/dropdown/clients?company_code=SOT HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51500 - "GET /catalog/service-per-customer/dropdown/companies HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51501 - "GET /catalog/service-per-customer/dropdown/companies HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51500 - "GET /catalog/service-per-customer/94 HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51501 - "GET /catalog/service-per-customer/94 HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51500 - "GET /catalog/service-per-customer/dropdown/clients?company_code=AISG HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51501 - "GET /catalog/service-per-customer/dropdown/clients?company_code=AISG HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51500 - "GET /catalog/services?client_id=5449 HTTP/1.1" 307 Temporary Redirect
+INFO:     200.188.103.224:51501 - "GET /catalog/services?client_id=5449 HTTP/1.1" 307 Temporary Redirect
+INFO:     200.188.103.224:51500 - "GET /catalog/services/?client_id=5449 HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51501 - "GET /catalog/services/?client_id=5449 HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51500 - "GET /aircraft-models/ HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51501 - "GET /aircraft-models/ HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51500 - "PUT /catalog/service-per-customer/94 HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51500 - "GET /catalog/services HTTP/1.1" 307 Temporary Redirect
+INFO:     200.188.103.224:51501 - "GET /catalog/service-per-customer/dropdown/companies HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51500 - "GET /catalog/service-per-customer HTTP/1.1" 307 Temporary Redirect
+INFO:     200.188.103.224:51504 - "GET /catalog/services HTTP/1.1" 307 Temporary Redirect
+INFO:     200.188.103.224:51507 - "GET /catalog/service-per-customer HTTP/1.1" 307 Temporary Redirect
+INFO:     200.188.103.224:51505 - "GET /catalog/service-per-customer/dropdown/companies HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51506 - "GET /catalog/services/ HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51500 - "GET /catalog/service-per-customer/ HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51504 - "GET /catalog/services/ HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51501 - "GET /catalog/service-per-customer/ HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51507 - "GET /catalog/service-per-customer/dropdown/clients?company_code=AISG HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51506 - "GET /catalog/service-per-customer/dropdown/clients?company_code=AISG HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51500 - "GET /catalog/service-per-customer/dropdown/clients?company_code=AST HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51501 - "GET /catalog/service-per-customer/dropdown/clients?company_code=AST HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51506 - "GET /catalog/service-per-customer/dropdown/clients?company_code=SOD HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51507 - "GET /catalog/service-per-customer/dropdown/clients?company_code=SOD HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51500 - "GET /catalog/service-per-customer/dropdown/clients?company_code=SOT HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51501 - "GET /catalog/service-per-customer/dropdown/clients?company_code=SOT HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51508 - "DELETE /catalog/service-per-customer/94 HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51508 - "GET /catalog/service-per-customer HTTP/1.1" 307 Temporary Redirect
+INFO:     200.188.103.224:51508 - "GET /catalog/service-per-customer/ HTTP/1.1" 200 OK
+INFO:     66.179.95.14:61007 - "GET /catalog/services HTTP/1.1" 307 Temporary Redirect
+INFO:     66.179.95.14:61009 - "GET /catalog/service-per-customer HTTP/1.1" 307 Temporary Redirect
+INFO:     66.179.95.14:61008 - "GET /catalog/service-per-customer/dropdown/companies HTTP/1.1" 200 OK
+INFO:     66.179.95.14:61007 - "GET /catalog/services HTTP/1.1" 307 Temporary Redirect
+INFO:     66.179.95.14:61009 - "GET /catalog/service-per-customer HTTP/1.1" 307 Temporary Redirect
+INFO:     66.179.95.14:61007 - "GET /catalog/service-per-customer/dropdown/companies HTTP/1.1" 200 OK
+INFO:     66.179.95.14:61010 - "GET /catalog/services/ HTTP/1.1" 200 OK
+INFO:     66.179.95.14:61011 - "GET /catalog/service-per-customer/ HTTP/1.1" 200 OK
+INFO:     66.179.95.14:61012 - "GET /catalog/service-per-customer/ HTTP/1.1" 200 OK
+INFO:     66.179.95.14:61009 - "GET /catalog/services/ HTTP/1.1" 200 OK
+INFO:     66.179.95.14:61008 - "GET /catalog/service-per-customer/dropdown/clients?company_code=AISG HTTP/1.1" 200 OK
+INFO:     66.179.95.14:61007 - "GET /catalog/service-per-customer/dropdown/clients?company_code=AISG HTTP/1.1" 200 OK
+INFO:     66.179.95.14:61008 - "GET /catalog/service-per-customer/dropdown/clients?company_code=AST HTTP/1.1" 200 OK
+INFO:     66.179.95.14:61007 - "GET /catalog/service-per-customer/dropdown/clients?company_code=AST HTTP/1.1" 200 OK
+INFO:     66.179.95.14:61008 - "GET /catalog/service-per-customer/dropdown/clients?company_code=SOD HTTP/1.1" 200 OK
+INFO:     66.179.95.14:61007 - "GET /catalog/service-per-customer/dropdown/clients?company_code=SOD HTTP/1.1" 200 OK
+INFO:     66.179.95.14:61008 - "GET /catalog/service-per-customer/dropdown/clients?company_code=SOT HTTP/1.1" 200 OK
+INFO:     66.179.95.14:61008 - "GET /catalog/service-per-customer/dropdown/clients?company_code=SOT HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51519 - "GET /catalog/service-per-customer/dropdown/companies HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51523 - "GET /catalog/services HTTP/1.1" 307 Temporary Redirect
+INFO:     200.188.103.224:51520 - "GET /catalog/services HTTP/1.1" 307 Temporary Redirect
+INFO:     200.188.103.224:51522 - "GET /catalog/service-per-customer HTTP/1.1" 307 Temporary Redirect
+INFO:     200.188.103.224:51521 - "GET /catalog/service-per-customer/dropdown/companies HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51524 - "GET /catalog/service-per-customer HTTP/1.1" 307 Temporary Redirect
+INFO:     200.188.103.224:51523 - "GET /catalog/services/ HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51520 - "GET /catalog/services/ HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51519 - "GET /catalog/service-per-customer/ HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51522 - "GET /catalog/service-per-customer/ HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51524 - "GET /catalog/service-per-customer/dropdown/clients?company_code=AISG HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51521 - "GET /catalog/service-per-customer/dropdown/clients?company_code=AISG HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51524 - "GET /catalog/service-per-customer/dropdown/clients?company_code=AST HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51521 - "GET /catalog/service-per-customer/dropdown/clients?company_code=AST HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51524 - "GET /catalog/service-per-customer/dropdown/clients?company_code=SOD HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51521 - "GET /catalog/service-per-customer/dropdown/clients?company_code=SOD HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51524 - "GET /catalog/service-per-customer/dropdown/clients?company_code=SOT HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51521 - "GET /catalog/service-per-customer/dropdown/clients?company_code=SOT HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51551 - "GET /catalog/service-categories HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51552 - "GET /catalog/service-categories HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51551 - "GET /catalog/service-categories HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51552 - "GET /catalog/service-categories HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51551 - "OPTIONS /catalog/service-categories/1 HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51552 - "PUT /catalog/service-categories/1 HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51551 - "GET /catalog/service-categories HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51552 - "GET /catalog/service-categories HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51551 - "GET /catalog/service-categories HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51552 - "GET /catalog/service-categories HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51551 - "OPTIONS /catalog/service-categories/3 HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51552 - "PUT /catalog/service-categories/3 HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51551 - "GET /catalog/service-categories HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51552 - "GET /catalog/service-categories HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51552 - "GET /catalog/services HTTP/1.1" 307 Temporary Redirect
+INFO:     200.188.103.224:51551 - "GET /catalog/services/ HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51551 - "GET /components HTTP/1.1" 404 Not Found
+INFO:     200.188.103.224:51551 - "GET /components HTTP/1.1" 404 Not Found
+INFO:     200.188.103.224:51551 - "GET /catalog/service-per-customer HTTP/1.1" 307 Temporary Redirect
+INFO:     200.188.103.224:51551 - "GET /catalog/service-per-customer/ HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51551 - "GET /work-orders HTTP/1.1" 404 Not Found
+INFO:     200.188.103.224:51551 - "GET /quotes HTTP/1.1" 404 Not Found
+INFO:     200.188.103.224:51551 - "GET /reports/operation-report HTTP/1.1" 404 Not Found
+INFO:     200.188.103.224:51551 - "GET /reports/service-executions HTTP/1.1" 500 Internal Server Error
+INFO:     200.188.103.224:51551 - "GET /billing/invoices HTTP/1.1" 404 Not Found
+INFO:     200.188.103.224:51555 - "GET /catalog/service-categories HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51555 - "OPTIONS /catalog/service-categories HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51555 - "POST /catalog/service-categories HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51555 - "GET /catalog/service-categories HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51556 - "GET /catalog/service-categories HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51555 - "GET /catalog/service-categories HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51556 - "GET /catalog/service-categories HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51555 - "OPTIONS /catalog/service-categories/17 HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51556 - "PUT /catalog/service-categories/17 HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51556 - "GET /catalog/service-categories HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51555 - "GET /catalog/service-categories HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51558 - "GET /catalog/services HTTP/1.1" 307 Temporary Redirect
+INFO:     200.188.103.224:51558 - "GET /catalog/services/ HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51558 - "GET /components HTTP/1.1" 404 Not Found
+INFO:     200.188.103.224:51558 - "GET /components HTTP/1.1" 404 Not Found
+INFO:     200.188.103.224:51558 - "GET /catalog/service-per-customer HTTP/1.1" 307 Temporary Redirect
+INFO:     200.188.103.224:51558 - "GET /catalog/service-per-customer/ HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51558 - "GET /work-orders HTTP/1.1" 404 Not Found
+INFO:     200.188.103.224:51558 - "GET /quotes HTTP/1.1" 404 Not Found
+INFO:     200.188.103.224:51558 - "GET /reports/operation-report HTTP/1.1" 404 Not Found
+INFO:     200.188.103.224:51558 - "GET /reports/service-executions HTTP/1.1" 500 Internal Server Error
+INFO:     200.188.103.224:51558 - "GET /billing/invoices HTTP/1.1" 404 Not Found
+INFO:     200.188.103.224:51558 - "GET /catalog/services HTTP/1.1" 307 Temporary Redirect
+INFO:     200.188.103.224:51558 - "GET /catalog/services/ HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51558 - "GET /components HTTP/1.1" 404 Not Found
+INFO:     200.188.103.224:51558 - "GET /components HTTP/1.1" 404 Not Found
+INFO:     200.188.103.224:51558 - "GET /catalog/service-per-customer HTTP/1.1" 307 Temporary Redirect
+INFO:     200.188.103.224:51558 - "GET /catalog/service-per-customer/ HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51558 - "GET /work-orders HTTP/1.1" 404 Not Found
+INFO:     200.188.103.224:51558 - "GET /quotes HTTP/1.1" 404 Not Found
+INFO:     200.188.103.224:51558 - "GET /reports/operation-report HTTP/1.1" 404 Not Found
+INFO:     200.188.103.224:51558 - "GET /reports/service-executions HTTP/1.1" 500 Internal Server Error
+INFO:     200.188.103.224:51558 - "GET /billing/invoices HTTP/1.1" 404 Not Found
+INFO:     200.188.103.224:51558 - "DELETE /catalog/service-categories/17 HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51558 - "GET /catalog/service-categories HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51558 - "GET /catalog/services HTTP/1.1" 307 Temporary Redirect
+INFO:     200.188.103.224:51558 - "GET /catalog/services/ HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51558 - "GET /components HTTP/1.1" 404 Not Found
+INFO:     200.188.103.224:51558 - "GET /components HTTP/1.1" 404 Not Found
+INFO:     200.188.103.224:51558 - "GET /catalog/service-per-customer HTTP/1.1" 307 Temporary Redirect
+INFO:     200.188.103.224:51558 - "GET /catalog/service-per-customer/ HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51558 - "GET /work-orders HTTP/1.1" 404 Not Found
+INFO:     200.188.103.224:51558 - "GET /quotes HTTP/1.1" 404 Not Found
+INFO:     200.188.103.224:51558 - "GET /reports/operation-report HTTP/1.1" 404 Not Found
+INFO:     200.188.103.224:51558 - "GET /reports/service-executions HTTP/1.1" 500 Internal Server Error
+INFO:     200.188.103.224:51558 - "GET /billing/invoices HTTP/1.1" 404 Not Found
+INFO:     200.188.103.224:51569 - "GET /catalog/service-categories HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51570 - "GET /catalog/service-categories HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51592 - "GET /catalog/service-includes HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51593 - "GET /catalog/service-includes HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51593 - "GET /catalog/service-includes HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51592 - "GET /catalog/service-includes HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51593 - "OPTIONS /catalog/service-includes/4 HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51592 - "PUT /catalog/service-includes/4 HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51593 - "GET /catalog/service-includes HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51592 - "GET /catalog/service-includes HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51593 - "GET /catalog/service-includes HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51592 - "GET /catalog/service-includes HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51593 - "OPTIONS /catalog/service-includes/5 HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51592 - "PUT /catalog/service-includes/5 HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51593 - "GET /catalog/service-includes HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51592 - "GET /catalog/service-includes HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51593 - "GET /catalog/service-includes HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51592 - "GET /catalog/service-includes HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51593 - "GET /catalog/service-includes HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51592 - "PUT /catalog/service-includes/5 HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51593 - "GET /catalog/service-includes HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51592 - "GET /catalog/service-includes HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51596 - "GET /catalog/service-includes HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51597 - "GET /catalog/service-includes HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51598 - "GET /catalog/service-includes HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51598 - "PUT /catalog/service-includes/5 HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51598 - "GET /catalog/service-includes HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51600 - "GET /catalog/service-includes HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51603 - "GET /catalog/service-includes HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51602 - "GET /catalog/service-includes HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51603 - "OPTIONS /catalog/service-includes/3 HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51602 - "PUT /catalog/service-includes/3 HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51603 - "GET /catalog/service-includes HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51602 - "GET /catalog/service-includes HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51618 - "GET /catalog/service-includes HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51619 - "GET /catalog/service-includes HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51659 - "GET /catalog/service-categories HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51660 - "GET /catalog/service-types HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51658 - "GET /catalog/service-status HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51661 - "GET /catalog/service-includes HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51662 - "GET /catalog/service-classification HTTP/1.1" 307 Temporary Redirect
+INFO:     200.188.103.224:51663 - "GET /catalog/service-status HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51662 - "GET /catalog/services HTTP/1.1" 307 Temporary Redirect
+INFO:     200.188.103.224:51662 - "GET /catalog/service-types HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51659 - "GET /catalog/service-categories HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51660 - "GET /catalog/services HTTP/1.1" 307 Temporary Redirect
+INFO:     200.188.103.224:51658 - "GET /catalog/service-classification HTTP/1.1" 307 Temporary Redirect
+INFO:     200.188.103.224:51661 - "GET /catalog/service-includes HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51663 - "GET /catalog/service-classification/ HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51660 - "GET /catalog/services/ HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51658 - "GET /catalog/services/ HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51659 - "GET /catalog/service-classification/ HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51674 - "GET /catalog/service-status HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51676 - "GET /catalog/service-types HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51675 - "GET /catalog/service-categories HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51677 - "GET /catalog/service-includes HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51678 - "GET /catalog/service-classification HTTP/1.1" 307 Temporary Redirect
+INFO:     200.188.103.224:51679 - "GET /catalog/services HTTP/1.1" 307 Temporary Redirect
+INFO:     200.188.103.224:51678 - "GET /catalog/service-status HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51677 - "GET /catalog/service-classification HTTP/1.1" 307 Temporary Redirect
+INFO:     200.188.103.224:51675 - "GET /catalog/service-types HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51676 - "GET /catalog/service-includes HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51674 - "GET /catalog/service-categories HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51677 - "GET /catalog/services HTTP/1.1" 307 Temporary Redirect
+INFO:     200.188.103.224:51678 - "GET /catalog/service-classification/ HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51679 - "GET /catalog/service-classification/ HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51674 - "GET /catalog/services/ HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51677 - "GET /catalog/services/ HTTP/1.1" 200 OK
+INFO:     187.251.152.187:22293 - "GET /reports/operation-reports-v2 HTTP/1.1" 200 OK
+INFO:     187.251.152.187:22293 - "GET /reports/operation-reports-v2 HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51710 - "GET /catalog/services HTTP/1.1" 307 Temporary Redirect
+INFO:     200.188.103.224:51709 - "GET /catalog/service-classification HTTP/1.1" 307 Temporary Redirect
+INFO:     200.188.103.224:51707 - "GET /catalog/service-types HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51708 - "GET /catalog/service-includes HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51705 - "GET /catalog/service-status HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51706 - "GET /catalog/service-categories HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51710 - "GET /catalog/service-status HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51709 - "GET /catalog/service-categories HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51706 - "GET /catalog/service-types HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51705 - "GET /catalog/service-classification HTTP/1.1" 307 Temporary Redirect
+INFO:     200.188.103.224:51707 - "GET /catalog/services HTTP/1.1" 307 Temporary Redirect
+INFO:     200.188.103.224:51708 - "GET /catalog/service-includes HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51709 - "GET /catalog/services/ HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51710 - "GET /catalog/service-classification/ HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51705 - "GET /catalog/service-classification/ HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51707 - "GET /catalog/services/ HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51707 - "GET /catalog/service-types HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51709 - "GET /catalog/service-types HTTP/1.1" 200 OK
+INFO:     66.179.95.14:61429 - "GET /catalog/services HTTP/1.1" 307 Temporary Redirect
+INFO:     66.179.95.14:61427 - "GET /catalog/service-per-customer HTTP/1.1" 307 Temporary Redirect
+INFO:     66.179.95.14:61428 - "GET /catalog/service-per-customer/dropdown/companies HTTP/1.1" 200 OK
+INFO:     66.179.95.14:61429 - "GET /catalog/services HTTP/1.1" 307 Temporary Redirect
+INFO:     66.179.95.14:61427 - "GET /catalog/service-per-customer HTTP/1.1" 307 Temporary Redirect
+INFO:     66.179.95.14:61429 - "GET /catalog/services/ HTTP/1.1" 200 OK
+INFO:     66.179.95.14:61430 - "GET /catalog/service-per-customer/ HTTP/1.1" 200 OK
+INFO:     66.179.95.14:61427 - "GET /catalog/service-per-customer/dropdown/companies HTTP/1.1" 200 OK
+INFO:     66.179.95.14:61428 - "GET /catalog/services/ HTTP/1.1" 200 OK
+INFO:     66.179.95.14:61432 - "GET /catalog/service-per-customer/ HTTP/1.1" 200 OK
+INFO:     66.179.95.14:61431 - "GET /catalog/service-per-customer/dropdown/clients?company_code=AISG HTTP/1.1" 200 OK
+INFO:     187.251.152.187:22789 - "GET /reports/operation-reports-v2 HTTP/1.1" 200 OK
+INFO:     66.179.95.14:61431 - "GET /catalog/service-per-customer/dropdown/clients?company_code=AST HTTP/1.1" 200 OK
+INFO:     66.179.95.14:61428 - "GET /catalog/service-per-customer/dropdown/clients?company_code=AISG HTTP/1.1" 200 OK
+INFO:     187.251.152.187:22789 - "GET /reports/operation-reports-v2 HTTP/1.1" 200 OK
+INFO:     66.179.95.14:61431 - "GET /catalog/service-per-customer/dropdown/clients?company_code=SOD HTTP/1.1" 200 OK
+INFO:     66.179.95.14:61428 - "GET /catalog/service-per-customer/dropdown/clients?company_code=AST HTTP/1.1" 200 OK
+INFO:     66.179.95.14:61428 - "GET /catalog/service-per-customer/dropdown/clients?company_code=SOD HTTP/1.1" 200 OK
+INFO:     66.179.95.14:61431 - "GET /catalog/service-per-customer/dropdown/clients?company_code=SOT HTTP/1.1" 200 OK
+INFO:     66.179.95.14:61428 - "GET /catalog/service-per-customer/dropdown/clients?company_code=SOT HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51723 - "GET /catalog/service-types HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51725 - "GET /catalog/service-types HTTP/1.1" 200 OK
+INFO:     187.251.152.187:49478 - "GET /reports/operation-reports-v2 HTTP/1.1" 200 OK
+INFO:     187.251.152.187:49478 - "GET /reports/operation-reports-v2 HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51734 - "GET /reports/operation-reports-v2 HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51735 - "GET /reports/operation-reports-v2 HTTP/1.1" 200 OK
+INFO:     187.251.152.187:22947 - "GET /reports/operation-reports-v2 HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51753 - "GET /reports/operation-reports-v2 HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51752 - "GET /reports/operation-reports-v2 HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51753 - "GET /reports/services-reports HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51752 - "GET /reports/services-reports HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51804 - "GET /catalog/services HTTP/1.1" 307 Temporary Redirect
+INFO:     200.188.103.224:51806 - "GET /catalog/service-per-customer HTTP/1.1" 307 Temporary Redirect
+INFO:     200.188.103.224:51803 - "GET /catalog/service-per-customer/dropdown/companies HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51808 - "GET /catalog/service-per-customer HTTP/1.1" 307 Temporary Redirect
+INFO:     200.188.103.224:51807 - "GET /catalog/services HTTP/1.1" 307 Temporary Redirect
+INFO:     200.188.103.224:51805 - "GET /catalog/service-per-customer/dropdown/companies HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51804 - "GET /catalog/services/ HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51806 - "GET /catalog/service-per-customer/ HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51808 - "GET /catalog/service-per-customer/ HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51807 - "GET /catalog/services/ HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51803 - "GET /catalog/service-per-customer/dropdown/clients?company_code=AISG HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51806 - "GET /catalog/service-per-customer/dropdown/clients?company_code=AISG HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51806 - "GET /catalog/service-per-customer/dropdown/clients?company_code=AST HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51803 - "GET /catalog/service-per-customer/dropdown/clients?company_code=AST HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51806 - "GET /catalog/service-per-customer/dropdown/clients?company_code=SOD HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51803 - "GET /catalog/service-per-customer/dropdown/clients?company_code=SOD HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51806 - "GET /catalog/service-per-customer/dropdown/clients?company_code=SOT HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51803 - "GET /catalog/service-per-customer/dropdown/clients?company_code=SOT HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51806 - "GET /catalog/service-per-customer/dropdown/companies HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51803 - "GET /catalog/service-per-customer/dropdown/companies HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51806 - "GET /catalog/service-per-customer/1 HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51803 - "GET /catalog/service-per-customer/1 HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51806 - "GET /catalog/service-per-customer/dropdown/clients?company_code=AISG HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51803 - "GET /catalog/service-per-customer/dropdown/clients?company_code=AISG HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51806 - "GET /catalog/services?client_id=5153 HTTP/1.1" 307 Temporary Redirect
+INFO:     200.188.103.224:51803 - "GET /catalog/services?client_id=5153 HTTP/1.1" 307 Temporary Redirect
+INFO:     200.188.103.224:51803 - "GET /catalog/services/?client_id=5153 HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51806 - "GET /catalog/services/?client_id=5153 HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51806 - "GET /aircraft-models/ HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51803 - "GET /aircraft-models/ HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51803 - "GET /catalog/services HTTP/1.1" 307 Temporary Redirect
+INFO:     200.188.103.224:51806 - "GET /catalog/service-per-customer/dropdown/companies HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51803 - "GET /catalog/service-per-customer HTTP/1.1" 307 Temporary Redirect
+INFO:     200.188.103.224:51812 - "GET /catalog/services HTTP/1.1" 307 Temporary Redirect
+INFO:     200.188.103.224:51811 - "GET /catalog/service-per-customer/dropdown/companies HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51810 - "GET /catalog/service-per-customer HTTP/1.1" 307 Temporary Redirect
+INFO:     200.188.103.224:51813 - "GET /catalog/services/ HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51812 - "GET /catalog/services/ HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51803 - "GET /catalog/service-per-customer/ HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51806 - "GET /catalog/service-per-customer/ HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51803 - "GET /catalog/service-per-customer/dropdown/clients?company_code=AISG HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51813 - "GET /catalog/service-per-customer/dropdown/clients?company_code=AISG HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51806 - "GET /catalog/service-per-customer/dropdown/clients?company_code=AST HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51803 - "GET /catalog/service-per-customer/dropdown/clients?company_code=AST HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51806 - "GET /catalog/service-per-customer/dropdown/clients?company_code=SOD HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51813 - "GET /catalog/service-per-customer/dropdown/clients?company_code=SOD HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51803 - "GET /catalog/service-per-customer/dropdown/clients?company_code=SOT HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51806 - "GET /catalog/service-per-customer/dropdown/clients?company_code=SOT HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51833 - "GET /catalog/service-per-customer HTTP/1.1" 307 Temporary Redirect
+INFO:     200.188.103.224:51832 - "GET /catalog/services HTTP/1.1" 307 Temporary Redirect
+INFO:     200.188.103.224:51836 - "GET /catalog/service-per-customer HTTP/1.1" 307 Temporary Redirect
+INFO:     200.188.103.224:51835 - "GET /catalog/services HTTP/1.1" 307 Temporary Redirect
+INFO:     200.188.103.224:51831 - "GET /catalog/service-per-customer/dropdown/companies HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51834 - "GET /catalog/service-per-customer/dropdown/companies HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51832 - "GET /catalog/services/ HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51833 - "GET /catalog/service-per-customer/ HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51835 - "GET /catalog/services/ HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51836 - "GET /catalog/service-per-customer/ HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51831 - "GET /catalog/service-per-customer/dropdown/clients?company_code=AISG HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51834 - "GET /catalog/service-per-customer/dropdown/clients?company_code=AISG HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51831 - "GET /catalog/service-per-customer/dropdown/clients?company_code=AST HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51834 - "GET /catalog/service-per-customer/dropdown/clients?company_code=AST HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51831 - "GET /catalog/service-per-customer/dropdown/clients?company_code=SOD HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51834 - "GET /catalog/service-per-customer/dropdown/clients?company_code=SOD HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51831 - "GET /catalog/service-per-customer/dropdown/clients?company_code=SOT HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51834 - "GET /catalog/service-per-customer/dropdown/clients?company_code=SOT HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51831 - "GET /catalog/service-per-customer/dropdown/companies HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51834 - "GET /catalog/service-per-customer/dropdown/companies HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51831 - "GET /catalog/service-per-customer/7 HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51834 - "GET /catalog/service-per-customer/7 HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51831 - "GET /catalog/service-per-customer/dropdown/clients?company_code=AISG HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51834 - "GET /catalog/service-per-customer/dropdown/clients?company_code=AISG HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51834 - "GET /catalog/services?client_id=5153 HTTP/1.1" 307 Temporary Redirect
+INFO:     200.188.103.224:51831 - "GET /catalog/services?client_id=5153 HTTP/1.1" 307 Temporary Redirect
+INFO:     200.188.103.224:51831 - "GET /catalog/services/?client_id=5153 HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51834 - "GET /catalog/services/?client_id=5153 HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51831 - "GET /aircraft-models/ HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51834 - "GET /aircraft-models/ HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51839 - "OPTIONS /catalog/service-per-customer/7 HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51839 - "PUT /catalog/service-per-customer/7 HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51839 - "GET /catalog/service-per-customer/dropdown/companies HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51841 - "GET /catalog/services HTTP/1.1" 307 Temporary Redirect
+INFO:     200.188.103.224:51842 - "GET /catalog/service-per-customer HTTP/1.1" 307 Temporary Redirect
+INFO:     200.188.103.224:51844 - "GET /catalog/services HTTP/1.1" 307 Temporary Redirect
+INFO:     200.188.103.224:51845 - "GET /catalog/service-per-customer HTTP/1.1" 307 Temporary Redirect
+INFO:     200.188.103.224:51843 - "GET /catalog/service-per-customer/dropdown/companies HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51841 - "GET /catalog/services/ HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51839 - "GET /catalog/service-per-customer/ HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51844 - "GET /catalog/service-per-customer/ HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51842 - "GET /catalog/services/ HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51845 - "GET /catalog/service-per-customer/dropdown/clients?company_code=AISG HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51839 - "GET /catalog/service-per-customer/dropdown/clients?company_code=AISG HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51845 - "GET /catalog/service-per-customer/dropdown/clients?company_code=AST HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51839 - "GET /catalog/service-per-customer/dropdown/clients?company_code=AST HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51845 - "GET /catalog/service-per-customer/dropdown/clients?company_code=SOD HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51839 - "GET /catalog/service-per-customer/dropdown/clients?company_code=SOD HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51845 - "GET /catalog/service-per-customer/dropdown/clients?company_code=SOT HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51839 - "GET /catalog/service-per-customer/dropdown/clients?company_code=SOT HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51849 - "GET /catalog/service-per-customer/dropdown/companies HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51848 - "GET /catalog/service-per-customer/dropdown/companies HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51849 - "GET /catalog/service-per-customer/92 HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51848 - "GET /catalog/service-per-customer/92 HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51848 - "GET /catalog/service-per-customer/dropdown/clients?company_code=AST HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51849 - "GET /catalog/service-per-customer/dropdown/clients?company_code=AST HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51849 - "GET /aircraft-models/ HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51848 - "GET /aircraft-models/ HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51849 - "GET /catalog/services HTTP/1.1" 307 Temporary Redirect
+INFO:     200.188.103.224:51848 - "GET /catalog/service-per-customer/dropdown/companies HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51852 - "GET /catalog/services HTTP/1.1" 307 Temporary Redirect
+INFO:     200.188.103.224:51849 - "GET /catalog/service-per-customer HTTP/1.1" 307 Temporary Redirect
+INFO:     200.188.103.224:51850 - "GET /catalog/service-per-customer HTTP/1.1" 307 Temporary Redirect
+INFO:     200.188.103.224:51851 - "GET /catalog/service-per-customer/dropdown/companies HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51853 - "GET /catalog/services/ HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51849 - "GET /catalog/services/ HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51852 - "GET /catalog/service-per-customer/ HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51850 - "GET /catalog/service-per-customer/ HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51848 - "GET /catalog/service-per-customer/dropdown/clients?company_code=AISG HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51853 - "GET /catalog/service-per-customer/dropdown/clients?company_code=AISG HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51848 - "GET /catalog/service-per-customer/dropdown/clients?company_code=AST HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51853 - "GET /catalog/service-per-customer/dropdown/clients?company_code=AST HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51848 - "GET /catalog/service-per-customer/dropdown/clients?company_code=SOD HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51853 - "GET /catalog/service-per-customer/dropdown/clients?company_code=SOD HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51848 - "GET /catalog/service-per-customer/dropdown/clients?company_code=SOT HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51853 - "GET /catalog/service-per-customer/dropdown/clients?company_code=SOT HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51856 - "GET /catalog/service-per-customer/dropdown/companies HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51855 - "GET /catalog/service-per-customer/dropdown/companies HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51856 - "GET /catalog/service-per-customer/92 HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51855 - "GET /catalog/service-per-customer/92 HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51856 - "GET /catalog/service-per-customer/dropdown/clients?company_code=AST HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51855 - "GET /catalog/service-per-customer/dropdown/clients?company_code=AST HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51856 - "GET /aircraft-models/ HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51855 - "GET /aircraft-models/ HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51860 - "GET /catalog/services HTTP/1.1" 307 Temporary Redirect
+INFO:     200.188.103.224:51862 - "GET /catalog/services HTTP/1.1" 307 Temporary Redirect
+INFO:     200.188.103.224:51861 - "GET /catalog/service-per-customer HTTP/1.1" 307 Temporary Redirect
+INFO:     200.188.103.224:51863 - "GET /catalog/service-per-customer HTTP/1.1" 307 Temporary Redirect
+INFO:     200.188.103.224:51859 - "GET /catalog/service-per-customer/dropdown/companies HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51858 - "GET /catalog/service-per-customer/dropdown/companies HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51860 - "GET /catalog/services/ HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51862 - "GET /catalog/services/ HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51861 - "GET /catalog/service-per-customer/ HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51863 - "GET /catalog/service-per-customer/ HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51861 - "GET /catalog/service-per-customer/dropdown/clients?company_code=AISG HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51861 - "GET /catalog/service-per-customer/dropdown/clients?company_code=AST HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51861 - "GET /catalog/service-per-customer/dropdown/clients?company_code=SOD HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51861 - "GET /catalog/service-per-customer/dropdown/clients?company_code=SOT HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51867 - "GET /catalog/service-per-customer/dropdown/companies HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51868 - "GET /catalog/service-per-customer/dropdown/companies HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51868 - "GET /catalog/service-per-customer/92 HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51867 - "GET /catalog/service-per-customer/92 HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51867 - "GET /catalog/service-per-customer/dropdown/clients?company_code=AST HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51868 - "GET /catalog/service-per-customer/dropdown/clients?company_code=AST HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51868 - "GET /aircraft-models/ HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51867 - "GET /aircraft-models/ HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51868 - "GET /catalog/services?client_id=49 HTTP/1.1" 307 Temporary Redirect
+INFO:     200.188.103.224:51867 - "GET /catalog/services/?client_id=49 HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51868 - "GET /catalog/services HTTP/1.1" 307 Temporary Redirect
+INFO:     200.188.103.224:51867 - "GET /catalog/service-per-customer/dropdown/companies HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51868 - "GET /catalog/service-per-customer HTTP/1.1" 307 Temporary Redirect
+INFO:     200.188.103.224:51872 - "GET /catalog/services HTTP/1.1" 307 Temporary Redirect
+INFO:     200.188.103.224:51873 - "GET /catalog/service-per-customer HTTP/1.1" 307 Temporary Redirect
+INFO:     200.188.103.224:51871 - "GET /catalog/service-per-customer/dropdown/companies HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51874 - "GET /catalog/services/ HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51868 - "GET /catalog/service-per-customer/ HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51872 - "GET /catalog/services/ HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51873 - "GET /catalog/service-per-customer/ HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51867 - "GET /catalog/service-per-customer/dropdown/clients?company_code=AISG HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51874 - "GET /catalog/service-per-customer/dropdown/clients?company_code=AISG HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51867 - "GET /catalog/service-per-customer/dropdown/clients?company_code=AST HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51874 - "GET /catalog/service-per-customer/dropdown/clients?company_code=AST HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51867 - "GET /catalog/service-per-customer/dropdown/clients?company_code=SOD HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51874 - "GET /catalog/service-per-customer/dropdown/clients?company_code=SOD HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51867 - "GET /catalog/service-per-customer/dropdown/clients?company_code=SOT HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51874 - "GET /catalog/service-per-customer/dropdown/clients?company_code=SOT HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51897 - "GET /catalog/services HTTP/1.1" 307 Temporary Redirect
+INFO:     200.188.103.224:51898 - "GET /catalog/service-per-customer HTTP/1.1" 307 Temporary Redirect
+INFO:     200.188.103.224:51895 - "GET /catalog/service-per-customer HTTP/1.1" 307 Temporary Redirect
+INFO:     200.188.103.224:51894 - "GET /catalog/services HTTP/1.1" 307 Temporary Redirect
+INFO:     200.188.103.224:51893 - "GET /catalog/service-per-customer/dropdown/companies HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51896 - "GET /catalog/service-per-customer/dropdown/companies HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51897 - "GET /catalog/services/ HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51898 - "GET /catalog/services/ HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51895 - "GET /catalog/service-per-customer/ HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51894 - "GET /catalog/service-per-customer/ HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51896 - "GET /catalog/service-per-customer/dropdown/clients?company_code=AISG HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51893 - "GET /catalog/service-per-customer/dropdown/clients?company_code=AISG HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51893 - "GET /catalog/service-per-customer/dropdown/clients?company_code=AST HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51896 - "GET /catalog/service-per-customer/dropdown/clients?company_code=AST HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51896 - "GET /catalog/service-per-customer/dropdown/clients?company_code=SOD HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51893 - "GET /catalog/service-per-customer/dropdown/clients?company_code=SOD HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51893 - "GET /catalog/service-per-customer/dropdown/clients?company_code=SOT HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51896 - "GET /catalog/service-per-customer/dropdown/clients?company_code=SOT HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51893 - "GET /catalog/service-per-customer/dropdown/companies HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51896 - "GET /catalog/service-per-customer/dropdown/companies HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51896 - "GET /catalog/service-per-customer/92 HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51893 - "GET /catalog/service-per-customer/92 HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51896 - "GET /catalog/service-per-customer/dropdown/clients?company_code=AST HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51893 - "GET /catalog/service-per-customer/dropdown/clients?company_code=AST HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51896 - "GET /aircraft-models/ HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51893 - "GET /aircraft-models/ HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51893 - "GET /catalog/services HTTP/1.1" 307 Temporary Redirect
+INFO:     200.188.103.224:51896 - "GET /catalog/service-per-customer/dropdown/companies HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51893 - "GET /catalog/service-per-customer HTTP/1.1" 307 Temporary Redirect
+INFO:     200.188.103.224:51900 - "GET /catalog/services HTTP/1.1" 307 Temporary Redirect
+INFO:     200.188.103.224:51901 - "GET /catalog/service-per-customer HTTP/1.1" 307 Temporary Redirect
+INFO:     200.188.103.224:51899 - "GET /catalog/service-per-customer/dropdown/companies HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51902 - "GET /catalog/services/ HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51893 - "GET /catalog/service-per-customer/ HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51900 - "GET /catalog/services/ HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51901 - "GET /catalog/service-per-customer/ HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51896 - "GET /catalog/service-per-customer/dropdown/clients?company_code=AISG HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51902 - "GET /catalog/service-per-customer/dropdown/clients?company_code=AISG HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51893 - "GET /catalog/service-per-customer/dropdown/clients?company_code=AST HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51896 - "GET /catalog/service-per-customer/dropdown/clients?company_code=AST HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51902 - "GET /catalog/service-per-customer/dropdown/clients?company_code=SOD HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51893 - "GET /catalog/service-per-customer/dropdown/clients?company_code=SOD HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51902 - "GET /catalog/service-per-customer/dropdown/clients?company_code=SOT HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51896 - "GET /catalog/service-per-customer/dropdown/clients?company_code=SOT HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51893 - "GET /catalog/service-per-customer/dropdown/companies HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51896 - "GET /catalog/service-per-customer/dropdown/companies HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51902 - "GET /catalog/service-per-customer/4 HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51896 - "GET /catalog/service-per-customer/4 HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51893 - "GET /catalog/service-per-customer/dropdown/clients?company_code=AISG HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51902 - "GET /catalog/service-per-customer/dropdown/clients?company_code=AISG HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51896 - "GET /catalog/services?client_id=5153 HTTP/1.1" 307 Temporary Redirect
+INFO:     200.188.103.224:51893 - "GET /catalog/services?client_id=5153 HTTP/1.1" 307 Temporary Redirect
+INFO:     200.188.103.224:51902 - "GET /catalog/services/?client_id=5153 HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51896 - "GET /catalog/services/?client_id=5153 HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51893 - "GET /aircraft-models/ HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51902 - "GET /aircraft-models/ HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51893 - "GET /catalog/services HTTP/1.1" 307 Temporary Redirect
+INFO:     200.188.103.224:51896 - "GET /catalog/service-per-customer/dropdown/companies HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51902 - "GET /catalog/service-per-customer/dropdown/companies HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51893 - "GET /catalog/service-per-customer HTTP/1.1" 307 Temporary Redirect
+INFO:     200.188.103.224:51905 - "GET /catalog/services HTTP/1.1" 307 Temporary Redirect
+INFO:     200.188.103.224:51904 - "GET /catalog/service-per-customer HTTP/1.1" 307 Temporary Redirect
+INFO:     200.188.103.224:51906 - "GET /catalog/services/ HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51893 - "GET /catalog/service-per-customer/ HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51905 - "GET /catalog/services/ HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51904 - "GET /catalog/service-per-customer/ HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51896 - "GET /catalog/service-per-customer/dropdown/clients?company_code=AISG HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51902 - "GET /catalog/service-per-customer/dropdown/clients?company_code=AISG HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51893 - "GET /catalog/service-per-customer/dropdown/clients?company_code=AST HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51896 - "GET /catalog/service-per-customer/dropdown/clients?company_code=AST HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51902 - "GET /catalog/service-per-customer/dropdown/clients?company_code=SOD HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51893 - "GET /catalog/service-per-customer/dropdown/clients?company_code=SOD HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51896 - "GET /catalog/service-per-customer/dropdown/clients?company_code=SOT HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51902 - "GET /catalog/service-per-customer/dropdown/clients?company_code=SOT HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51932 - "GET /catalog/service-per-customer HTTP/1.1" 307 Temporary Redirect
+INFO:     200.188.103.224:51931 - "GET /catalog/services HTTP/1.1" 307 Temporary Redirect
+INFO:     200.188.103.224:51934 - "GET /catalog/services HTTP/1.1" 307 Temporary Redirect
+INFO:     200.188.103.224:51935 - "GET /catalog/service-per-customer HTTP/1.1" 307 Temporary Redirect
+INFO:     200.188.103.224:51930 - "GET /catalog/service-per-customer/dropdown/companies HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51933 - "GET /catalog/service-per-customer/dropdown/companies HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51932 - "GET /catalog/service-per-customer/ HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51934 - "GET /catalog/services/ HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51931 - "GET /catalog/services/ HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51935 - "GET /catalog/service-per-customer/ HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51930 - "GET /catalog/service-per-customer/dropdown/clients?company_code=AISG HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51933 - "GET /catalog/service-per-customer/dropdown/clients?company_code=AISG HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51933 - "GET /catalog/service-per-customer/dropdown/clients?company_code=AST HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51930 - "GET /catalog/service-per-customer/dropdown/clients?company_code=AST HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51933 - "GET /catalog/service-per-customer/dropdown/clients?company_code=SOD HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51930 - "GET /catalog/service-per-customer/dropdown/clients?company_code=SOD HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51933 - "GET /catalog/service-per-customer/dropdown/clients?company_code=SOT HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51930 - "GET /catalog/service-per-customer/dropdown/clients?company_code=SOT HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51938 - "GET /catalog/service-per-customer/dropdown/companies HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51939 - "GET /catalog/service-per-customer/dropdown/companies HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51938 - "GET /catalog/service-per-customer/8 HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51939 - "GET /catalog/service-per-customer/8 HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51938 - "GET /catalog/service-per-customer/dropdown/clients?company_code=AISG HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51939 - "GET /catalog/service-per-customer/dropdown/clients?company_code=AISG HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51938 - "GET /catalog/services?client_id=5153 HTTP/1.1" 307 Temporary Redirect
+INFO:     200.188.103.224:51939 - "GET /catalog/services?client_id=5153 HTTP/1.1" 307 Temporary Redirect
+INFO:     200.188.103.224:51938 - "GET /catalog/services/?client_id=5153 HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51939 - "GET /catalog/services/?client_id=5153 HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51938 - "GET /aircraft-models/ HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51939 - "GET /aircraft-models/ HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51939 - "GET /catalog/services HTTP/1.1" 307 Temporary Redirect
+INFO:     200.188.103.224:51938 - "GET /catalog/service-per-customer/dropdown/companies HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51939 - "GET /catalog/service-per-customer HTTP/1.1" 307 Temporary Redirect
+INFO:     200.188.103.224:51942 - "GET /catalog/services HTTP/1.1" 307 Temporary Redirect
+INFO:     200.188.103.224:51941 - "GET /catalog/service-per-customer HTTP/1.1" 307 Temporary Redirect
+INFO:     200.188.103.224:51940 - "GET /catalog/service-per-customer/dropdown/companies HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51943 - "GET /catalog/services/ HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51939 - "GET /catalog/services/ HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51938 - "GET /catalog/service-per-customer/ HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51943 - "GET /catalog/service-per-customer/ HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51940 - "GET /catalog/service-per-customer/dropdown/clients?company_code=AISG HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51942 - "GET /catalog/service-per-customer/dropdown/clients?company_code=AISG HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51939 - "GET /catalog/service-per-customer/dropdown/clients?company_code=AST HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51938 - "GET /catalog/service-per-customer/dropdown/clients?company_code=AST HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51942 - "GET /catalog/service-per-customer/dropdown/clients?company_code=SOD HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51940 - "GET /catalog/service-per-customer/dropdown/clients?company_code=SOD HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51939 - "GET /catalog/service-per-customer/dropdown/clients?company_code=SOT HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51938 - "GET /catalog/service-per-customer/dropdown/clients?company_code=SOT HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51942 - "GET /catalog/service-per-customer/dropdown/companies HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51940 - "GET /catalog/service-per-customer/dropdown/companies HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51939 - "GET /catalog/service-per-customer/92 HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51938 - "GET /catalog/service-per-customer/92 HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51942 - "GET /catalog/service-per-customer/dropdown/clients?company_code=AST HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51940 - "GET /catalog/service-per-customer/dropdown/clients?company_code=AST HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51939 - "GET /aircraft-models/ HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51938 - "GET /aircraft-models/ HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51942 - "GET /catalog/services?client_id=5449 HTTP/1.1" 307 Temporary Redirect
+INFO:     200.188.103.224:51940 - "GET /catalog/services/?client_id=5449 HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51942 - "GET /catalog/service-per-customer HTTP/1.1" 307 Temporary Redirect
+INFO:     200.188.103.224:51940 - "GET /catalog/service-per-customer/ HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51942 - "OPTIONS /catalog/service-per-customer/92 HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51940 - "PUT /catalog/service-per-customer/92 HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51940 - "GET /catalog/services HTTP/1.1" 307 Temporary Redirect
+INFO:     200.188.103.224:51942 - "GET /catalog/service-per-customer/dropdown/companies HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51940 - "GET /catalog/service-per-customer HTTP/1.1" 307 Temporary Redirect
+INFO:     200.188.103.224:51948 - "GET /catalog/services HTTP/1.1" 307 Temporary Redirect
+INFO:     200.188.103.224:51950 - "GET /catalog/service-per-customer HTTP/1.1" 307 Temporary Redirect
+INFO:     200.188.103.224:51949 - "GET /catalog/service-per-customer/dropdown/companies HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51951 - "GET /catalog/services/ HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51940 - "GET /catalog/service-per-customer/ HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51948 - "GET /catalog/services/ HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51950 - "GET /catalog/service-per-customer/ HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51942 - "GET /catalog/service-per-customer/dropdown/clients?company_code=AISG HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51951 - "GET /catalog/service-per-customer/dropdown/clients?company_code=AISG HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51940 - "GET /catalog/service-per-customer/dropdown/clients?company_code=AST HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51942 - "GET /catalog/service-per-customer/dropdown/clients?company_code=AST HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51951 - "GET /catalog/service-per-customer/dropdown/clients?company_code=SOD HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51940 - "GET /catalog/service-per-customer/dropdown/clients?company_code=SOD HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51942 - "GET /catalog/service-per-customer/dropdown/clients?company_code=SOT HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51951 - "GET /catalog/service-per-customer/dropdown/clients?company_code=SOT HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51954 - "GET /catalog/service-per-customer/dropdown/companies HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51955 - "GET /catalog/service-per-customer/dropdown/companies HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51954 - "GET /catalog/service-per-customer/92 HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51955 - "GET /catalog/service-per-customer/92 HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51954 - "GET /catalog/service-per-customer/dropdown/clients?company_code=AST HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51955 - "GET /catalog/service-per-customer/dropdown/clients?company_code=AST HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51954 - "GET /catalog/services?client_id=5449 HTTP/1.1" 307 Temporary Redirect
+INFO:     200.188.103.224:51955 - "GET /catalog/services?client_id=5449 HTTP/1.1" 307 Temporary Redirect
+INFO:     200.188.103.224:51954 - "GET /catalog/services/?client_id=5449 HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51955 - "GET /catalog/services/?client_id=5449 HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51954 - "GET /aircraft-models/ HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51955 - "GET /aircraft-models/ HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51955 - "GET /catalog/services HTTP/1.1" 307 Temporary Redirect
+INFO:     200.188.103.224:51954 - "GET /catalog/service-per-customer/dropdown/companies HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51956 - "GET /catalog/service-per-customer HTTP/1.1" 307 Temporary Redirect
+INFO:     200.188.103.224:51957 - "GET /catalog/services HTTP/1.1" 307 Temporary Redirect
+INFO:     200.188.103.224:51955 - "GET /catalog/service-per-customer/dropdown/companies HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51958 - "GET /catalog/service-per-customer HTTP/1.1" 307 Temporary Redirect
+INFO:     200.188.103.224:51959 - "GET /catalog/services/ HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51956 - "GET /catalog/service-per-customer/ HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51957 - "GET /catalog/services/ HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51958 - "GET /catalog/service-per-customer/ HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51954 - "GET /catalog/service-per-customer/dropdown/clients?company_code=AISG HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51955 - "GET /catalog/service-per-customer/dropdown/clients?company_code=AISG HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51954 - "GET /catalog/service-per-customer/dropdown/clients?company_code=AST HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51955 - "GET /catalog/service-per-customer/dropdown/clients?company_code=AST HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51954 - "GET /catalog/service-per-customer/dropdown/clients?company_code=SOD HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51955 - "GET /catalog/service-per-customer/dropdown/clients?company_code=SOD HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51954 - "GET /catalog/service-per-customer/dropdown/clients?company_code=SOT HTTP/1.1" 200 OK
+INFO:     200.188.103.224:51955 - "GET /catalog/service-per-customer/dropdown/clients?company_code=SOT HTTP/1.1" 200 OK

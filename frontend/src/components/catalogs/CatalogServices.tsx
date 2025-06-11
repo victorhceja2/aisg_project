@@ -1,3 +1,11 @@
+/**
+ * Catálogo de "Services" para AISG.
+ * Permite listar, buscar, editar y eliminar servicios.
+ * Incluye validación de dependencias antes de eliminar, mostrando modales de confirmación, éxito o error.
+ * Utiliza React, axiosInstance y TailwindCSS para la UI y lógica de negocio.
+ * Mapea IDs de catálogos relacionados a nombres legibles.
+ */
+
 import React, { useState, useEffect, useRef } from "react";
 import axiosInstance from '../../api/axiosInstance';
 import { Link, useNavigate } from "react-router-dom";
@@ -9,7 +17,7 @@ const CatalogServices: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Estados para los catálogos
+  // Catálogos relacionados
   const [serviceStatuses, setServiceStatuses] = useState<any[]>([]);
   const [serviceClassifications, setServiceClassifications] = useState<any[]>([]);
   const [serviceCategories, setServiceCategories] = useState<any[]>([]);
@@ -17,7 +25,7 @@ const CatalogServices: React.FC = () => {
   const [serviceIncludes, setServiceIncludes] = useState<any[]>([]);
   const [catalogsLoading, setCatalogsLoading] = useState(true);
 
-  // Estados para modales de eliminación
+  // Modales de eliminación
   const [serviceToDelete, setServiceToDelete] = useState<{id: number, name: string} | null>(null);
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [showDeleteSuccess, setShowDeleteSuccess] = useState(false);
@@ -27,312 +35,98 @@ const CatalogServices: React.FC = () => {
   const [deleteErrorMessage, setDeleteErrorMessage] = useState("");
   const [dependentRecords, setDependentRecords] = useState<any[]>([]);
 
-  const navigate = useNavigate();
-
-  // Referencias para manejar el foco
   const deleteSuccessOkButtonRef = useRef<HTMLButtonElement>(null);
   const deleteConfirmButtonRef = useRef<HTMLButtonElement>(null);
   const deleteErrorOkButtonRef = useRef<HTMLButtonElement>(null);
 
-  // Función para obtener todos los catálogos
-  const fetchCatalogs = async () => {
-    setCatalogsLoading(true);
-    try {
-      const [statusRes, categoryRes, typeRes, includeRes, classificationRes] = await Promise.all([
-        axiosInstance.get('/catalog/service-status'),
-        axiosInstance.get('/catalog/service-categories'),
-        axiosInstance.get('/catalog/service-types'),
-        axiosInstance.get('/catalog/service-includes'),
-        axiosInstance.get('/catalog/service-classification')
-      ]);
-
-      setServiceStatuses(statusRes.data);
-      setServiceCategories(categoryRes.data);
-      setServiceTypes(typeRes.data);
-      setServiceIncludes(includeRes.data);
-      setServiceClassifications(classificationRes.data);
-
-    } catch (err) {
-      setServiceStatuses([]);
-      setServiceClassifications([]);
-      setServiceCategories([]);
-      setServiceTypes([]);
-      setServiceIncludes([]);
-    } finally {
-      setCatalogsLoading(false);
-    }
-  };
-
-  // Funciones helper para mapear IDs a nombres
-  const getStatusName = (id: number | string) => {
-    if (!id) return "N/A"; // O algún valor por defecto
-    const status = serviceStatuses.find(s => s.id_service_status === Number(id));
-    return status?.status_name || `Status ID: ${id}`;
-  };
-
-  const getClassificationName = (id: number | string) => {
-    if (!id) return "N/A";
-    const classification = serviceClassifications.find(c => c.id_service_classification === Number(id));
-    return classification?.service_classification_name || `Classification ID: ${id}`;
-  };
-
-  const getCategoryName = (id: number | string) => {
-    if (!id) return "N/A";
-    const category = serviceCategories.find(c => c.id_service_category === Number(id));
-    return category?.service_category_name || `Category ID: ${id}`;
-  };
-
-  const getTypeName = (id: number | string) => {
-    if (!id) return "N/A";
-    const type = serviceTypes.find(t => t.id_service_type === Number(id));
-    return type?.service_type_name || `Type ID: ${id}`;
-  };
-
-  const getIncludeName = (id: number | string) => {
-    if (!id) return "N/A";
-    const include = serviceIncludes.find(i => i.id_service_include === Number(id));
-    return include?.service_include || `Include ID: ${id}`;
-  };
-
-  // Función helper para convertir valores bit a boolean
-  const getBooleanValue = (value: any): boolean => {
-    if (value === null || value === undefined) return false;
-    if (typeof value === 'boolean') return value;
-    if (typeof value === 'number') return value === 1;
-    if (typeof value === 'string') return value === '1' || value.toLowerCase() === 'true';
-    return false;
-  };
-
-  // Cargar catálogos al montar el componente
+  // Cargar catálogos relacionados
   useEffect(() => {
+    const fetchCatalogs = async () => {
+      setCatalogsLoading(true);
+      try {
+        const [statusRes, categoryRes, typeRes, includeRes, classificationRes] = await Promise.all([
+          axiosInstance.get('/catalog/service-status'),
+          axiosInstance.get('/catalog/service-categories'),
+          axiosInstance.get('/catalog/service-types'),
+          axiosInstance.get('/catalog/service-includes'),
+          axiosInstance.get('/catalog/service-classification')
+        ]);
+        setServiceStatuses(statusRes.data);
+        setServiceCategories(categoryRes.data);
+        setServiceTypes(typeRes.data);
+        setServiceIncludes(includeRes.data);
+        setServiceClassifications(classificationRes.data);
+      } catch {
+        setServiceStatuses([]); setServiceClassifications([]);
+        setServiceCategories([]); setServiceTypes([]); setServiceIncludes([]);
+      } finally { setCatalogsLoading(false); }
+    };
     fetchCatalogs();
   }, []);
 
-  // Cambiado: solo cargar todos los servicios una vez al montar
-  useEffect(() => {
-    fetchServices();
-  }, []);
-
-  // Cambiado: fetchServices ya no depende de search, solo carga todos los servicios una vez
+  // Cargar servicios
+  useEffect(() => { fetchServices(); }, []);
   const fetchServices = async () => {
     setLoading(true);
     try {
       const res = await axiosInstance.get(`/catalog/services`);
       setServices(res.data);
       setError(null);
-    } catch (err) {
+    } catch {
       setError("Error loading services.");
     } finally {
       setLoading(false);
     }
   };
 
-  // Verificar si un servicio está siendo utilizado en otros módulos
-  const checkServiceUsage = async (serviceId: number): Promise<{ inUse: boolean; records: any[] }> => {
+  // Helpers para mostrar nombres legibles
+  const getName = (arr: any[], id: number | string, key: string, label: string) =>
+    !id ? "N/A" : (arr.find((x: any) => x[key] === Number(id))?.[label] || `${label.replace('_name','')} ID: ${id}`);
+  const getStatusName = (id: number | string) => getName(serviceStatuses, id, "id_service_status", "status_name");
+  const getClassificationName = (id: number | string) => getName(serviceClassifications, id, "id_service_classification", "service_classification_name");
+  const getCategoryName = (id: number | string) => getName(serviceCategories, id, "id_service_category", "service_category_name");
+  const getTypeName = (id: number | string) => getName(serviceTypes, id, "id_service_type", "service_type_name");
+  const getIncludeName = (id: number | string) => getName(serviceIncludes, id, "id_service_include", "service_include");
+  const getBooleanValue = (v: any) => v === true || v === 1 || v === '1' || (typeof v === 'string' && v.toLowerCase() === 'true');
+
+  // Verificar dependencias antes de eliminar
+  const checkServiceUsage = async (serviceId: number) => {
     try {
-      const allDependentRecords: any[] = [];
-      const serviceIdFields = [
-        'id_service', 
-        'service_id', 
-        'id_servicio',
-        'servicio_id',
-        'service'
+      const endpoints = [
+        { url: '/catalog/service-per-customer', label: 'Customer Service', name: (cs: any) => `Customer ID: ${cs.id_customer || cs.customer_id} - Service: ${cs.service_name || cs.id_service}`, id: (cs: any) => cs.id_service_per_customer || cs.id },
+        { url: '/catalog/customer-services', label: 'Service Customer', name: (sc: any) => `Customer: ${sc.customer_name || sc.id_customer} - Service: ${sc.service_name || sc.id_service}`, id: (sc: any) => sc.id || sc.id_customer_service },
+        { url: '/work-orders', label: 'Work Order', name: (wo: any) => `Work Order: ${wo.work_order_number || wo.id}`, id: (wo: any) => wo.id },
+        { url: '/quotes', label: 'Quote', name: (q: any) => `Quote: ${q.quote_number || q.id}`, id: (q: any) => q.id },
+        { url: '/reports/operation-report', label: 'Operation Report', name: (r: any) => `Report: ${r.cliente} - ${r.servicio_principal || r.id_service}`, id: (r: any) => r.id },
+        { url: '/reports/service-executions', label: 'Service Execution', name: (e: any) => `Execution: Work Order ${e.work_order || e.id}`, id: (e: any) => e.id },
+        { url: '/billing/invoices', label: 'Invoice', name: (i: any) => `Invoice: ${i.invoice_number || i.id}`, id: (i: any) => i.id },
+        { url: '/maintenance/plans', label: 'Maintenance Plan', name: (p: any) => `Plan: ${p.plan_name || p.id}`, id: (p: any) => p.id },
+        { url: '/components', label: 'Component', name: (c: any) => `Component: ${c.component_name || c.id}`, id: (c: any) => c.id },
+        { url: '/contracts', label: 'Contract', name: (ct: any) => `Contract: ${ct.contract_number || ct.id}`, id: (ct: any) => ct.id }
       ];
-
-      const usesService = (item: any): boolean => {
-        for (const field of serviceIdFields) {
-          if (item[field] !== undefined && 
-              (Number(item[field]) === serviceId || String(item[field]) === String(serviceId))) {
-            return true;
-          }
-        }
-        return false;
-      };
-
-      try {
-        const customerServicesRes = await axiosInstance.get('/catalog/service-per-customer');
-        const customerServicesUsingService = customerServicesRes.data.filter(usesService);
-        allDependentRecords.push(
-          ...customerServicesUsingService.map((cs: any) => ({
-            type: 'Customer Service',
-            name: `Customer ID: ${cs.id_customer || cs.customer_id} - Service: ${cs.service_name || cs.id_service}`,
-            id: cs.id_service_per_customer || cs.id
-          }))
-        );
-      } catch (err: any) {
-        if (err.response && err.response.status !== 404) {
-          return { inUse: true, records: [{ type: 'Unknown', name: 'Error checking dependencies (Customer Services)', id: 0 }] };
-        } else if (!err.response) {
-          return { inUse: true, records: [{ type: 'Unknown', name: 'Error checking dependencies (Customer Services)', id: 0 }] };
-        }
-      }
-
-      try {
-        const serviceCustomersRes = await axiosInstance.get('/catalog/customer-services');
-        const serviceCustomersUsingService = serviceCustomersRes.data?.filter(usesService);
-        if (serviceCustomersUsingService?.length > 0) {
+      const serviceIdFields = ['id_service', 'service_id', 'id_servicio', 'servicio_id', 'service'];
+      let allDependentRecords: any[] = [];
+      for (const { url, label, name, id } of endpoints) {
+        try {
+          const res = await axiosInstance.get(url);
           allDependentRecords.push(
-            ...serviceCustomersUsingService.map((sc: any) => ({
-              type: 'Service Customer',
-              name: `Customer: ${sc.customer_name || sc.id_customer} - Service: ${sc.service_name || sc.id_service}`,
-              id: sc.id || sc.id_customer_service
-            }))
+            ...res.data.filter((item: any) =>
+              serviceIdFields.some(f => item[f] !== undefined && (Number(item[f]) === serviceId || String(item[f]) === String(serviceId)))
+            ).map((item: any) => ({ type: label, name: name(item), id: id(item) }))
           );
-        }
-      } catch (err: any) {
-        if (err.response && err.response.status !== 404) {
-          return { inUse: true, records: [{ type: 'Unknown', name: 'Error checking dependencies (Service Customers)', id: 0 }] };
-        } else if (!err.response) {
-            return { inUse: true, records: [{ type: 'Unknown', name: 'Error checking dependencies (Service Customers)', id: 0 }] };
-        }
+        } catch {}
       }
-
-      try {
-        const workOrdersRes = await axiosInstance.get('/work-orders');
-        const workOrdersUsingService = workOrdersRes.data.filter(usesService);
-        allDependentRecords.push(
-          ...workOrdersUsingService.map((wo: any) => ({
-            type: 'Work Order',
-            name: `Work Order: ${wo.work_order_number || wo.id}`,
-            id: wo.id
-          }))
-        );
-      } catch (err: any) {
-        if (err.response && err.response.status !== 404) {
-            return { inUse: true, records: [{ type: 'Unknown', name: 'Error checking Work Orders', id: 0 }] };
-        } else if (!err.response) {
-            return { inUse: true, records: [{ type: 'Unknown', name: 'Error checking Work Orders', id: 0 }] };
-        }
-      }
-
-      try {
-        const quotesRes = await axiosInstance.get('/quotes');
-        const quotesUsingService = quotesRes.data.filter(usesService);
-        allDependentRecords.push(
-          ...quotesUsingService.map((quote: any) => ({
-            type: 'Quote',
-            name: `Quote: ${quote.quote_number || quote.id}`,
-            id: quote.id
-          }))
-        );
-      } catch (err: any) {
-        if (err.response && err.response.status !== 404) {
-            return { inUse: true, records: [{ type: 'Unknown', name: 'Error checking Quotes', id: 0 }] };
-        } else if (!err.response) {
-            return { inUse: true, records: [{ type: 'Unknown', name: 'Error checking Quotes', id: 0 }] };
-        }
-      }
-      
-      try {
-        const operationReportsRes = await axiosInstance.get('/reports/operation-report');
-        const reportsUsingService = operationReportsRes.data.filter(usesService);
-        allDependentRecords.push(
-          ...reportsUsingService.map((report: any) => ({
-            type: 'Operation Report',
-            name: `Report: ${report.cliente} - ${report.servicio_principal || report.id_service}`,
-            id: report.id
-          }))
-        );
-      } catch (err: any) {
-        if (err.response && err.response.status !== 404) {
-        } else if (!err.response) {
-        }
-      }
-
-      try {
-        const serviceExecutionsRes = await axiosInstance.get('/reports/service-executions');
-        const executionsUsingService = serviceExecutionsRes.data.filter(usesService);
-        allDependentRecords.push(
-          ...executionsUsingService.map((exec: any) => ({
-            type: 'Service Execution',
-            name: `Execution: Work Order ${exec.work_order || exec.id}`,
-            id: exec.id
-          }))
-        );
-      } catch (err: any) {
-        if (err.response && err.response.status !== 404) {
-        } else if (!err.response) {
-        }
-      }
-
-      try {
-        const invoicesRes = await axiosInstance.get('/billing/invoices');
-        const invoicesUsingService = invoicesRes.data.filter(usesService);
-        allDependentRecords.push(
-          ...invoicesUsingService.map((invoice: any) => ({
-            type: 'Invoice',
-            name: `Invoice: ${invoice.invoice_number || invoice.id}`,
-            id: invoice.id
-          }))
-        );
-      } catch (err: any) {
-        if (err.response && err.response.status !== 404) {
-        } else if (!err.response) {
-        }
-      }
-      
-      try {
-        const maintenancePlansRes = await axiosInstance.get('/maintenance/plans');
-        const plansUsingService = maintenancePlansRes.data.filter(usesService);
-        allDependentRecords.push(
-          ...plansUsingService.map((plan: any) => ({
-            type: 'Maintenance Plan',
-            name: `Plan: ${plan.plan_name || plan.id}`,
-            id: plan.id
-          }))
-        );
-      } catch (err: any) {
-        if (err.response && err.response.status !== 404) {
-        } else if (!err.response) {
-        }
-      }
-      
-      try {
-        const componentsRes = await axiosInstance.get('/components');
-        const componentsUsingService = componentsRes.data.filter(usesService);
-        allDependentRecords.push(
-          ...componentsUsingService.map((comp: any) => ({
-            type: 'Component',
-            name: `Component: ${comp.component_name || comp.id}`,
-            id: comp.id
-          }))
-        );
-      } catch (err: any) {
-        if (err.response && err.response.status !== 404) {
-        } else if (!err.response) {
-        }
-      }
-      
-      try {
-        const contractsRes = await axiosInstance.get('/contracts');
-        const contractsUsingService = contractsRes.data.filter(usesService);
-        allDependentRecords.push(
-          ...contractsUsingService.map((contract: any) => ({
-            type: 'Contract',
-            name: `Contract: ${contract.contract_number || contract.id}`,
-            id: contract.id
-          }))
-        );
-      } catch (err: any) {
-        if (err.response && err.response.status !== 404) {
-        } else if (!err.response) {
-        }
-      }
-
-      return {
-        inUse: allDependentRecords.length > 0,
-        records: allDependentRecords
-      };
-    } catch (err) {
+      return { inUse: allDependentRecords.length > 0, records: allDependentRecords };
+    } catch {
       return { inUse: true, records: [{ type: 'Unknown', name: 'Error checking dependencies', id: 0 }] };
     }
   };
 
+  // Eliminar servicio
   const handleDeleteClick = async (id: number, name: string) => {
     setIsDeleting(true);
     const { inUse, records } = await checkServiceUsage(id);
     setIsDeleting(false);
-
     if (inUse) {
       setDeleteErrorMessage("Cannot delete service because it is currently being used in the system.");
       setDependentRecords(records);
@@ -346,10 +140,8 @@ const CatalogServices: React.FC = () => {
 
   const confirmDelete = async () => {
     if (!serviceToDelete) return;
-
     setIsDeleting(true);
     const { inUse, records } = await checkServiceUsage(serviceToDelete.id);
-
     if (inUse) {
       setDeleteErrorMessage("Cannot delete service because it is currently being used in the system.");
       setDependentRecords(records);
@@ -359,27 +151,24 @@ const CatalogServices: React.FC = () => {
       setServiceToDelete(null);
       return;
     }
-
     try {
-      const deleteResponse = await axiosInstance.delete(`/catalog/services/${serviceToDelete.id}`);
+      await axiosInstance.delete(`/catalog/services/${serviceToDelete.id}`);
       setDeletedServiceName(serviceToDelete.name);
       setShowConfirmation(false);
       await fetchServices();
       setError(null);
       setShowDeleteSuccess(true);
     } catch (err: any) {
-      if (err.response?.status === 409 || 
-          err.response?.status === 400 ||
-          (err.response?.data?.detail && 
-           (err.response.data.detail.includes("constraint") || 
-            err.response.data.detail.includes("used") || 
-            err.response.data.detail.includes("dependency")))) {
-        setDeleteErrorMessage("Cannot delete service because it is currently being used in the system.");
-      } else {
-        setDeleteErrorMessage(
-          `Error deleting service "${serviceToDelete.name}". Please try again later.`
-        );
-      }
+      setDeleteErrorMessage(
+        err.response?.status === 409 || err.response?.status === 400 ||
+        (err.response?.data?.detail && (
+          err.response.data.detail.includes("constraint") ||
+          err.response.data.detail.includes("used") ||
+          err.response.data.detail.includes("dependency")
+        ))
+          ? "Cannot delete service because it is currently being used in the system."
+          : `Error deleting service "${serviceToDelete.name}". Please try again later.`
+      );
       setDependentRecords([]);
       setShowConfirmation(false);
       setShowDeleteError(true);
@@ -389,113 +178,51 @@ const CatalogServices: React.FC = () => {
     }
   };
 
-  const cancelDelete = () => {
-    setShowConfirmation(false);
-    setServiceToDelete(null);
-  };
+  const cancelDelete = () => { setShowConfirmation(false); setServiceToDelete(null); };
+  const closeSuccessModal = () => { setShowDeleteSuccess(false); setDeletedServiceName(""); };
+  const closeDeleteErrorModal = () => { setShowDeleteError(false); setDeleteErrorMessage(""); setDependentRecords([]); };
 
-  const closeSuccessModal = () => {
-    setShowDeleteSuccess(false);
-    setDeletedServiceName("");
-  };
-
-  const closeDeleteErrorModal = () => {
-    setShowDeleteError(false);
-    setDeleteErrorMessage("");
-    setDependentRecords([]);
-  };
-
-  useEffect(() => {
-    if (showDeleteSuccess && deleteSuccessOkButtonRef.current) {
-      setTimeout(() => deleteSuccessOkButtonRef.current?.focus(), 100);
-    }
-  }, [showDeleteSuccess]);
-
-  useEffect(() => {
-    if (showConfirmation && deleteConfirmButtonRef.current) {
-      setTimeout(() => deleteConfirmButtonRef.current?.focus(), 100);
-    }
-  }, [showConfirmation]);
-
-  useEffect(() => {
-    if (showDeleteError && deleteErrorOkButtonRef.current) {
-      setTimeout(() => deleteErrorOkButtonRef.current?.focus(), 100);
-    }
-  }, [showDeleteError]);
-  
+  // Foco en modales
+  useEffect(() => { if (showDeleteSuccess) setTimeout(() => deleteSuccessOkButtonRef.current?.focus(), 100); }, [showDeleteSuccess]);
+  useEffect(() => { if (showConfirmation) setTimeout(() => deleteConfirmButtonRef.current?.focus(), 100); }, [showConfirmation]);
+  useEffect(() => { if (showDeleteError) setTimeout(() => deleteErrorOkButtonRef.current?.focus(), 100); }, [showDeleteError]);
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Enter') {
-        if (showDeleteSuccess) {
-          e.preventDefault();
-          closeSuccessModal();
-        } else if (showConfirmation && !isDeleting) {
-          e.preventDefault();
-          confirmDelete();
-        } else if (showDeleteError) {
-          e.preventDefault();
-          closeDeleteErrorModal();
-        }
+        if (showDeleteSuccess) { e.preventDefault(); closeSuccessModal(); }
+        else if (showConfirmation && !isDeleting) { e.preventDefault(); confirmDelete(); }
+        else if (showDeleteError) { e.preventDefault(); closeDeleteErrorModal(); }
       } else if (e.key === 'Escape') {
-        if (showConfirmation && !isDeleting) {
-          e.preventDefault();
-          cancelDelete();
-        } else if (showDeleteSuccess) {
-          e.preventDefault();
-          closeSuccessModal();
-        } else if (showDeleteError) {
-          e.preventDefault();
-          closeDeleteErrorModal();
-        }
+        if (showConfirmation && !isDeleting) { e.preventDefault(); cancelDelete(); }
+        else if (showDeleteSuccess) { e.preventDefault(); closeSuccessModal(); }
+        else if (showDeleteError) { e.preventDefault(); closeDeleteErrorModal(); }
       }
     };
-
     if (showConfirmation || showDeleteSuccess || showDeleteError) {
       document.addEventListener('keydown', handleKeyDown);
-      return () => {
-        document.removeEventListener('keydown', handleKeyDown);
-      };
+      return () => document.removeEventListener('keydown', handleKeyDown);
     }
   }, [showConfirmation, showDeleteSuccess, showDeleteError, isDeleting, serviceToDelete]);
 
-  // --- FILTRO LOCAL ---
-  // Filtrar servicios localmente desde la primera letra y por lo que ve el usuario en la tabla
+  // Filtro local
   const filteredServices = services.filter((s) => {
     if (!search.trim()) return true;
     const searchLower = search.trim().toLowerCase();
-
-    // Valores visibles en la tabla
-    const visibleStatus = getStatusName(s.id_service_status).toLowerCase();
-    const visibleClassification = getClassificationName(s.id_service_classification).toLowerCase();
-    const visibleCategory = getCategoryName(s.id_service_category).toLowerCase();
-    const visibleType = getTypeName(s.id_service_type).toLowerCase();
-    const visibleInclude = getIncludeName(s.id_service_include).toLowerCase();
-    const visibleAircraftType = getBooleanValue(s.service_aircraft_type) ? "yes" : "no";
-    const visibleByTime = getBooleanValue(s.service_by_time) ? "by hour" : "by event";
-    const visibleMinTime = getBooleanValue(s.min_time_configured) ? "yes" : "no";
-    const visibleTechIncluded = getBooleanValue(s.service_technicians_included) ? "yes" : "no";
-    const visibleWho = (s.whonew || "-").toString().toLowerCase();
-
-    // Campos de texto directos
-    const code = (s.service_code || "").toLowerCase();
-    const name = (s.service_name || "").toLowerCase();
-    const desc = (s.service_description || "").toLowerCase();
-
-    return (
-      code.includes(searchLower) ||
-      name.includes(searchLower) ||
-      desc.includes(searchLower) ||
-      visibleStatus.includes(searchLower) ||
-      visibleClassification.includes(searchLower) ||
-      visibleCategory.includes(searchLower) ||
-      visibleType.includes(searchLower) ||
-      visibleInclude.includes(searchLower) ||
-      visibleAircraftType.includes(searchLower) ||
-      visibleByTime.includes(searchLower) ||
-      visibleMinTime.includes(searchLower) ||
-      visibleTechIncluded.includes(searchLower) ||
-      visibleWho.includes(searchLower)
-    );
+    return [
+      getStatusName(s.id_service_status),
+      getClassificationName(s.id_service_classification),
+      getCategoryName(s.id_service_category),
+      getTypeName(s.id_service_type),
+      getIncludeName(s.id_service_include),
+      getBooleanValue(s.service_aircraft_type) ? "yes" : "no",
+      getBooleanValue(s.service_by_time) ? "by hour" : "by event",
+      getBooleanValue(s.min_time_configured) ? "yes" : "no",
+      getBooleanValue(s.service_technicians_included) ? "yes" : "no",
+      (s.whonew || "-"),
+      (s.service_code || ""),
+      (s.service_name || ""),
+      (s.service_description || "")
+    ].some(val => val.toString().toLowerCase().includes(searchLower));
   });
 
   return (
@@ -510,13 +237,11 @@ const CatalogServices: React.FC = () => {
               Manage available services
             </p>
           </div>
-
           {error && (
             <div className="bg-red-500 text-white p-4 rounded-lg mb-6 shadow-md animate-pulse">
               <p className="font-medium">{error}</p>
             </div>
           )}
-
           <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
             <div className="w-full md:w-2/3 relative">
               <input
@@ -543,7 +268,6 @@ const CatalogServices: React.FC = () => {
             </Link>
           </div>
         </div>
-        
         {/* Contenedor de la tabla con scroll */}
         <div className="flex-1 overflow-hidden px-6 pb-6">
           <div className="h-full w-full overflow-auto">
@@ -680,14 +404,12 @@ const CatalogServices: React.FC = () => {
         {showDeleteSuccess && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div className="overflow-hidden max-w-md w-full mx-4 rounded-lg shadow-xl">
-              {/* Encabezado blanco con texto azul */}
               <div className="bg-white rounded-t-lg px-6 py-4 shadow-lg">
                 <h2 className="text-2xl font-bold text-center text-[#002057]">
                   Success
                 </h2>
                 <div className="mt-2 w-20 h-1 bg-[#e6001f] mx-auto rounded"></div>
               </div>
-              {/* Cuerpo con fondo azul oscuro */}
               <div className="bg-[#1E2A45] rounded-b-lg shadow-lg px-8 py-8">
                 <div className="flex items-center mb-4 justify-center">
                   <div className="bg-[#00B140] rounded-full p-2 mr-4">
@@ -711,18 +433,16 @@ const CatalogServices: React.FC = () => {
           </div>
         )}
 
-        {/* Modal de error (en inglés y estilo similar a CatalogServiceType) */}
+        {/* Modal de error */}
         {showDeleteError && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div className="overflow-hidden max-w-md w-full mx-4 rounded-lg shadow-xl">
-              {/* Encabezado blanco con texto azul */}
               <div className="bg-white rounded-t-lg px-6 py-4 shadow-lg">
                 <h2 className="text-2xl font-bold text-center text-[#002057]">
                   Cannot Delete Service
                 </h2>
                 <div className="mt-2 w-20 h-1 bg-[#e6001f] mx-auto rounded"></div>
               </div>
-              {/* Cuerpo con fondo azul oscuro */}
               <div className="bg-[#1E2A45] rounded-b-lg shadow-lg px-8 py-8">
                 <div className="flex items-start mb-4">
                   <div className="bg-[#f59e0b] rounded-full p-2 mr-4 flex-shrink-0 mt-1">
