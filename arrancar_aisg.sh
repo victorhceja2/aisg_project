@@ -19,7 +19,7 @@ pip install -r requirements.txt
 
 # Levanta backend (FastAPI) con nohup para mantenerlo en ejecución
 echo "Activando backend (FastAPI)..."
-nohup uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload > backend.log 2>&1 &
+nohup uvicorn app.main:app --host 0.0.0.0 --port 8100 --reload > backend.log 2>&1 &
 BACKEND_PID=$!
 echo "Backend iniciado con PID: $BACKEND_PID"
 cd ..
@@ -34,7 +34,7 @@ npm run build
 
 # Levanta frontend (Vite Preview) con nohup para mantenerlo en ejecución
 echo "Activando frontend (Vite Preview)..."
-nohup npm run preview -- --host > frontend.log 2>&1 &
+nohup npm run preview -- --host --port 5100 > frontend.log 2>&1 &
 FRONTEND_PID=$!
 echo "Frontend iniciado con PID: $FRONTEND_PID"
 cd ..
@@ -46,8 +46,8 @@ disown $FRONTEND_PID
 # Mensaje final
 echo "=============================="
 echo "AISG levantado correctamente"
-echo "Backend: http://82.165.213.124:8000/docs"
-echo "Frontend: http://82.165.213.124:4173/"
+echo "Backend: http://216.225.204.181:8100/docs"
+echo "Frontend: http://216.225.204.181:5100/"
 echo "Logs: backend.log y frontend/frontend.log"
 echo "Los servicios continuarán ejecutándose aunque cierres la sesión"
 echo "=============================="

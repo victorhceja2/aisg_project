@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import AISGBackground from "./fondo";
 import axiosInstance from '../../api/axiosInstance';
 import * as XLSX from 'xlsx';
@@ -10,7 +10,7 @@ interface OperationReportData {
     COMPANY: string;
     LLAVE: number | null; // Campo agregado para búsqueda, NO se muestra en la tabla
     AIRLINE: string;
-    DATE: string;
+    DATE: string | number; // Puede ser "YYYY-MM-DD", "YYYYMMDD" (string), o un número de días (ej. TO_DAYS)
     STATION: string;
     AC_REG: string;
     FLIGTH: string;
@@ -31,63 +31,118 @@ interface OperationReportData {
     TECHNICIAN: string;
 }
 
-interface Company {
-    companyCode: string;
-    companyName: string;
-    MonedaEmpresa: string;
-    RFC_En_Company: string;
-    RazonSocial_En_CompanyCode: string;
-    NombreComercial: string;
-    TipoPersona: string;
-    MonedaEnCompanyCode: string;
-    Producto: string;
-    Estatus: string;
-    UsuarioRegistro: string;
-    FechaRegistro: string;
-    HoraRegistro: string;
-    Llave: number | string;
+// Interfaces para las opciones de los dropdowns derivadas de OperationReportData
+interface CompanyOption {
+    llave: number;
+    name: string; // COMPANY (companyCode)
 }
 
-interface Airline {
-    llave: number;
-    linea: string;
-    nombre: string;
-    callSign: string;
-    pais: string;
-    companyCode: string;
-    keyObjectId: string;
-    objectKeyValue: string;
-    objectKeyIndex: number;
-}
+// AirlineOption será simplemente un string (nombre de la aerolínea)
+// StationOption será simplemente un string (nombre de la estación)
+
+// Helper function to parse date string or number (YYYY-MM-DD, YYYYMMDD, or days since 0001-01-01) to Date object (UTC)
+const parseReportDateStringToDate = (dateValue: string | number | null): Date | null => {
+    if (dateValue === null || dateValue === undefined) return null;
+
+    if (typeof dateValue === 'number') {
+        // Assuming dateValue is days since 0001-01-01 (like .NET ToOADate() or SQL Server date integer).
+        // The Unix epoch (1970-01-01) is 719163 days after 0000-00-00.
+        // The .NET epoch (0001-01-01) is 1 day after 0000-00-00.
+        // So, Unix epoch is 719163 - 1 = 719162 days after .NET epoch (0001-01-01).
+        // Or, more directly:
+        // Days from 0001-01-01 to 1970-01-01 (Unix epoch):
+        // Excel/OADate considers 1900-01-01 as day 1 (with a bug for 1900 being a leap year).
+        // .NET DateTime.ToOADate() uses 1899-12-30 as day 0.
+        // SQL Server integer for date often means days since 1900-01-01.
+        // Given the example 739423 -> 22-jun-2025, this implies days from 0001-01-01.
+        // Number of days from 0001-01-01 to 1970-01-01 is 719162.
+        // (Year 0 doesn't exist in Gregorian calendar, starts with year 1)
+        // (1969 years * 365 days/year) + (number of leap years between 1 and 1969)
+        // Number of leap years: floor(1969/4) - floor(1969/100) + floor(1969/400) = 492 - 19 + 4 = 477
+        // Total days = 1969 * 365 + 477 = 718685 + 477 = 719162
+        
+        // So, if dateValue is days since 0001-01-01:
+        // dateValue = 739423 (example for June 22, 2025)
+        // daysSinceUnixEpoch = dateValue - 719162 (days from 0001-01-01 to 1970-01-01)
+        const daysSinceUnixEpoch = dateValue - 719162;
+        const millisecondsSinceUnixEpoch = daysSinceUnixEpoch * 24 * 60 * 60 * 1000;
+        const date = new Date(millisecondsSinceUnixEpoch);
+        
+        if (!isNaN(date.getTime())) {
+            // The Date object created from a timestamp is inherently UTC.
+            return date;
+        }
+        return null; // Invalid number or calculation resulted in NaN
+    }
+
+    // If it's a string, proceed with existing string parsing logic
+    const dateString = String(dateValue); // Ensure dateValue is treated as a string
+
+    // Attempt 1: Standard ISO parsing (handles "YYYY-MM-DD", "YYYY-MM-DDTHH:mm:ssZ", etc.)
+    // "YYYY-MM-DD" is parsed as UTC midnight by new Date().
+    let date = new Date(dateString);
+    if (!isNaN(date.getTime())) {
+        return date;
+    }
+
+    // Attempt 2: Parse "YYYYMMDD" string
+    if (dateString.length === 8 && /^\d{8}$/.test(dateString)) {
+        const year = parseInt(dateString.substring(0, 4), 10);
+        const month = parseInt(dateString.substring(4, 6), 10) - 1; // Month is 0-indexed in JS Date
+        const day = parseInt(dateString.substring(6, 8), 10);
+        
+        // Construct as UTC date
+        const utcDate = new Date(Date.UTC(year, month, day));
+        // Validate if the constructed date is correct
+        if (utcDate.getUTCFullYear() === year && utcDate.getUTCMonth() === month && utcDate.getUTCDate() === day) {
+            return utcDate;
+        }
+    }
+    return null; // Return null if parsing failed
+};
+
+// Helper function to format date value (from report.DATE) for display
+const formatDateForDisplay = (dateValue: string | number | null): string => {
+    const date = parseReportDateStringToDate(dateValue);
+    if (date) {
+        // Using Intl.DateTimeFormat for a localized format
+        return new Intl.DateTimeFormat('en-US', { // Changed to 'en-US'
+            year: 'numeric',
+            month: 'long', // 'long' for full month name e.g., "June"
+            day: '2-digit',
+            timeZone: 'UTC' // Important to format the UTC date components as is
+        }).format(date);
+    }
+    // Fallback to original string representation or N/A if null/undefined
+    if (dateValue === null || dateValue === undefined) return "N/A";
+    return String(dateValue); 
+};
+
 
 const OperationReport: React.FC = () => {
     const [filters, setFilters] = useState({
-        company: "all", // "all" por defecto
-        airline: "all", // "all" por defecto
-        station: "all", // "all" por defecto
+        company: "all", // "all" o LLAVE (string)
+        airline: "all", // "all" o nombre de la aerolínea (string)
+        station: "all", // "all" o nombre de la estación (string)
         startDate: "",
         endDate: "",
     });
 
     const [reports, setReports] = useState<OperationReportData[]>([]);
     const [allReports, setAllReports] = useState<OperationReportData[]>([]);
-    const [loading, setLoading] = useState(false);
+    const [loading, setLoading] = useState(true); // Estado de carga general
     const [error, setError] = useState<string | null>(null);
     const [dateError, setDateError] = useState<string | null>(null);
 
-    // Estados para los dropdowns
-    const [companies, setCompanies] = useState<Company[]>([]);
-    const [airlines, setAirlines] = useState<Airline[]>([]);
-    const [stations, setStations] = useState<string[]>([]);
-
-    // Estados de carga para los dropdowns
-    const [companiesLoading, setCompaniesLoading] = useState(true);
-    const [airlinesLoading, setAirlinesLoading] = useState(false);
-    const [stationsLoading, setStationsLoading] = useState(true);
+    // Estados para las opciones de los dropdowns
+    const [companyOptions, setCompanyOptions] = useState<CompanyOption[]>([]);
+    const [airlineOptions, setAirlineOptions] = useState<string[]>([]);
+    const [stationOptions, setStationOptions] = useState<string[]>([]);
 
     // Función para validar fechas
     const validateDates = (startDate: string, endDate: string): boolean => {
         if (startDate && endDate) {
+            // Input dates are "YYYY-MM-DD". new Date() parses them as UTC midnight.
             const start = new Date(startDate);
             const end = new Date(endDate);
             if (start > end) {
@@ -110,117 +165,114 @@ const OperationReport: React.FC = () => {
         return aUpper.localeCompare(bUpper, 'en', { numeric: true });
     };
 
+    // Cargar todos los reportes al inicio
     useEffect(() => {
-        const initializeData = async () => {
-            await fetchCompanies();
-            await fetchStations();
-            await loadAllReports();
-        };
-        initializeData();
+        loadAllReports();
     }, []);
 
-    useEffect(() => {
-        if (filters.company && filters.company !== "all" && companies.length > 0) {
-            fetchAirlinesByCompany(filters.company);
-        } else {
-            setAirlines([]);
-            setFilters(prev => ({ ...prev, airline: "all" })); // Reset airline to "all"
-        }
-    }, [filters.company, companies]); // Asegurarse que companies esté en las dependencias
-
-    // Aplicar filtros automáticamente cuando cambian los datos o filtros
+    // Cuando allReports cambia, poblar las opciones de compañía
     useEffect(() => {
         if (allReports.length > 0) {
+            // Poblar Compañías
+            const uniqueCompaniesMap = new Map<number, string>();
+            allReports.forEach(report => {
+                if (report.LLAVE !== null && report.COMPANY) {
+                    uniqueCompaniesMap.set(report.LLAVE, report.COMPANY);
+                }
+            });
+            const companies = Array.from(uniqueCompaniesMap, ([llave, name]) => ({ llave, name }))
+                .sort((a, b) => customAlphabeticalSort(a.name, b.name));
+            setCompanyOptions(companies);
+        } else {
+            setCompanyOptions([]);
+            setAirlineOptions([]); // Resetear si no hay reportes
+            setStationOptions([]); // Resetear si no hay reportes
+        }
+    }, [allReports]);
+
+
+    // Cuando filters.company cambia, o allReports/companyOptions se actualizan,
+    // actualizar las opciones de aerolíneas y estaciones.
+    useEffect(() => {
+        if (allReports.length > 0 && companyOptions.length > 0) {
+            updateAirlineOptions(filters.company, allReports, companyOptions);
+            updateStationOptions(filters.company, allReports);
+
+            // Si la aerolínea seleccionada ya no está en las nuevas opciones (excepto "all"), resetearla
+            const currentFilteredAirlines = getFilteredAirlines(filters.company, allReports, companyOptions);
+            if (filters.airline !== "all" && !currentFilteredAirlines.includes(filters.airline)) {
+                 setFilters(prev => ({ ...prev, airline: "all" }));
+            }
+
+            // Si la estación seleccionada ya no está en las nuevas opciones (excepto "all"), resetearla
+            const currentFilteredStations = getFilteredStations(filters.company, allReports);
+            if (filters.station !== "all" && !currentFilteredStations.includes(filters.station)) {
+                 setFilters(prev => ({ ...prev, station: "all" }));
+            }
+        } else if (allReports.length === 0) { // Si no hay reportes, limpiar opciones
+            setAirlineOptions([]);
+            setStationOptions([]);
+        }
+    }, [filters.company, allReports, companyOptions]);
+
+
+    // Aplicar filtros automáticamente cuando cambian los datos o filtros (excepto para la carga inicial de allReports)
+    useEffect(() => {
+        if (!loading) { // Solo aplicar filtros si no estamos en la carga inicial
             applyFilters();
         }
-    }, [allReports, filters]);
+    }, [filters, allReports, loading]); // allReports se incluye por si acaso, aunque el filtrado es sobre él
 
-    const fetchCompanies = async () => {
-        try {
-            setCompaniesLoading(true);
-            const response = await axiosInstance.get('/companies/');
-            const sortedCompanies = [...response.data].sort((a, b) =>
-                customAlphabeticalSort(a.companyName, b.companyName)
-            );
-            setCompanies(sortedCompanies);
 
-            // Mantener "all" por defecto
-            if (sortedCompanies.length > 0 && filters.company === "all") {
-                setFilters(prev => ({
-                    ...prev,
-                    company: "all",
-                    airline: "all"
-                }));
-            }
-        } catch (err) {
-            console.error("Error loading companies:", err);
-        } finally {
-            setCompaniesLoading(false);
+    const getFilteredAirlines = (selectedCompanyLlave: string, currentAllReports: OperationReportData[], currentCompanyOptions: CompanyOption[]): string[] => {
+        let reportsForAirlineExtraction = currentAllReports;
+        if (selectedCompanyLlave !== "all") {
+            const companyLlaveNum = Number(selectedCompanyLlave);
+            reportsForAirlineExtraction = currentAllReports.filter(report => report.LLAVE === companyLlaveNum);
         }
+
+        const uniqueAirlinesSet = new Set<string>();
+        reportsForAirlineExtraction.forEach(report => {
+            if (report.AIRLINE) {
+                uniqueAirlinesSet.add(report.AIRLINE);
+            }
+        });
+        return Array.from(uniqueAirlinesSet).sort(customAlphabeticalSort);
     };
 
-    const fetchAirlinesByCompany = async (companyLlave: string) => {
-        try {
-            setAirlinesLoading(true);
-            // Buscar el companyCode correspondiente a la llave seleccionada
-            const selectedCompany = companies.find(c => String(c.Llave) === companyLlave);
-            const companyCode = selectedCompany ? selectedCompany.companyCode : "";
-
-            // Usar el nuevo endpoint de airlines
-            const response = await axiosInstance.get('/companies/airlines');
-
-            // Filtrar por companyCode si se seleccionó una compañía específica
-            let filteredAirlines = response.data || [];
-            if (companyCode) {
-                filteredAirlines = filteredAirlines.filter((airline: Airline) =>
-                    airline.companyCode === companyCode
-                );
-            }
-
-            const sortedAirlines = [...filteredAirlines].sort((a, b) => {
-                const nameA = a.linea || a.nombre || '';
-                const nameB = b.linea || b.nombre || '';
-                return customAlphabeticalSort(nameA, nameB);
-            });
-            setAirlines(sortedAirlines);
-
-            // Mantener "all" por defecto
-            if (!filters.airline) {
-                setFilters(prev => ({ ...prev, airline: "all" }));
-            }
-        } catch (err) {
-            console.error("Error loading airlines for company:", err);
-            setAirlines([]);
-        } finally {
-            setAirlinesLoading(false);
-        }
+    const updateAirlineOptions = (selectedCompanyLlave: string, currentAllReports: OperationReportData[], currentCompanyOptions: CompanyOption[]) => {
+        setAirlineOptions(getFilteredAirlines(selectedCompanyLlave, currentAllReports, currentCompanyOptions));
     };
 
-    const fetchStations = async () => {
-        try {
-            setStationsLoading(true);
-            // Esta lista es estática y no depende de una llamada a API
-            const stationsList = [
-                "GDL", "MEX", "CUN", "TIJ", "PVR", "SJD", "MTY", "BJX",
-                "LAX", "DFW", "MIA", "JFK", "ORD", "ATL", "DEN", "PHX"
-            ];
-            const sortedStations = [...stationsList].sort(customAlphabeticalSort);
-            setStations(sortedStations);
-        } catch (err) {
-            console.error("Error loading stations:", err);
-        } finally {
-            setStationsLoading(false);
+    const getFilteredStations = (selectedCompanyLlave: string, currentAllReports: OperationReportData[]): string[] => {
+        let reportsForStationExtraction = currentAllReports;
+        if (selectedCompanyLlave !== "all") {
+            const companyLlaveNum = Number(selectedCompanyLlave);
+            reportsForStationExtraction = currentAllReports.filter(report => report.LLAVE === companyLlaveNum);
         }
+
+        const uniqueStationsSet = new Set<string>();
+        reportsForStationExtraction.forEach(report => {
+            if (report.STATION) {
+                uniqueStationsSet.add(report.STATION);
+            }
+        });
+        return Array.from(uniqueStationsSet).sort(customAlphabeticalSort);
     };
+
+    const updateStationOptions = (selectedCompanyLlave: string, currentAllReports: OperationReportData[]) => {
+        setStationOptions(getFilteredStations(selectedCompanyLlave, currentAllReports));
+    };
+
 
     // Función para cargar todos los datos del backend (sin parámetros)
     const loadAllReports = async () => {
+        setLoading(true);
+        setError(null);
         try {
-            setLoading(true);
-            setError(null);
-
             const response = await axiosInstance.get('/reports/operation-reports-v2');
-            setAllReports(response.data);
+            setAllReports(response.data || []); // Asegurar que sea un array
+            // Los filtros se aplicarán a través del useEffect [filters, allReports]
         } catch (err) {
             setError("Could not load operation reports. Please try again.");
             setReports([]);
@@ -232,31 +284,27 @@ const OperationReport: React.FC = () => {
 
     // Función para aplicar filtros localmente en el frontend
     const applyFilters = () => {
-        // Validar fechas antes de aplicar filtros
         if (!validateDates(filters.startDate, filters.endDate)) {
-            setReports([]); // Limpiar resultados si las fechas son inválidas
+            setReports([]);
             return;
         }
 
         let filteredReports = [...allReports];
 
-        // Aplicar filtro de compañía usando LLAVE directamente para buscar
+        // Aplicar filtro de compañía usando LLAVE
         if (filters.company && filters.company !== "all") {
-            const selectedCompanyLlave = Number(filters.company);
+            const selectedCompanyLlaveNum = Number(filters.company);
             filteredReports = filteredReports.filter(report =>
-                report.LLAVE !== null && report.LLAVE === selectedCompanyLlave
+                report.LLAVE === selectedCompanyLlaveNum
             );
         }
 
-        // Aplicar filtro de aerolínea usando el campo linea
+        // Aplicar filtro de aerolínea usando el nombre de la aerolínea
         if (filters.airline && filters.airline !== "all") {
-            const selectedAirlineObj = airlines.find(airline => airline.llave.toString() === filters.airline);
-            if (selectedAirlineObj) {
-                const airlineName = selectedAirlineObj.linea;
-                filteredReports = filteredReports.filter(report =>
-                    report.AIRLINE && report.AIRLINE.toLowerCase().includes(airlineName.toLowerCase())
-                );
-            }
+            const airlineName = filters.airline;
+            filteredReports = filteredReports.filter(report =>
+                report.AIRLINE && report.AIRLINE.toLowerCase() === airlineName.toLowerCase()
+            );
         }
 
         // Aplicar filtro de estación
@@ -268,18 +316,21 @@ const OperationReport: React.FC = () => {
 
         // Aplicar filtro de fecha de inicio
         if (filters.startDate) {
-            filteredReports = filteredReports.filter(report =>
-                report.DATE && new Date(report.DATE) >= new Date(filters.startDate)
-            );
+            const startDateFilter = new Date(filters.startDate); // Parsed as UTC from "YYYY-MM-DD"
+            filteredReports = filteredReports.filter(report => {
+                const reportDate = parseReportDateStringToDate(report.DATE);
+                return reportDate && reportDate >= startDateFilter;
+            });
         }
 
         // Aplicar filtro de fecha de fin
         if (filters.endDate) {
-            filteredReports = filteredReports.filter(report =>
-                report.DATE && new Date(report.DATE) <= new Date(filters.endDate)
-            );
+            const endDateFilter = new Date(filters.endDate); // Parsed as UTC from "YYYY-MM-DD"
+            filteredReports = filteredReports.filter(report => {
+                const reportDate = parseReportDateStringToDate(report.DATE);
+                return reportDate && reportDate <= endDateFilter;
+            });
         }
-
         setReports(filteredReports);
     };
 
@@ -288,16 +339,18 @@ const OperationReport: React.FC = () => {
         if (!validateDates(filters.startDate, filters.endDate)) {
             return;
         }
-        applyFilters();
+        applyFilters(); // Los filtros ya se aplican en useEffect, pero esto asegura la aplicación al hacer clic
     };
 
     // Función para manejar cambio de fecha de inicio
     const handleStartDateChange = (value: string) => {
-        setFilters({ ...filters, startDate: value });
-        // La validación de fechas y el posible reseteo de endDate se maneja en applyFilters o al interactuar con endDate
-        if (filters.endDate && value && new Date(value) > new Date(filters.endDate)) {
-            setFilters(prev => ({ ...prev, startDate: value, endDate: "" }));
-        }
+        setFilters(prev => {
+            const newFilters = { ...prev, startDate: value };
+            if (prev.endDate && value && new Date(value) > new Date(prev.endDate)) {
+                newFilters.endDate = ""; // Resetear endDate si startDate es posterior
+            }
+            return newFilters;
+        });
     };
 
     // Función para manejar cambio de fecha de fin
@@ -313,32 +366,29 @@ const OperationReport: React.FC = () => {
             'SERV1', 'SERV2', 'SERV3', 'SERV4', 'SERV5', 'SERV6', 'REMARKS', 'TECHNICIAN'
         ];
 
-        const data = reports.length > 0 ? reports.map(report => {
-            const companyObj = companies.find(c => c.Llave === report.LLAVE);
-            return [
-                companyObj ? companyObj.companyCode : report.COMPANY, // Muestra companyCode si se encuentra, sino el valor original
-                report.AIRLINE,
-                report.DATE,
-                report.STATION,
-                report.AC_REG,
-                report.FLIGTH,
-                report.DEST,
-                report.LOG_BOOK,
-                report.AC_TYPE,
-                report.START_TIME,
-                report.END_TIME,
-                report.SERV_PR,
-                report.ON_GND,
-                report.SERV1,
-                report.SERV2,
-                report.SERV3,
-                report.SERV4,
-                report.SERV5,
-                report.SERV6,
-                report.REMARKS,
-                report.TECHNICIAN
-            ];
-        }) : [['No data available']];
+        const data = reports.length > 0 ? reports.map(report => [
+            report.COMPANY, 
+            report.AIRLINE,
+            formatDateForDisplay(report.DATE), // Formatear fecha para exportación
+            report.STATION,
+            report.AC_REG,
+            report.FLIGTH,
+            report.DEST,
+            report.LOG_BOOK,
+            report.AC_TYPE,
+            report.START_TIME,
+            report.END_TIME,
+            report.SERV_PR,
+            report.ON_GND,
+            report.SERV1,
+            report.SERV2,
+            report.SERV3,
+            report.SERV4,
+            report.SERV5,
+            report.SERV6,
+            report.REMARKS,
+            report.TECHNICIAN
+        ]) : [['No data available']];
 
         const ws = XLSX.utils.aoa_to_sheet([headers, ...data]);
         const wb = XLSX.utils.book_new();
@@ -356,32 +406,29 @@ const OperationReport: React.FC = () => {
             'SERV1', 'SERV2', 'SERV3', 'SERV4', 'SERV5', 'SERV6', 'REMARKS', 'TECHNICIAN'
         ];
 
-        const csvData = reports.length > 0 ? reports.map(report => {
-            const companyObj = companies.find(c => c.Llave === report.LLAVE);
-            return [
-                companyObj ? companyObj.companyCode : report.COMPANY,
-                report.AIRLINE,
-                report.DATE,
-                report.STATION,
-                report.AC_REG,
-                report.FLIGTH,
-                report.DEST,
-                report.LOG_BOOK,
-                report.AC_TYPE,
-                report.START_TIME,
-                report.END_TIME,
-                report.SERV_PR,
-                report.ON_GND,
-                report.SERV1,
-                report.SERV2,
-                report.SERV3,
-                report.SERV4,
-                report.SERV5,
-                report.SERV6,
-                report.REMARKS,
-                report.TECHNICIAN
-            ];
-        }) : [['No data available']];
+        const csvData = reports.length > 0 ? reports.map(report => [
+            report.COMPANY, 
+            report.AIRLINE,
+            formatDateForDisplay(report.DATE), // Formatear fecha para exportación
+            report.STATION,
+            report.AC_REG,
+            report.FLIGTH,
+            report.DEST,
+            report.LOG_BOOK,
+            report.AC_TYPE,
+            report.START_TIME,
+            report.END_TIME,
+            report.SERV_PR,
+            report.ON_GND,
+            report.SERV1,
+            report.SERV2,
+            report.SERV3,
+            report.SERV4,
+            report.SERV5,
+            report.SERV6,
+            report.REMARKS,
+            report.TECHNICIAN
+        ]) : [['No data available']];
 
         const csvContent = [headers, ...csvData]
             .map(row => row.map(field => `"${String(field === null || field === undefined ? '' : field).replace(/"/g, '""')}"`).join(','))
@@ -405,7 +452,13 @@ const OperationReport: React.FC = () => {
             doc.setFontSize(16);
             doc.text('Operations Report', 14, 15);
             doc.setFontSize(10);
-            doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 14, 25);
+            // Format "Generated on" date to American English
+            const generatedDate = new Intl.DateTimeFormat('en-US', {
+                year: 'numeric',
+                month: 'long',
+                day: '2-digit'
+            }).format(new Date());
+            doc.text(`Generated on: ${generatedDate}`, 14, 25);
 
             const columns = [
                 'COMPANY', 'AIRLINE', 'DATE', 'STATION', 'AC REG', 'FLIGTH', 'DEST',
@@ -413,32 +466,29 @@ const OperationReport: React.FC = () => {
                 'SERV1', 'SERV2', 'SERV3', 'SERV4', 'SERV5', 'SERV6', 'REMARKS', 'TECHNICIAN'
             ];
 
-            const tableData = reports.length > 0 ? reports.map(report => {
-                const companyObj = companies.find(c => c.Llave === report.LLAVE);
-                return [
-                    companyObj ? companyObj.companyCode : report.COMPANY || '',
-                    report.AIRLINE || '',
-                    report.DATE || '',
-                    report.STATION || '',
-                    report.AC_REG || '',
-                    report.FLIGTH || '',
-                    report.DEST || '',
-                    report.LOG_BOOK || '',
-                    report.AC_TYPE || '',
-                    report.START_TIME || '',
-                    report.END_TIME || '',
-                    report.SERV_PR || '',
-                    report.ON_GND || '',
-                    report.SERV1 || '',
-                    report.SERV2 || '',
-                    report.SERV3 || '',
-                    report.SERV4 || '',
-                    report.SERV5 || '',
-                    report.SERV6 || '',
-                    report.REMARKS || '',
-                    report.TECHNICIAN || ''
-                ];
-            }) : [['No data available', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '']];
+            const tableData = reports.length > 0 ? reports.map(report => [
+                report.COMPANY || '', 
+                report.AIRLINE || '',
+                formatDateForDisplay(report.DATE), // Formatear fecha para exportación
+                report.STATION || '',
+                report.AC_REG || '',
+                report.FLIGTH || '',
+                report.DEST || '',
+                report.LOG_BOOK || '',
+                report.AC_TYPE || '',
+                report.START_TIME || '',
+                report.END_TIME || '',
+                report.SERV_PR || '',
+                report.ON_GND || '',
+                report.SERV1 || '',
+                report.SERV2 || '',
+                report.SERV3 || '',
+                report.SERV4 || '',
+                report.SERV5 || '',
+                report.SERV6 || '',
+                report.REMARKS || '',
+                report.TECHNICIAN || ''
+            ]) : [['No data available', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '']];
 
             autoTable(doc, {
                 head: [columns],
@@ -460,7 +510,7 @@ const OperationReport: React.FC = () => {
                 columnStyles: {
                     0: { cellWidth: 15 },
                     1: { cellWidth: 15 },
-                    2: { cellWidth: 12 },
+                    2: { cellWidth: 18 }, // DATE column adjusted for new format
                     3: { cellWidth: 10 },
                     4: { cellWidth: 12 },
                     5: { cellWidth: 10 },
@@ -486,12 +536,17 @@ const OperationReport: React.FC = () => {
             doc.save(fileName);
         } catch (error) {
             console.error('Error generating PDF:', error);
-            // Fallback PDF generation if autoTable fails
             const docFallback = new jsPDF('l', 'mm', 'a4');
             docFallback.setFontSize(20);
             docFallback.text('Operations Report', 14, 22);
             docFallback.setFontSize(12);
-            docFallback.text(`Generated on: ${new Date().toLocaleDateString()}`, 14, 35);
+            // Format "Generated on" date to American English for fallback PDF
+            const generatedDateFallback = new Intl.DateTimeFormat('en-US', {
+                year: 'numeric',
+                month: 'long',
+                day: '2-digit'
+            }).format(new Date());
+            docFallback.text(`Generated on: ${generatedDateFallback}`, 14, 35);
 
             let yPosition = 50;
             docFallback.setFontSize(10);
@@ -503,14 +558,13 @@ const OperationReport: React.FC = () => {
                 yPosition += 10;
 
                 reports.forEach((report) => {
-                    const companyObj = companies.find(c => c.Llave === report.LLAVE);
-                    const companyDisplay = companyObj ? companyObj.companyCode : report.COMPANY;
-                    const line = `${companyDisplay || 'N/A'} | ${report.AIRLINE || 'N/A'} | ${report.DATE || 'N/A'} | ${report.STATION || 'N/A'} | ${report.FLIGTH || 'N/A'}`;
+                    const companyDisplay = report.COMPANY; 
+                    const line = `${companyDisplay || 'N/A'} | ${report.AIRLINE || 'N/A'} | ${formatDateForDisplay(report.DATE)} | ${report.STATION || 'N/A'} | ${report.FLIGTH || 'N/A'}`;
                     docFallback.text(line, 14, yPosition);
                     yPosition += 8;
-                    if (yPosition > 180) { // Check for page overflow
+                    if (yPosition > 180) {
                         docFallback.addPage();
-                        yPosition = 20; // Reset Y position for new page
+                        yPosition = 20;
                     }
                 });
             }
@@ -522,263 +576,258 @@ const OperationReport: React.FC = () => {
 
     return (
         <AISGBackground>
-            <div className="max-w-7xl mx-auto p-6 font-['Montserrat']">
-                {/* Cabecera principal con título y descripción */}
-                <div className="text-center mb-8">
-                    <h1 className="text-3xl font-bold text-white">Operations Report</h1>
-                    <div className="mt-2 w-20 h-1 bg-[#e6001f] mx-auto"></div>
-                    <p className="text-gray-200 mt-2 font-light">
-                        Search and analyze operational data
-                    </p>
+            <div className="flex flex-col min-h-screen font-['Montserrat'] text-white">
+                <div className="flex-shrink-0 p-6 max-w-7xl mx-auto w-full">
+                    <div className="text-center mb-8">
+                        <h1 className="text-3xl font-bold text-white">Operations Report</h1>
+                        <div className="mt-2 w-20 h-1 bg-[#e6001f] mx-auto"></div>
+                        <p className="text-gray-200 mt-2 font-light">
+                            Search and analyze operational data
+                        </p>
+                    </div>
+
+                    {error && (
+                        <div className="bg-red-500 text-white p-4 rounded-lg mb-6 shadow-md animate-pulse">
+                            <p className="font-medium">{error}</p>
+                        </div>
+                    )}
+
+                    {dateError && (
+                        <div className="bg-orange-500 text-white p-4 rounded-lg mb-6 shadow-md animate-pulse">
+                            <p className="font-medium">{dateError}</p>
+                        </div>
+                    )}
+
+                    <div className="bg-[#16213E] p-6 rounded-lg shadow-lg mb-6">
+                        <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-4">
+                            {/* Company Dropdown */}
+                            <div>
+                                <label className="block text-sm font-medium text-gray-300 mb-1">Company</label>
+                                {loading && companyOptions.length === 0 ? (
+                                    <div className="w-full bg-[#1E2A45] text-white px-3 py-2 rounded-md border border-gray-700 animate-pulse text-center">
+                                        Loading...
+                                    </div>
+                                ) : (
+                                    <select
+                                        className="w-full bg-[#1E2A45] text-white px-3 py-2 rounded-md border border-gray-700 focus:border-[#00B140] focus:ring-2 focus:ring-[#00B140] focus:outline-none"
+                                        value={filters.company}
+                                        onChange={(e) => {
+                                            setFilters({ ...filters, company: e.target.value, airline: "all", station: "all" }); // Reset airline and station when company changes
+                                        }}
+                                    >
+                                        <option value="all">All Companies</option>
+                                        {companyOptions.map((company) => (
+                                            <option key={company.llave} value={String(company.llave)}>
+                                                {company.name} {/* Muestra el código de compañía (COMPANY) */}
+                                            </option>
+                                        ))}
+                                    </select>
+                                )}
+                            </div>
+
+                            {/* Airline Dropdown */}
+                            <div>
+                                <label className="block text-sm font-medium text-gray-300 mb-1">Airline</label>
+                                {loading && airlineOptions.length === 0 && filters.company === "all" ? (
+                                    <div className="w-full bg-[#1E2A45] text-white px-3 py-2 rounded-md border border-gray-700 animate-pulse text-center">
+                                        Loading...
+                                    </div>
+                                ) : (
+                                    <select
+                                        className="w-full bg-[#1E2A45] text-white px-3 py-2 rounded-md border border-gray-700 focus:border-[#00B140] focus:ring-2 focus:ring-[#00B140] focus:outline-none"
+                                        value={filters.airline}
+                                        onChange={(e) => setFilters({ ...filters, airline: e.target.value })}
+                                        disabled={loading && airlineOptions.length === 0 && filters.company === "all"}
+                                    >
+                                        <option value="all">All Airlines</option>
+                                        {airlineOptions.map((airlineName) => (
+                                            <option key={airlineName} value={airlineName}>
+                                                {airlineName} {/* Muestra el nombre de la aerolínea (AIRLINE) */}
+                                            </option>
+                                        ))}
+                                    </select>
+                                )}
+                            </div>
+
+                            {/* Station Dropdown */}
+                            <div>
+                                <label className="block text-sm font-medium text-gray-300 mb-1">Station</label>
+                                {loading && stationOptions.length === 0 && filters.company === "all" ? (
+                                    <div className="w-full bg-[#1E2A45] text-white px-3 py-2 rounded-md border border-gray-700 animate-pulse text-center">
+                                        Loading...
+                                    </div>
+                                ) : (
+                                    <select
+                                        className="w-full bg-[#1E2A45] text-white px-3 py-2 rounded-md border border-gray-700 focus:border-[#00B140] focus:ring-2 focus:ring-[#00B140] focus:outline-none"
+                                        value={filters.station}
+                                        onChange={(e) => setFilters({ ...filters, station: e.target.value })}
+                                        disabled={loading && stationOptions.length === 0 && filters.company === "all"}
+                                    >
+                                        <option value="all">All Stations</option>
+                                        {stationOptions.map((stationName) => (
+                                            <option key={stationName} value={stationName}>
+                                                {stationName}
+                                            </option>
+                                        ))}
+                                    </select>
+                                )}
+                            </div>
+
+                            {/* Start Date */}
+                            <div>
+                                <label className="block text-sm font-medium text-gray-300 mb-1">Start Date</label>
+                                <input
+                                    type="date"
+                                    className={`w-full bg-[#1E2A45] text-white px-3 py-2 rounded-md border ${
+                                        dateError ? 'border-red-500' : 'border-gray-700'
+                                    } focus:border-[#00B140] focus:ring-2 focus:ring-[#00B140] focus:outline-none`}
+                                    value={filters.startDate}
+                                    onChange={e => handleStartDateChange(e.target.value)}
+                                />
+                            </div>
+
+                            {/* End Date */}
+                            <div>
+                                <label className="block text-sm font-medium text-gray-300 mb-1">End Date</label>
+                                <input
+                                    type="date"
+                                    className={`w-full bg-[#1E2A45] text-white px-3 py-2 rounded-md border ${
+                                        dateError ? 'border-red-500' : 'border-gray-700'
+                                    } focus:border-[#00B140] focus:ring-2 focus:ring-[#00B140] focus:outline-none`}
+                                    value={filters.endDate}
+                                    min={filters.startDate || undefined}
+                                    onChange={e => handleEndDateChange(e.target.value)}
+                                />
+                            </div>
+                        </div>
+
+                        <div className="flex flex-wrap justify-between items-center gap-4">
+                            <div className="flex flex-wrap gap-2">
+                                <button
+                                    className="bg-[#dc2626] hover:bg-[#b91c1c] text-white font-medium py-2 px-4 rounded-md shadow-md transition-all duration-200 flex items-center gap-2"
+                                    onClick={exportToPDF}
+                                    disabled={loading || reports.length === 0}
+                                >
+                                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fillRule="evenodd" d="M6 2a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V7.414A2 2 0 0015.414 6L12 2.586A2 2 0 0010.586 2H6zm2 10a1 1 0 10-2 0v3a1 1 0 102 0v-3zm2-3a1 1 0 011 1v5a1 1 0 11-2 0v-5a1 1 0 011-1zm4-1a1 1 0 10-2 0v7a1 1 0 102 0V8z" clipRule="evenodd" />
+                                    </svg>
+                                    Export PDF
+                                </button>
+                                <button
+                                    className="bg-[#16a34a] hover:bg-[#15803d] text-white font-medium py-2 px-4 rounded-md shadow-md transition-all duration-200 flex items-center gap-2"
+                                    onClick={exportToExcel}
+                                    disabled={loading || reports.length === 0}
+                                >
+                                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM6.293 6.707a1 1 0 10-1.414-1.414l-3 3a1 1 0 000 1.414l3 3a1 1 0 001.414-1.414L4.414 9H17a1 1 0 100-2H4.414l1.879-1.879z" clipRule="evenodd" />
+                                    </svg>
+                                    Export Excel
+                                </button>
+                                <button
+                                    className="bg-[#0891b2] hover:bg-[#0e7490] text-white font-medium py-2 px-4 rounded-md shadow-md transition-all duration-200 flex items-center gap-2"
+                                    onClick={exportToCSV}
+                                    disabled={loading || reports.length === 0}
+                                >
+                                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
+                                    </svg>
+                                    Export CSV
+                                </button>
+                            </div>
+
+                            <button
+                                className={`${
+                                    dateError || loading
+                                        ? 'bg-gray-500 cursor-not-allowed' 
+                                        : 'bg-[#00B140] hover:bg-[#009935]'
+                                } text-white font-medium py-2 px-6 rounded-md shadow-md transition-all duration-200`}
+                                onClick={searchReports} // La búsqueda ahora solo re-aplica filtros, no llama a API
+                                disabled={loading || !!dateError}
+                            >
+                                {loading ? 'Loading Data...' : 'Search'}
+                            </button>
+                        </div>
+                    </div>
+                    
+                    {(loading && reports.length === 0 && allReports.length === 0) && (
+                        <div className="flex justify-center py-6">
+                            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#00B140]"></div>
+                        </div>
+                    )}
+
+                    <div className="mb-4 text-white">
+                        <p>Total records: {allReports.length} | Filtered records: {reports.length}</p>
+                    </div>
                 </div>
 
-                {/* Mensajes de error */}
-                {error && (
-                    <div className="bg-red-500 text-white p-4 rounded-lg mb-6 shadow-md animate-pulse">
-                        <p className="font-medium">{error}</p>
-                    </div>
-                )}
-
-                {/* Mensaje de error de fechas */}
-                {dateError && (
-                    <div className="bg-orange-500 text-white p-4 rounded-lg mb-6 shadow-md animate-pulse">
-                        <p className="font-medium">{dateError}</p>
-                    </div>
-                )}
-
-                {/* Filtros de búsqueda */}
-                <div className="bg-[#16213E] p-6 rounded-lg shadow-lg mb-6">
-                    <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-4">
-                        {/* Company Dropdown */}
-                        <div>
-                            <label className="block text-sm font-medium text-gray-300 mb-1">Company</label>
-                            {companiesLoading ? (
-                                <div className="w-full bg-[#1E2A45] text-white px-3 py-2 rounded-md border border-gray-700 animate-pulse text-center">
-                                    Loading...
-                                </div>
-                            ) : (
-                                <select
-                                    className="w-full bg-[#1E2A45] text-white px-3 py-2 rounded-md border border-gray-700 focus:border-[#00B140] focus:ring-2 focus:ring-[#00B140] focus:outline-none"
-                                    value={filters.company}
-                                    onChange={(e) => {
-                                        setFilters({ ...filters, company: e.target.value, airline: "all" });
-                                    }}
-                                >
-                                    <option value="all">All Companies</option>
-                                    {companies.map((company) => (
-                                        <option key={company.Llave} value={company.Llave}>
-                                            {company.companyCode} - {company.companyName}
-                                        </option>
-                                    ))}
-                                </select>
-                            )}
-                        </div>
-
-                        {/* Airline Dropdown */}
-                        <div>
-                            <label className="block text-sm font-medium text-gray-300 mb-1">Airline</label>
-                            {airlinesLoading ? (
-                                <div className="w-full bg-[#1E2A45] text-white px-3 py-2 rounded-md border border-gray-700 animate-pulse text-center">
-                                    Loading...
-                                </div>
-                            ) : (
-                                <select
-                                    className="w-full bg-[#1E2A45] text-white px-3 py-2 rounded-md border border-gray-700 focus:border-[#00B140] focus:ring-2 focus:ring-[#00B140] focus:outline-none"
-                                    value={filters.airline}
-                                    onChange={(e) => setFilters({ ...filters, airline: e.target.value })}
-                                    disabled={!filters.company || filters.company === "all" || companiesLoading}
-                                >
-                                    <option value="all">All Airlines</option>
-                                    {airlines.map((airline) => (
-                                        <option key={airline.llave} value={airline.llave}>
-                                            {airline.linea} - {airline.nombre || `Airline #${airline.llave}`}
-                                        </option>
-                                    ))}
-                                </select>
-                            )}
-                        </div>
-
-                        {/* Station Dropdown */}
-                        <div>
-                            <label className="block text-sm font-medium text-gray-300 mb-1">Station</label>
-                            {stationsLoading ? (
-                                <div className="w-full bg-[#1E2A45] text-white px-3 py-2 rounded-md border border-gray-700 animate-pulse text-center">
-                                    Loading...
-                                </div>
-                            ) : (
-                                <select
-                                    className="w-full bg-[#1E2A45] text-white px-3 py-2 rounded-md border border-gray-700 focus:border-[#00B140] focus:ring-2 focus:ring-[#00B140] focus:outline-none"
-                                    value={filters.station}
-                                    onChange={(e) => setFilters({ ...filters, station: e.target.value })}
-                                >
-                                    <option value="all">All Stations</option>
-                                    {stations.map((station) => (
-                                        <option key={station} value={station}>
-                                            {station}
-                                        </option>
-                                    ))}
-                                </select>
-                            )}
-                        </div>
-
-                        {/* Start Date */}
-                        <div>
-                            <label className="block text-sm font-medium text-gray-300 mb-1">Start Date</label>
-                            <input
-                                type="date"
-                                className={`w-full bg-[#1E2A45] text-white px-3 py-2 rounded-md border ${
-                                    dateError ? 'border-red-500' : 'border-gray-700'
-                                } focus:border-[#00B140] focus:ring-2 focus:ring-[#00B140] focus:outline-none`}
-                                value={filters.startDate}
-                                onChange={e => handleStartDateChange(e.target.value)}
-                            />
-                        </div>
-
-                        {/* End Date */}
-                        <div>
-                            <label className="block text-sm font-medium text-gray-300 mb-1">End Date</label>
-                            <input
-                                type="date"
-                                className={`w-full bg-[#1E2A45] text-white px-3 py-2 rounded-md border ${
-                                    dateError ? 'border-red-500' : 'border-gray-700'
-                                } focus:border-[#00B140] focus:ring-2 focus:ring-[#00B140] focus:outline-none`}
-                                value={filters.endDate}
-                                min={filters.startDate || undefined}
-                                onChange={e => handleEndDateChange(e.target.value)}
-                            />
-                        </div>
-                    </div>
-
-                    {/* Botones de acción */}
-                    <div className="flex flex-wrap justify-between items-center gap-4">
-                        <div className="flex flex-wrap gap-2">
-                            <button
-                                className="bg-[#dc2626] hover:bg-[#b91c1c] text-white font-medium py-2 px-4 rounded-md shadow-md transition-all duration-200 flex items-center gap-2"
-                                onClick={exportToPDF}
-                            >
-                                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fillRule="evenodd" d="M6 2a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V7.414A2 2 0 0015.414 6L12 2.586A2 2 0 0010.586 2H6zm2 10a1 1 0 10-2 0v3a1 1 0 102 0v-3zm2-3a1 1 0 011 1v5a1 1 0 11-2 0v-5a1 1 0 011-1zm4-1a1 1 0 10-2 0v7a1 1 0 102 0V8z" clipRule="evenodd" />
-                                </svg>
-                                Export PDF
-                            </button>
-                            <button
-                                className="bg-[#16a34a] hover:bg-[#15803d] text-white font-medium py-2 px-4 rounded-md shadow-md transition-all duration-200 flex items-center gap-2"
-                                onClick={exportToExcel}
-                            >
-                                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM6.293 6.707a1 1 0 10-1.414-1.414l-3 3a1 1 0 000 1.414l3 3a1 1 0 001.414-1.414L4.414 9H17a1 1 0 100-2H4.414l1.879-1.879z" clipRule="evenodd" />
-                                </svg>
-                                Export Excel
-                            </button>
-                            <button
-                                className="bg-[#0891b2] hover:bg-[#0e7490] text-white font-medium py-2 px-4 rounded-md shadow-md transition-all duration-200 flex items-center gap-2"
-                                onClick={exportToCSV}
-                            >
-                                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
-                                </svg>
-                                Export CSV
-                            </button>
-                        </div>
-
-                        <button
-                            className={`${
-                                dateError || loading || companiesLoading || airlinesLoading || stationsLoading
-                                    ? 'bg-gray-500 cursor-not-allowed' 
-                                    : 'bg-[#00B140] hover:bg-[#009935]'
-                            } text-white font-medium py-2 px-6 rounded-md shadow-md transition-all duration-200`}
-                            onClick={searchReports}
-                            disabled={loading || !!dateError || companiesLoading || airlinesLoading || stationsLoading}
-                        >
-                            {loading || companiesLoading || airlinesLoading || stationsLoading ? 'Searching...' : 'Search'}
-                        </button>
-                    </div>
-                </div>
-
-                {/* Indicador de carga */}
-                {(loading && reports.length === 0) && (
-                    <div className="flex justify-center py-6">
-                        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#00B140]"></div>
-                    </div>
-                )}
-
-                {/* Información de resultados */}
-                <div className="mb-4 text-white">
-                    <p>Total records: {allReports.length} | Filtered records: {reports.length}</p>
-                </div>
-
-                {/* Tabla de resultados - LLAVE NO se muestra */}
-                <div className="overflow-x-auto">
-                    <table className="w-full border-collapse text-xs text-white">
-                        <thead>
-                            <tr className="bg-white text-[#002057]">
-                                <th className="p-2">COMPANY</th>
-                                <th className="p-2">AIRLINE</th>
-                                <th className="p-2">DATE</th>
-                                <th className="p-2">STATION</th>
-                                <th className="p-2">AC REG</th>
-                                <th className="p-2">FLIGTH</th>
-                                <th className="p-2">DEST</th>
-                                <th className="p-2">LOG BOOK</th>
-                                <th className="p-2">A/C TYPE</th>
-                                <th className="p-2">START TIME</th>
-                                <th className="p-2">END TIME</th>
-                                <th className="p-2">SERV PR</th>
-                                <th className="p-2">ON GND</th>
-                                <th className="p-2">SERV1</th>
-                                <th className="p-2">SERV2</th>
-                                <th className="p-2">SERV3</th>
-                                <th className="p-2">SERV4</th>
-                                <th className="p-2">SERV5</th>
-                                <th className="p-2">SERV6</th>
-                                <th className="p-2">REMARKS</th>
-                                <th className="p-2">TECHNICIAN</th>
-                            </tr>
-                        </thead>
-                        <tbody className="bg-transparent">
-                            {reports.length > 0 ? (
-                                reports.map((item, index) => {
-                                    const companyObj = companies.find(c => c.Llave === item.LLAVE);
-                                    const companyDisplay = companyObj ? companyObj.companyCode : item.COMPANY;
-                                    return (
-                                        <tr key={index} className="border-b border-[#233554] hover:bg-[#233554] transition-colors">
-                                            <td className="p-2">{companyDisplay || 'N/A'}</td>
-                                            <td className="p-2">{item.AIRLINE || 'N/A'}</td>
-                                            <td className="p-2">{item.DATE || 'N/A'}</td>
-                                            <td className="p-2">{item.STATION || 'N/A'}</td>
-                                            <td className="p-2">{item.AC_REG || 'N/A'}</td>
-                                            <td className="p-2">{item.FLIGTH || 'N/A'}</td>
-                                            <td className="p-2">{item.DEST || 'N/A'}</td>
-                                            <td className="p-2">{item.LOG_BOOK || 'N/A'}</td>
-                                            <td className="p-2">{item.AC_TYPE || 'N/A'}</td>
-                                            <td className="p-2">{item.START_TIME || 'N/A'}</td>
-                                            <td className="p-2">{item.END_TIME || 'N/A'}</td>
-                                            <td className="p-2">{item.SERV_PR || 'N/A'}</td>
-                                            <td className="p-2">{item.ON_GND || 'N/A'}</td>
-                                            <td className="p-2">{item.SERV1 || 'N/A'}</td>
-                                            <td className="p-2">{item.SERV2 || 'N/A'}</td>
-                                            <td className="p-2">{item.SERV3 || 'N/A'}</td>
-                                            <td className="p-2">{item.SERV4 || 'N/A'}</td>
-                                            <td className="p-2">{item.SERV5 || 'N/A'}</td>
-                                            <td className="p-2">{item.SERV6 || 'N/A'}</td>
-                                            <td className="p-2">{item.REMARKS || 'N/A'}</td>
-                                            <td className="p-2">{item.TECHNICIAN || 'N/A'}</td>
-                                            {/* LLAVE NO se muestra en la tabla */}
-                                        </tr>
-                                    );
-                                })
-                            ) : (
-                                <tr>
-                                    <td colSpan={21} className="p-4 text-center">
-                                        { (loading || companiesLoading || stationsLoading) ? 'Loading data...' :
-                                          (allReports.length === 0 && !error) ? 'No operation reports available.' : 
-                                          'No operation reports match the current filters.'
-                                        }
-                                    </td>
+                <div className="flex-1 overflow-hidden px-6 pb-6 max-w-7xl mx-auto w-full">
+                    <div className="h-full w-full overflow-auto">
+                        <table className="border-collapse text-xs text-white" style={{ minWidth: 'max-content' }}>
+                            <thead className="sticky top-0 z-10">
+                                <tr className="bg-white text-[#002057]">
+                                    <th className="px-3 py-4 text-left font-semibold border border-[#cccccc] text-xs whitespace-nowrap">COMPANY</th>
+                                    <th className="px-3 py-4 text-left font-semibold border border-[#cccccc] text-xs whitespace-nowrap">AIRLINE</th>
+                                    <th className="px-3 py-4 text-left font-semibold border border-[#cccccc] text-xs whitespace-nowrap">DATE</th>
+                                    <th className="px-3 py-4 text-left font-semibold border border-[#cccccc] text-xs whitespace-nowrap">STATION</th>
+                                    <th className="px-3 py-4 text-left font-semibold border border-[#cccccc] text-xs whitespace-nowrap">AC REG</th>
+                                    <th className="px-3 py-4 text-left font-semibold border border-[#cccccc] text-xs whitespace-nowrap">FLIGTH</th>
+                                    <th className="px-3 py-4 text-left font-semibold border border-[#cccccc] text-xs whitespace-nowrap">DEST</th>
+                                    <th className="px-3 py-4 text-left font-semibold border border-[#cccccc] text-xs whitespace-nowrap">LOG BOOK</th>
+                                    <th className="px-3 py-4 text-left font-semibold border border-[#cccccc] text-xs whitespace-nowrap">A/C TYPE</th>
+                                    <th className="px-3 py-4 text-left font-semibold border border-[#cccccc] text-xs whitespace-nowrap">START TIME</th>
+                                    <th className="px-3 py-4 text-left font-semibold border border-[#cccccc] text-xs whitespace-nowrap">END TIME</th>
+                                    <th className="px-3 py-4 text-left font-semibold border border-[#cccccc] text-xs whitespace-nowrap">SERV PR</th>
+                                    <th className="px-3 py-4 text-left font-semibold border border-[#cccccc] text-xs whitespace-nowrap">ON GND</th>
+                                    <th className="px-3 py-4 text-left font-semibold border border-[#cccccc] text-xs whitespace-nowrap">SERV1</th>
+                                    <th className="px-3 py-4 text-left font-semibold border border-[#cccccc] text-xs whitespace-nowrap">SERV2</th>
+                                    <th className="px-3 py-4 text-left font-semibold border border-[#cccccc] text-xs whitespace-nowrap">SERV3</th>
+                                    <th className="px-3 py-4 text-left font-semibold border border-[#cccccc] text-xs whitespace-nowrap">SERV4</th>
+                                    <th className="px-3 py-4 text-left font-semibold border border-[#cccccc] text-xs whitespace-nowrap">SERV5</th>
+                                    <th className="px-3 py-4 text-left font-semibold border border-[#cccccc] text-xs whitespace-nowrap">SERV6</th>
+                                    <th className="px-3 py-4 text-left font-semibold border border-[#cccccc] text-xs whitespace-nowrap">REMARKS</th>
+                                    <th className="px-3 py-4 text-left font-semibold border border-[#cccccc] text-xs whitespace-nowrap">TECHNICIAN</th>
                                 </tr>
-                            )}
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody className="bg-transparent">
+                                {reports.length > 0 ? (
+                                    reports.map((item, index) => (
+                                        <tr key={`${item.LLAVE}-${String(item.DATE)}-${item.FLIGTH}-${index}`} className="bg-transparent hover:bg-[#1E2A45] transition-colors">
+                                            <td className="px-3 py-4 border border-[#1e3462] text-white text-xs whitespace-nowrap">{item.COMPANY}</td>
+                                            <td className="px-3 py-4 border border-[#1e3462] text-white text-xs whitespace-nowrap">{item.AIRLINE}</td>
+                                            <td className="px-3 py-4 border border-[#1e3462] text-white text-xs whitespace-nowrap">{formatDateForDisplay(item.DATE)}</td>
+                                            <td className="px-3 py-4 border border-[#1e3462] text-white text-xs whitespace-nowrap">{item.STATION}</td>
+                                            <td className="px-3 py-4 border border-[#1e3462] text-white text-xs whitespace-nowrap">{item.AC_REG}</td>
+                                            <td className="px-3 py-4 border border-[#1e3462] text-white text-xs whitespace-nowrap">{item.FLIGTH}</td>
+                                            <td className="px-3 py-4 border border-[#1e3462] text-white text-xs whitespace-nowrap">{item.DEST}</td>
+                                            <td className="px-3 py-4 border border-[#1e3462] text-white text-xs whitespace-nowrap">{item.LOG_BOOK}</td>
+                                            <td className="px-3 py-4 border border-[#1e3462] text-white text-xs whitespace-nowrap">{item.AC_TYPE}</td>
+                                            <td className="px-3 py-4 border border-[#1e3462] text-white text-xs whitespace-nowrap">{item.START_TIME}</td>
+                                            <td className="px-3 py-4 border border-[#1e3462] text-white text-xs whitespace-nowrap">{item.END_TIME}</td>
+                                            <td className="px-3 py-4 border border-[#1e3462] text-white text-xs whitespace-nowrap">{item.SERV_PR}</td>
+                                            <td className="px-3 py-4 border border-[#1e3462] text-white text-xs whitespace-nowrap">{item.ON_GND}</td>
+                                            <td className="px-3 py-4 border border-[#1e3462] text-white text-xs whitespace-nowrap">{item.SERV1}</td>
+                                            <td className="px-3 py-4 border border-[#1e3462] text-white text-xs whitespace-nowrap">{item.SERV2}</td>
+                                            <td className="px-3 py-4 border border-[#1e3462] text-white text-xs whitespace-nowrap">{item.SERV3}</td>
+                                            <td className="px-3 py-4 border border-[#1e3462] text-white text-xs whitespace-nowrap">{item.SERV4}</td>
+                                            <td className="px-3 py-4 border border-[#1e3462] text-white text-xs whitespace-nowrap">{item.SERV5}</td>
+                                            <td className="px-3 py-4 border border-[#1e3462] text-white text-xs whitespace-nowrap">{item.SERV6}</td>
+                                            <td className="px-3 py-4 border border-[#1e3462] text-white text-xs whitespace-nowrap">{item.REMARKS}</td>
+                                            <td className="px-3 py-4 border border-[#1e3462] text-white text-xs whitespace-nowrap">{item.TECHNICIAN}</td>
+                                        </tr>
+                                    ))
+                                ) : (
+                                    <tr>
+                                        <td colSpan={21} className="px-3 py-4 border border-[#1e3462] text-white text-xs whitespace-nowrap text-center">
+                                            {loading ? 'Loading data...' :
+                                              (allReports.length === 0 && !error) ? 'No operation reports available.' : 
+                                              'No operation reports match the current filters.'
+                                            }
+                                        </td>
+                                    </tr>
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </AISGBackground>

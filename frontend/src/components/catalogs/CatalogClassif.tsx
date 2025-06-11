@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import axiosInstance from '../../api/axiosInstance';
 
 import { Link } from "react-router-dom";
@@ -23,7 +23,7 @@ const CatalogClassif: React.FC = () => {
   // Estado para el popup de error de eliminación (registro en uso)
   const [showDeleteErrorPopup, setShowDeleteErrorPopup] = useState(false);
   const [deleteErrorMessage, setDeleteErrorMessage] = useState<string>("");
-  const [dependentRecords, setDependentRecords] = useState<any[]>([]);
+  const [dependentRecords, setDependentRecords] = useState<any[]>([]); // Aunque no se usa activamente en UI, se mantiene por si es necesario a futuro.
 
   // Referencias para manejar el foco
   const deleteSuccessOkButtonRef = useRef<HTMLButtonElement>(null);
@@ -57,31 +57,177 @@ const CatalogClassif: React.FC = () => {
     }
   }, [showDeleteErrorPopup]);
 
-  // Efecto para manejar Enter en los popups
+  const fetchClassifications = useCallback(async () => {
+    setLoading(true);
+    try {
+      const url = search
+        ? `/catalog/service-classification?search=${encodeURIComponent(search)}`
+        : `/catalog/service-classification`;
+      const res = await axiosInstance.get(url);
+      setClassifications(res.data);
+      setError(null);
+    } catch (err: any) {
+      setError("Could not load classifications. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  }, [search]); // axiosInstance y setters son estables
+
+  const checkClassificationUsage = useCallback(async (classificationId: number): Promise<{ inUse: boolean; records: any[] }> => {
+    const allDependentRecords: any[] = [];
+
+    const fetchAndProcess = async (
+      path: string,
+      filterFn: (item: any, id: number) => boolean,
+      mapperFn: (item: any) => any,
+      warnMsg: string
+    ) => {
+      try {
+        const response = await axiosInstance.get(path);
+        return response.data.filter((item: any) => filterFn(item, classificationId)).map(mapperFn);
+      } catch (err) {
+        console.warn(`${warnMsg}:`, err);
+        return []; // Retornar array vacío en caso de error para este endpoint específico
+      }
+    };
+
+    const promises = [
+      fetchAndProcess('/catalog/services', (item, id) => item.id_service_classification === id, item => ({ type: 'Service', name: `${item.service_code} - ${item.service_name}`, id: item.id_service }), "Error checking services"),
+      fetchAndProcess('/components', (item, id) => item.id_service_classification === id || item.classification_id === id, item => ({ type: 'Component', name: `Component: ${item.component_name || item.component_number || item.id}`, id: item.id }), "Error checking components"),
+      fetchAndProcess('/catalog/service-per-customer', (item, id) => item.service_classification_id === id, item => ({ type: 'Customer Service', name: `Customer ID: ${item.id_customer} - Service: ${item.service_name || item.id_service}`, id: item.id_service_per_customer }), "Error checking customer services"),
+      fetchAndProcess('/work-orders', (item, id) => item.service_classification_id === id, item => ({ type: 'Work Order', name: `Work Order: ${item.work_order_number || item.id}`, id: item.id }), "Error checking work orders"),
+      fetchAndProcess('/quotes', (item, id) => item.service_classification_id === id, item => ({ type: 'Quote', name: `Quote: ${item.quote_number || item.id}`, id: item.id }), "Error checking quotes"),
+      fetchAndProcess('/reports/operation-report', (item, id) => item.classification_id === id, item => ({ type: 'Operation Report', name: `Report: ${item.cliente} - ${item.servicio_principal}`, id: item.id }), "Error checking operation reports"),
+      fetchAndProcess('/reports/service-executions', (item, id) => item.classification_id === id, item => ({ type: 'Service Execution', name: `Execution: Work Order ${item.work_order}`, id: item.id }), "Error checking service executions"),
+      fetchAndProcess('/billing/invoices', (item, id) => item.classification_id === id, item => ({ type: 'Invoice', name: `Invoice: ${item.invoice_number || item.id}`, id: item.id }), "Error checking invoices"),
+    ];
+
+    try {
+      const results = await Promise.all(promises);
+      results.forEach(recordsSegment => allDependentRecords.push(...recordsSegment));
+      return {
+        inUse: allDependentRecords.length > 0,
+        records: allDependentRecords // `records` se devuelve aunque no se use explícitamente en UI de error actual
+      };
+    } catch (err) {
+      // Este catch es un fallback, ya que fetchAndProcess maneja errores individuales.
+      // Promise.all rechaza si alguna promesa interna rechaza *sin ser atrapada*.
+      // Como fetchAndProcess atrapa sus propios errores y devuelve [], Promise.all no debería rechazar aquí.
+      console.error("Error aggregating classification usage checks:", err);
+      return { inUse: false, records: [] };
+    }
+  }, []); // axiosInstance es estable, classificationId es un argumento.
+
+  const closeDeleteSuccessPopup = useCallback(() => {
+    setShowDeleteSuccessPopup(false);
+    setDeletedItemName("");
+  }, []);
+
+  const closeDeleteErrorPopup = useCallback(() => {
+    setShowDeleteErrorPopup(false);
+    setDeleteErrorMessage("");
+    setDependentRecords([]);
+  }, []);
+
+  const cancelDelete = useCallback(() => {
+    setShowDeletePopup(false);
+    setDeleteItemId(null);
+    setDeleteItemName("");
+  }, []);
+
+  const confirmDelete = useCallback(async () => {
+    if (deleteItemId === null) return;
+
+    setIsDeleting(true);
+    try {
+      const { inUse } = await checkClassificationUsage(deleteItemId);
+
+      if (inUse) {
+        setDeleteErrorMessage(
+          `Cannot delete classification "${deleteItemName}" because it is currently being used in the system.`
+        );
+        setShowDeletePopup(false);
+        setShowDeleteErrorPopup(true);
+        setDeleteItemId(null);
+        setDeleteItemName("");
+        setIsDeleting(false);
+        return;
+      }
+
+      await axiosInstance.delete(`/catalog/service-classification/${deleteItemId}`);
+      setDeletedItemName(deleteItemName);
+      setShowDeletePopup(false);
+      setDeleteItemId(null);
+      setDeleteItemName("");
+      setShowDeleteSuccessPopup(true);
+      fetchClassifications();
+      setError(null);
+
+    } catch (err: any) {
+      console.error("Error deleting classification:", err);
+      if (err.response?.status === 409 || err.response?.data?.detail?.includes("constraint")) {
+        setDeleteErrorMessage(
+          `Cannot delete classification "${deleteItemName}" because it is currently being used in the system.`
+        );
+        setShowDeleteErrorPopup(true);
+      } else {
+        setError("Could not delete the classification. Please try again.");
+      }
+      setShowDeletePopup(false);
+      setDeleteItemId(null);
+      setDeleteItemName("");
+    } finally {
+      setIsDeleting(false);
+    }
+  }, [deleteItemId, deleteItemName, checkClassificationUsage, fetchClassifications /* setters y axiosInstance son estables */]);
+
+  const handleDelete = useCallback(async (id: number, name: string) => {
+    setIsDeleting(true);
+    // `records` no se usa directamente en el popup de error actual, pero se obtiene.
+    const { inUse /*, records */ } = await checkClassificationUsage(id);
+    
+
+    if (inUse) {
+      setDeleteErrorMessage(
+        `Cannot delete classification "${name}" because it is currently being used in the system.`
+      );
+      // setDependentRecords(records); // Si se quisiera mostrar detalles en el popup de error
+      setShowDeleteErrorPopup(true);
+      setIsDeleting(false); // Asegurarse de resetear isDeleting aquí también
+      return;
+    }
+    setDeleteItemId(id);
+    setDeleteItemName(name);
+    setShowDeletePopup(true);
+    // setIsDeleting(false) se maneja en el flujo del popup o si el usuario cancela.
+    // O, si la verificación es rápida y no queremos mantener el spinner del botón de la fila activo hasta que el popup aparezca:
+    setIsDeleting(false); 
+  }, [checkClassificationUsage /* setters son estables */]);
+
+  // Efecto para manejar Enter/Escape en los popups
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Enter') {
-        if (showDeleteSuccessPopup) {
-          e.preventDefault();
-          closeDeleteSuccessPopup();
-        } else if (showDeletePopup && !isDeleting) {
-          e.preventDefault();
+      if (e.key !== 'Enter' && e.key !== 'Escape') return;
+
+      let actionTaken = false;
+
+      if (showDeleteSuccessPopup) {
+        closeDeleteSuccessPopup();
+        actionTaken = true;
+      } else if (showDeletePopup && !isDeleting) {
+        if (e.key === 'Enter') {
           confirmDelete();
-        } else if (showDeleteErrorPopup) {
-          e.preventDefault();
-          closeDeleteErrorPopup();
-        }
-      } else if (e.key === 'Escape') {
-        if (showDeletePopup && !isDeleting) {
-          e.preventDefault();
+        } else if (e.key === 'Escape') {
           cancelDelete();
-        } else if (showDeleteSuccessPopup) {
-          e.preventDefault();
-          closeDeleteSuccessPopup();
-        } else if (showDeleteErrorPopup) {
-          e.preventDefault();
-          closeDeleteErrorPopup();
         }
+        actionTaken = true;
+      } else if (showDeleteErrorPopup) {
+        closeDeleteErrorPopup();
+        actionTaken = true;
+      }
+
+      if (actionTaken) {
+        e.preventDefault();
       }
     };
 
@@ -91,291 +237,20 @@ const CatalogClassif: React.FC = () => {
         document.removeEventListener('keydown', handleKeyDown);
       };
     }
-  }, [showDeletePopup, showDeleteSuccessPopup, showDeleteErrorPopup, isDeleting]);
-
-  const fetchClassifications = async () => {
-    setLoading(true);
-    try {
-      const url = search 
-        ? `/catalog/service-classification?search=${encodeURIComponent(search)}`
-        : `/catalog/service-classification`;
-      
-      // console.log("Fetching classifications from:", url); // Para debugging
-      
-      const res = await axiosInstance.get(url);
-      // console.log("Classifications response:", res.data); // Para debugging
-      
-      setClassifications(res.data);
-      setError(null);
-    } catch (err: any) {
-      // console.error("Error fetching classifications:", err);
-      // console.error("Error response:", err.response?.data);
-      setError("Could not load classifications. Please try again.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Verificar si una clasificación está siendo utilizada por diferentes módulos
-  const checkClassificationUsage = async (classificationId: number): Promise<{ inUse: boolean; records: any[] }> => {
-    try {
-      const allDependentRecords: any[] = [];
-
-      // Verificar en servicios
-      try {
-        const servicesRes = await axiosInstance.get('/catalog/services');
-        const servicesUsingClassification = servicesRes.data.filter((service: any) =>
-          service.id_service_classification === classificationId
-        );
-        allDependentRecords.push(
-          ...servicesUsingClassification.map((service: any) => ({
-            type: 'Service',
-            name: `${service.service_code} - ${service.service_name}`,
-            id: service.id_service
-          }))
-        );
-      } catch (err) {
-        console.warn("Error checking services:", err);
-      }
-
-      // Verificar en componentes (módulo principal que utiliza clasificaciones)
-      try {
-        const componentsRes = await axiosInstance.get('/components');
-        const componentsUsingClassification = componentsRes.data.filter((comp: any) => 
-          comp.id_service_classification === classificationId ||
-          comp.classification_id === classificationId
-        );
-        allDependentRecords.push(
-          ...componentsUsingClassification.map((comp: any) => ({
-            type: 'Component',
-            name: `Component: ${comp.component_name || comp.component_number || comp.id}`,
-            id: comp.id
-          }))
-        );
-      } catch (err) {
-        console.warn("Error checking components:", err);
-      }
-
-      // Verificar en customer services
-      try {
-        const customerServicesRes = await axiosInstance.get('/catalog/service-per-customer');
-        const customerServicesUsingClassification = customerServicesRes.data.filter((cs: any) => {
-          // Verificar si el servicio del customer service usa esta clasificación
-          return cs.service_classification_id === classificationId;
-        });
-        allDependentRecords.push(
-          ...customerServicesUsingClassification.map((cs: any) => ({
-            type: 'Customer Service',
-            name: `Customer ID: ${cs.id_customer} - Service: ${cs.service_name || cs.id_service}`,
-            id: cs.id_service_per_customer
-          }))
-        );
-      } catch (err) {
-        console.warn("Error checking customer services:", err);
-      }
-
-      // Verificar en work orders
-      try {
-        const workOrdersRes = await axiosInstance.get('/work-orders');
-        const workOrdersUsingClassification = workOrdersRes.data.filter((wo: any) => 
-          wo.service_classification_id === classificationId
-        );
-        allDependentRecords.push(
-          ...workOrdersUsingClassification.map((wo: any) => ({
-            type: 'Work Order',
-            name: `Work Order: ${wo.work_order_number || wo.id}`,
-            id: wo.id
-          }))
-        );
-      } catch (err) {
-        console.warn("Error checking work orders:", err);
-      }
-
-      // Verificar en cotizaciones/quotes
-      try {
-        const quotesRes = await axiosInstance.get('/quotes');
-        const quotesUsingClassification = quotesRes.data.filter((quote: any) => 
-          quote.service_classification_id === classificationId
-        );
-        allDependentRecords.push(
-          ...quotesUsingClassification.map((quote: any) => ({
-            type: 'Quote',
-            name: `Quote: ${quote.quote_number || quote.id}`,
-            id: quote.id
-          }))
-        );
-      } catch (err) {
-        console.warn("Error checking quotes:", err);
-      }
-
-      // Verificar en reportes operacionales
-      try {
-        const operationReportsRes = await axiosInstance.get('/reports/operation-report');
-        const reportsUsingClassification = operationReportsRes.data.filter((report: any) => 
-          report.classification_id === classificationId
-        );
-        allDependentRecords.push(
-          ...reportsUsingClassification.map((report: any) => ({
-            type: 'Operation Report',
-            name: `Report: ${report.cliente} - ${report.servicio_principal}`,
-            id: report.id
-          }))
-        );
-      } catch (err) {
-        console.warn("Error checking operation reports:", err);
-      }
-
-      // Verificar en ejecuciones de servicio
-      try {
-        const serviceExecutionsRes = await axiosInstance.get('/reports/service-executions');
-        const executionsUsingClassification = serviceExecutionsRes.data.filter((exec: any) => 
-          exec.classification_id === classificationId
-        );
-        allDependentRecords.push(
-          ...executionsUsingClassification.map((exec: any) => ({
-            type: 'Service Execution',
-            name: `Execution: Work Order ${exec.work_order}`,
-            id: exec.id
-          }))
-        );
-      } catch (err) {
-        console.warn("Error checking service executions:", err);
-      }
-
-      // Verificar en facturas/invoices
-      try {
-        const invoicesRes = await axiosInstance.get('/billing/invoices');
-        const invoicesUsingClassification = invoicesRes.data.filter((invoice: any) => 
-          invoice.classification_id === classificationId
-        );
-        allDependentRecords.push(
-          ...invoicesUsingClassification.map((invoice: any) => ({
-            type: 'Invoice',
-            name: `Invoice: ${invoice.invoice_number || invoice.id}`,
-            id: invoice.id
-          }))
-        );
-      } catch (err) {
-        console.warn("Error checking invoices:", err);
-      }
-
-      return {
-        inUse: allDependentRecords.length > 0,
-        records: allDependentRecords
-      };
-    } catch (err) {
-      console.error("Error checking classification usage:", err);
-      return { inUse: false, records: [] };
-    }
-  };
-
-  // Inicia el proceso de eliminación mostrando el popup
-  const handleDelete = async (id: number, name: string) => {
-    setIsDeleting(true);
-    
-    // Verificar si la clasificación está siendo utilizada
-    const { inUse, records } = await checkClassificationUsage(id);
-    
-    setIsDeleting(false);
-
-    if (inUse) {
-      // Mostrar popup de error simplificado
-      setDeleteErrorMessage(
-        `Cannot delete classification "${name}" because it is currently being used in the system.`
-      );
-      setShowDeleteErrorPopup(true);
-      return;
-    }
-
-    // Si no está en uso, proceder con la confirmación de eliminación
-    setDeleteItemId(id);
-    setDeleteItemName(name);
-    setShowDeletePopup(true);
-  };
-
-  // Confirma la eliminación desde el popup
-  const confirmDelete = async () => {
-    if (deleteItemId === null) return;
-
-    setIsDeleting(true);
-    try {
-      // Verificar una vez más antes de eliminar
-      const { inUse, records } = await checkClassificationUsage(deleteItemId);
-
-      if (inUse) {
-        // Si ahora está en uso, mostrar error
-        setDeleteErrorMessage(
-          `Cannot delete classification "${deleteItemName}" because it is currently being used in the system.`
-        );
-        setShowDeletePopup(false);
-        setShowDeleteErrorPopup(true);
-        setDeleteItemId(null);
-        setDeleteItemName("");
-        return;
-      }
-
-      await axiosInstance.delete(`/catalog/service-classification/${deleteItemId}`);
-
-      // Guardar el nombre del elemento eliminado para mostrarlo en el popup de éxito
-      setDeletedItemName(deleteItemName);
-
-      // Cerrar el popup de confirmación
-      setShowDeletePopup(false);
-      setDeleteItemId(null);
-      setDeleteItemName("");
-
-      // Mostrar el popup de éxito
-      setShowDeleteSuccessPopup(true);
-
-      // Actualizar la lista
-      fetchClassifications();
-      setError(null);
-
-    } catch (err: any) {
-      console.error("Error deleting classification:", err);
-
-      // Verificar si el error es por dependencias
-      if (err.response?.status === 409 || err.response?.data?.detail?.includes("constraint")) {
-        setDeleteErrorMessage(
-          `Cannot delete classification "${deleteItemName}" because it is currently being used in the system.`
-        );
-        setShowDeletePopup(false);
-        setShowDeleteErrorPopup(true);
-      } else {
-        setError("Could not delete the classification. Please try again.");
-        setShowDeletePopup(false);
-      }
-
-      setDeleteItemId(null);
-      setDeleteItemName("");
-    } finally {
-      setIsDeleting(false);
-    }
-  };
-
-  // Cierra el popup de éxito de eliminación
-  const closeDeleteSuccessPopup = () => {
-    setShowDeleteSuccessPopup(false);
-    setDeletedItemName("");
-  };
-
-  // Cierra el popup de error de eliminación
-  const closeDeleteErrorPopup = () => {
-    setShowDeleteErrorPopup(false);
-    setDeleteErrorMessage("");
-    setDependentRecords([]);
-  };
-
-  // Cancela la eliminación
-  const cancelDelete = () => {
-    setShowDeletePopup(false);
-    setDeleteItemId(null);
-    setDeleteItemName("");
-  };
+  }, [
+    showDeletePopup,
+    showDeleteSuccessPopup,
+    showDeleteErrorPopup,
+    isDeleting,
+    confirmDelete,
+    cancelDelete,
+    closeDeleteSuccessPopup,
+    closeDeleteErrorPopup
+  ]);
 
   useEffect(() => {
     fetchClassifications();
-  }, [search]);
+  }, [fetchClassifications]); // fetchClassifications ahora es memoizada y depende de 'search'
 
   return (
     <AISGBackground>
@@ -414,52 +289,106 @@ const CatalogClassif: React.FC = () => {
             <p className="font-medium">{error}</p>
           </div>
         )}
-        <div className="w-full overflow-x-auto">
+        <div className="w-full">
           {loading ? (
             <div className="flex justify-center py-12 bg-transparent">
               <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-white"></div>
             </div>
           ) : (
-            <table className="min-w-full table-auto border-collapse">
-              <thead>
-                <tr className="bg-white">
-                  <th className="px-4 py-3 text-left font-semibold text-[#002057] border border-[#cccccc] whitespace-nowrap">
-                    Name
-                  </th>
-                  <th className="px-4 py-3 text-left font-semibold text-[#002057] border border-[#cccccc] whitespace-nowrap">
-                    Created/Modified By
-                  </th>
-                  <th className="px-4 py-3 text-left font-semibold text-[#002057] border border-[#cccccc] whitespace-nowrap">
-                    Created At
-                  </th>
-                  <th className="px-4 py-3 text-left font-semibold text-[#002057] border border-[#cccccc] whitespace-nowrap">
-                    Updated At
-                  </th>
-                  <th className="px-4 py-3 text-center font-semibold text-[#002057] border border-[#cccccc] whitespace-nowrap">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {classifications.length === 0 ? (
-                  <tr>
-                    <td colSpan={5} className="px-4 py-4 text-center text-white bg-transparent">
-                      No records found
-                    </td>
-                  </tr>
-                ) : (
-                  classifications.map((c) => (
-                    <tr key={c.id_service_classification} className="bg-transparent">
-                      <td className="px-4 py-3 border border-[#1e3462] font-medium text-white whitespace-nowrap">{c.service_classification_name}</td>
-                      <td className="px-4 py-3 border border-[#1e3462] text-white whitespace-nowrap">{c.whonew || "-"}</td>
-                      <td className="px-4 py-3 border border-[#1e3462] text-white whitespace-nowrap">
-                        {c.create_at ? new Date(c.create_at).toLocaleString() : "-"}
-                      </td>
-                      <td className="px-4 py-3 border border-[#1e3462] text-white whitespace-nowrap">
-                        {c.updated_at ? new Date(c.updated_at).toLocaleString() : "-"}
-                      </td>
-                      <td className="px-4 py-3 border border-[#1e3462] whitespace-nowrap">
-                        <div className="flex justify-center space-x-2">
+            <>
+              {classifications.length === 0 ? (
+                <div className="px-4 py-4 text-center text-white bg-transparent">
+                  No records found
+                </div>
+              ) : (
+                <>
+                  {/* Vista de Tabla para md y superior */}
+                  <div className="hidden md:block overflow-x-auto">
+                    <table className="min-w-full table-auto border-collapse">
+                      <thead>
+                        <tr className="bg-white">
+                          <th className="px-4 py-3 text-left font-semibold text-[#002057] border border-[#cccccc]">
+                            Name
+                          </th>
+                          <th className="px-4 py-3 text-left font-semibold text-[#002057] border border-[#cccccc]">
+                            Created/Modified By
+                          </th>
+                          <th className="px-4 py-3 text-left font-semibold text-[#002057] border border-[#cccccc]">
+                            Created At
+                          </th>
+                          <th className="px-4 py-3 text-left font-semibold text-[#002057] border border-[#cccccc]">
+                            Updated At
+                          </th>
+                          <th className="px-4 py-3 text-center font-semibold text-[#002057] border border-[#cccccc]">
+                            Actions
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {classifications.map((c) => (
+                          <tr key={c.id_service_classification} className="bg-transparent">
+                            <td className="px-4 py-3 border border-[#1e3462] font-medium text-white">{c.service_classification_name}</td>
+                            <td className="px-4 py-3 border border-[#1e3462] text-white">{c.whonew || "-"}</td>
+                            <td className="px-4 py-3 border border-[#1e3462] text-white">
+                              {c.create_at ? new Date(c.create_at).toLocaleString() : "-"}
+                            </td>
+                            <td className="px-4 py-3 border border-[#1e3462] text-white">
+                              {c.updated_at ? new Date(c.updated_at).toLocaleString() : "-"}
+                            </td>
+                            <td className="px-4 py-3 border border-[#1e3462]">
+                              <div className="flex justify-center space-x-2">
+                                <Link
+                                  to={`/catalogs/classif/edit/${c.id_service_classification}`}
+                                  className="p-1.5 bg-white text-[#002057] rounded hover:bg-gray-100 transition-colors"
+                                  title="Edit"
+                                >
+                                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                  </svg>
+                                </Link>
+                                <button
+                                  onClick={() => handleDelete(c.id_service_classification, c.service_classification_name)}
+                                  disabled={isDeleting}
+                                  className="p-1.5 bg-[#e6001f] text-white rounded hover:bg-red-700 transition-colors disabled:opacity-50"
+                                  title="Delete"
+                                >
+                                  {isDeleting && deleteItemId === c.id_service_classification ? ( 
+                                    <div className="w-5 h-5 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+                                  ) : (
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                    </svg>
+                                  )}
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* Vista de Tarjetas para sm e inferior */}
+                  <div className="block md:hidden">
+                    {classifications.map((c) => (
+                      <div key={c.id_service_classification} className="bg-transparent border border-[#1e3462] rounded-lg p-4 mb-4 text-white shadow-md">
+                        <div className="mb-2">
+                          <strong className="text-gray-300 block text-sm">Name:</strong>
+                          <span className="text-lg font-medium">{c.service_classification_name}</span>
+                        </div>
+                        <div className="mb-2">
+                          <strong className="text-gray-300 block text-sm">Created/Modified By:</strong>
+                          <span>{c.whonew || "-"}</span>
+                        </div>
+                        <div className="mb-2">
+                          <strong className="text-gray-300 block text-sm">Created At:</strong>
+                          <span>{c.create_at ? new Date(c.create_at).toLocaleString() : "-"}</span>
+                        </div>
+                        <div className="mb-2">
+                          <strong className="text-gray-300 block text-sm">Updated At:</strong>
+                          <span>{c.updated_at ? new Date(c.updated_at).toLocaleString() : "-"}</span>
+                        </div>
+                        <div className="mt-4 pt-3 border-t border-[#1e3462] flex items-center justify-end space-x-2">
                           <Link
                             to={`/catalogs/classif/edit/${c.id_service_classification}`}
                             className="p-1.5 bg-white text-[#002057] rounded hover:bg-gray-100 transition-colors"
@@ -475,7 +404,7 @@ const CatalogClassif: React.FC = () => {
                             className="p-1.5 bg-[#e6001f] text-white rounded hover:bg-red-700 transition-colors disabled:opacity-50"
                             title="Delete"
                           >
-                            {isDeleting ? (
+                            {isDeleting && deleteItemId === c.id_service_classification ? (
                               <div className="w-5 h-5 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
                             ) : (
                               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -484,12 +413,12 @@ const CatalogClassif: React.FC = () => {
                             )}
                           </button>
                         </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
+            </>
           )}
         </div>
       </div>
@@ -498,15 +427,12 @@ const CatalogClassif: React.FC = () => {
       {showDeletePopup && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="overflow-hidden max-w-md w-full mx-4 rounded-lg shadow-xl">
-            {/* Encabezado blanco con texto azul */}
             <div className="bg-white rounded-t-lg px-6 py-4 shadow-lg">
               <h2 className="text-2xl font-bold text-center text-[#002057]">
                 Confirm Deletion
               </h2>
               <div className="mt-2 w-20 h-1 bg-[#e6001f] mx-auto rounded"></div>
             </div>
-
-            {/* Cuerpo con fondo azul oscuro */}
             <div className="bg-[#1E2A45] rounded-b-lg shadow-lg px-8 py-8">
               <div className="flex items-center mb-4">
                 <div className="bg-[#e6001f] rounded-full p-2 mr-4">
@@ -527,11 +453,8 @@ const CatalogClassif: React.FC = () => {
                   <>
                     <button
                       onClick={cancelDelete}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          e.preventDefault();
-                          cancelDelete();
-                        }
+                      onKeyDown={(e) => { // Mantener por si el foco está aquí y no en document
+                        if (e.key === 'Enter') { e.preventDefault(); cancelDelete(); }
                       }}
                       className="w-1/2 bg-[#4D70B8] hover:bg-[#3A5A9F] text-white font-medium py-3 px-4 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg"
                     >
@@ -540,11 +463,8 @@ const CatalogClassif: React.FC = () => {
                     <button
                       ref={deleteConfirmButtonRef}
                       onClick={confirmDelete}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          e.preventDefault();
-                          confirmDelete();
-                        }
+                      onKeyDown={(e) => { // Mantener por si el foco está aquí y no en document
+                        if (e.key === 'Enter') { e.preventDefault(); confirmDelete(); }
                       }}
                       className="w-1/2 bg-[#e6001f] hover:bg-red-700 text-white font-medium py-3 px-4 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg"
                     >
@@ -562,15 +482,12 @@ const CatalogClassif: React.FC = () => {
       {showDeleteSuccessPopup && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="overflow-hidden max-w-md w-full mx-4 rounded-lg shadow-xl">
-            {/* Encabezado blanco con texto azul */}
             <div className="bg-white rounded-t-lg px-6 py-4 shadow-lg">
               <h2 className="text-2xl font-bold text-center text-[#002057]">
                 Success
               </h2>
               <div className="mt-2 w-20 h-1 bg-[#e6001f] mx-auto rounded"></div>
             </div>
-
-            {/* Cuerpo con fondo azul oscuro */}
             <div className="bg-[#1E2A45] rounded-b-lg shadow-lg px-8 py-8">
               <div className="flex items-center mb-4 justify-center">
                 <div className="bg-[#00B140] rounded-full p-2 mr-4">
@@ -586,12 +503,9 @@ const CatalogClassif: React.FC = () => {
                 <button
                   ref={deleteSuccessOkButtonRef}
                   onClick={closeDeleteSuccessPopup}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      closeDeleteSuccessPopup();
-                    }
-                  }}
+                   onKeyDown={(e) => { // Mantener por si el foco está aquí y no en document
+                        if (e.key === 'Enter') { e.preventDefault(); closeDeleteSuccessPopup(); }
+                      }}
                   className="w-full bg-[#00B140] hover:bg-[#009935] text-white font-medium py-3 px-4 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg"
                 >
                   OK
@@ -606,15 +520,12 @@ const CatalogClassif: React.FC = () => {
       {showDeleteErrorPopup && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="overflow-hidden max-w-md w-full mx-4 rounded-lg shadow-xl">
-            {/* Encabezado blanco con texto azul */}
             <div className="bg-white rounded-t-lg px-6 py-4 shadow-lg">
               <h2 className="text-2xl font-bold text-center text-[#002057]">
                 Cannot Delete Classification
               </h2>
               <div className="mt-2 w-20 h-1 bg-[#e6001f] mx-auto rounded"></div>
             </div>
-
-            {/* Cuerpo con fondo azul oscuro */}
             <div className="bg-[#1E2A45] rounded-b-lg shadow-lg px-8 py-8">
               <div className="flex items-center mb-4">
                 <div className="bg-[#f59e0b] rounded-full p-2 mr-4">
@@ -630,12 +541,9 @@ const CatalogClassif: React.FC = () => {
                 <button
                   ref={deleteErrorOkButtonRef}
                   onClick={closeDeleteErrorPopup}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      closeDeleteErrorPopup();
-                    }
-                  }}
+                  onKeyDown={(e) => { // Mantener por si el foco está aquí y no en document
+                        if (e.key === 'Enter') { e.preventDefault(); closeDeleteErrorPopup(); }
+                      }}
                   className="w-full bg-[#f59e0b] hover:bg-[#d97706] text-white font-medium py-3 px-4 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg"
                 >
                   OK

@@ -1,11 +1,6 @@
 
-> frontend@0.8.13 preview
-> vite preview --host
+> frontend@0.8.25 preview
+> vite preview --host --port 5100
 
-  ➜  Local:   http://localhost:4174/
-  ➜  Network: http://82.165.213.124:4174/
-  ➜  Network: http://172.18.0.1:4174/
-  ➜  Network: http://172.24.0.1:4174/
-  ➜  Network: http://172.22.0.1:4174/
-  ➜  Network: http://172.20.0.1:4174/
-  ➜  Network: http://172.23.0.1:4174/
+  ➜  Local:   http://localhost:5100/
+  ➜  Network: http://216.225.204.181:5100/

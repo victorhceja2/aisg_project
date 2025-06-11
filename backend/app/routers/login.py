@@ -1,62 +1,67 @@
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 import pyodbc
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 router = APIRouter()
 
-# Esquema de entrada
 class LoginRequest(BaseModel):
     username: str
     password: str
 
-# Esquema de respuesta
-class LoginResponse(BaseModel):
-    userId: str
-    userName: str
-    perfil: str
-
-# Endpoint
-@router.post("/login", response_model=LoginResponse)
-def login(request: LoginRequest):
-    print("Login attempt:", request.username, request.password)
-
-    conn = None
-    cursor = None
-
+@router.post("/login")
+async def login(request: LoginRequest):
+    username = request.username
+    password = request.password
+    
+    print(f"Login attempt: {username} {password}")
+    
     try:
-        conn = pyodbc.connect(
-            'Driver={ODBC Driver 17 for SQL Server};'
-            'Server=66.179.95.14;'
-            'Database=aisgProduction;'
-            'UID=sa;'
-            'PWD=Vic1973;'
-            'TrustServerCertificate=yes;'
+        # Obtener variables de entorno
+        server = os.getenv("SQL_SERVER_HOST")
+        database = os.getenv("SQL_SERVER_DB")
+        db_username = os.getenv("SQL_SERVER_USER")
+        db_password = os.getenv("SQL_SERVER_PASSWORD")
+        
+        # Crear cadena de conexión para pyodbc
+        connection_string = (
+            f"DRIVER={{ODBC Driver 18 for SQL Server}};"
+            f"SERVER={server};"
+            f"DATABASE={database};"
+            f"UID={db_username};"
+            f"PWD={db_password};"
+            f"TrustServerCertificate=yes;"
+            f"Encrypt=yes"
         )
+        
+        # Conectar a la base de datos
+        conn = pyodbc.connect(connection_string, timeout=10)
         cursor = conn.cursor()
-
+        
+        # Ejecutar consulta de login con la tabla y campos correctos
         cursor.execute("""
             SELECT userId, userName, perfil
             FROM DBtableUserHeader
             WHERE userNick = ? AND password = ? AND estatus = 1
-        """, (request.username, request.password))
-
+        """, (username, password))
         user = cursor.fetchone()
-
+        
+        cursor.close()
+        conn.close()
+        
         if user:
             return {
-                "userId": user.userId,
-                "userName": user.userName,
-                "perfil": user.perfil
+                "message": "Login successful", 
+                "user_id": user[0], 
+                "username": user[1],
+                "perfil": user[2]
             }
         else:
-            raise HTTPException(status_code=401, detail="Usuario o contraseña incorrectos")
-
-    except pyodbc.Error as e:
-        print("Error en conexión o consulta SQL:", e)  # Agrega este print
-        raise HTTPException(status_code=500, detail=f"Error de conexión a la base de datos: {str(e)}")
-
-    finally:
-        if cursor is not None:
-            cursor.close()
-        if conn is not None:
-            conn.close()
+            raise HTTPException(status_code=401, detail="Invalid credentials")
+            
+    except Exception as e:
+        print(f"Error en conexión o consulta SQL: {e}")
+        raise HTTPException(status_code=500, detail="Database connection error")

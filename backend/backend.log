@@ -1,8 +1,11 @@
 INFO:     Will watch for changes in these directories: ['/root/aisg_project/backend']
-INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
-INFO:     Started reloader process [3401139] using WatchFiles
-INFO:     Started server process [3401148]
+INFO:     Uvicorn running on http://0.0.0.0:8100 (Press CTRL+C to quit)
+INFO:     Started reloader process [41828] using StatReload
+INFO:     Started server process [41841]
 INFO:     Waiting for application startup.
 INFO:     Application startup complete.
-INFO:     200.188.103.224:53652 - "GET /reports/operation-reports-v2 HTTP/1.1" 200 OK
-INFO:     200.188.103.224:53657 - "GET /reports/operation-reports-v2 HTTP/1.1" 200 OK
+Connecting to database: aisgqa.cz0rtlegnc6d.us-east-1.rds.amazonaws.com:1433/aisgProduction
+INFO:     66.179.95.14:59539 - "GET /catalog/service-classification HTTP/1.1" 307 Temporary Redirect
+INFO:     66.179.95.14:59539 - "GET /catalog/service-classification/ HTTP/1.1" 200 OK
+INFO:     66.179.95.14:59539 - "GET /catalog/service-classification HTTP/1.1" 307 Temporary Redirect
+INFO:     66.179.95.14:59539 - "GET /catalog/service-classification/ HTTP/1.1" 200 OK
