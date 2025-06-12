@@ -1,0 +1,4 @@
+"Nombre de imagen","PID","Nombre de sesi¢n","N£m. de sesi¢n","Uso de memoria"
+"python.exe","5816","Console","1","4,688 KB"
+"python.exe","3168","Console","1","31,568 KB"
+"python.exe","21132","Console","1","62,672 KB"
