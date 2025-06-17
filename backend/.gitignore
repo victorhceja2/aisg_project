@@ -1,0 +1,81 @@
+# Entornos virtuales
+venv/
+env/
+ENV/
+.venv/
+.pyenv/
+
+# Archivos de Python compilados
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Archivos de logs y dumps
+*.log
+*.out
+*.pid
+*.gz
+*.dump
+
+# Archivos temporales del sistema operativo
+.DS_Store
+Thumbs.db
+
+# Archivos de configuración del entorno local
+*.env
+.env.*
+!env.example
+
+# Archivos de herramientas de desarrollo
+*.vscode/
+.idea/
+*.swp
+*.bak
+
+# Archivos de bases de datos locales o temporales
+*.sqlite3
+*.db
+
+# Cache de pip
+pip-wheel-metadata/
+*.egg-info/
+dist/
+build/
+
+# Carpeta de dependencias (opcional si usas poetry o wheel local)
+site/
+.eggs/
+wheels/
+__pypackages__/
+
+# Carpetas de documentación autogeneradas
+docs/_build/
+*.pdf
+
+# Archivos de despliegue
+*.tar.gz
+*.whl
+
+# Archivos de pruebas
+htmlcov/
+.coverage
+.tox/
+.nox/
+.pytest_cache/
+.cache/
+
+# Archivos de Docker (si aplicara)
+*.pid
+*.seed
+*.pid.lock
+
+# Archivos de VSCode (por si usas)
+.vscode/
+
+# Archivos de Jupyter Notebook (si hubiera)
+.ipynb_checkpoints/
+
+# Node (por si metes React o frontend en el mismo repo)
+node_modules/
+npm-debug.log
+yarn-error.log
