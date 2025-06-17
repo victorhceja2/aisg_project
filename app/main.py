@@ -1,5 +1,8 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
+
+# Importar el esquema de seguridad
+from app.authorization import CustomHTTPBearer
 
 # Routers del sistema
 from app.routers import (
@@ -30,9 +33,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Registrar routers
+# Instancia del esquema de seguridad
+oauth2_scheme = CustomHTTPBearer()
+
+# Registrar routers protegidos (excepto login)
 routers = [
-    login.router,
     catalog_services.router,
     catalog_service_classification.router,
     catalog_service_status.router,
@@ -46,15 +51,19 @@ routers = [
     client.router,
     aircraft_models.router,
     company.router,
-    reports.router  # Agregar esta línea
+    reports.router
 ]
 
+# Registrar router de login sin protección
+app.include_router(login.router)
+
+# Registrar routers protegidos con dependencia global
 for r in routers:
-    app.include_router(r)
+    app.include_router(r, dependencies=[Depends(oauth2_scheme)])
 
 @app.get("/ping")
 def ping():
-    return {"status": "ok", "message": "AISG API is running"}
+    return {"message": "pong"}
 
 if __name__ == "__main__":
     import uvicorn
